@@ -26,7 +26,7 @@ resource "aws_db_instance" "main" {
 
   engine         = "postgres"
   engine_version = "16.3"
-  instance_class = "db.t3.medium"
+  instance_class = "db.t3.micro" # MVP sizing (saves ~$40/mo; upgrade to t3.medium for prod)
 
   allocated_storage     = 50
   max_allocated_storage = 200
@@ -41,7 +41,7 @@ resource "aws_db_instance" "main" {
   vpc_security_group_ids = [aws_security_group.rds.id]
   parameter_group_name   = aws_db_parameter_group.postgres16.name
 
-  multi_az            = true
+  multi_az            = false # Single-AZ for MVP (saves ~$65/mo; enable for prod HA)
   publicly_accessible = false
   skip_final_snapshot = false
 
@@ -51,7 +51,7 @@ resource "aws_db_instance" "main" {
   backup_window           = "03:00-04:00"
   maintenance_window      = "sun:04:00-sun:05:00"
 
-  performance_insights_enabled = true
+  performance_insights_enabled = false # Not free on t3.micro; enable for prod
 
   # Flyway creates schemas on first service boot:
   # auth, users, listings, bookings, payments, reviews, messages

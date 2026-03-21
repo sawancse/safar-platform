@@ -11,10 +11,10 @@ resource "aws_elasticache_replication_group" "main" {
 
   engine         = "redis"
   engine_version = "7.1"
-  node_type      = "cache.t3.small"
+  node_type      = "cache.t3.micro" # MVP sizing (saves ~$35/mo)
   port           = 6379
 
-  num_cache_clusters = 2 # Primary + 1 replica
+  num_cache_clusters = 1 # Single node for MVP (saves ~$15/mo; set 2 for prod HA)
 
   subnet_group_name  = aws_elasticache_subnet_group.main.name
   security_group_ids = [aws_security_group.redis.id]
@@ -22,7 +22,7 @@ resource "aws_elasticache_replication_group" "main" {
   at_rest_encryption_enabled = true
   transit_encryption_enabled = true
 
-  automatic_failover_enabled = true
+  automatic_failover_enabled = false # Requires 2+ nodes; enable for prod
 
   snapshot_retention_limit = 3
   snapshot_window          = "02:00-03:00"

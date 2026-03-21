@@ -43,7 +43,7 @@ resource "aws_route53_record" "admin" {
   }
 }
 
-# ACM certificate validation (ALB cert — ap-south-1)
+# ACM certificate validation records (shared by both ALB + CloudFront certs — same domain)
 resource "aws_route53_record" "acm_validation" {
   for_each = {
     for dvo in aws_acm_certificate.main.domain_validation_options : dvo.domain_name => {
@@ -53,28 +53,12 @@ resource "aws_route53_record" "acm_validation" {
     }
   }
 
-  zone_id = aws_route53_zone.main.zone_id
-  name    = each.value.name
-  type    = each.value.type
-  ttl     = 60
-  records = [each.value.record]
-}
-
-# ACM certificate validation (CloudFront cert — us-east-1)
-resource "aws_route53_record" "acm_cf_validation" {
-  for_each = {
-    for dvo in aws_acm_certificate.cloudfront.domain_validation_options : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      record = dvo.resource_record_value
-      type   = dvo.resource_record_type
-    }
-  }
-
-  zone_id = aws_route53_zone.main.zone_id
-  name    = each.value.name
-  type    = each.value.type
-  ttl     = 60
-  records = [each.value.record]
+  allow_overwrite = true
+  zone_id         = aws_route53_zone.main.zone_id
+  name            = each.value.name
+  type            = each.value.type
+  ttl             = 60
+  records         = [each.value.record]
 }
 
 # Wait for ALB cert validation
@@ -83,10 +67,10 @@ resource "aws_acm_certificate_validation" "main" {
   validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]
 }
 
-# Wait for CloudFront cert validation
+# Wait for CloudFront cert validation (reuses same DNS records)
 resource "aws_acm_certificate_validation" "cloudfront" {
   provider = aws.us_east_1
 
   certificate_arn         = aws_acm_certificate.cloudfront.arn
-  validation_record_fqdns = [for record in aws_route53_record.acm_cf_validation : record.fqdn]
+  validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]
 }

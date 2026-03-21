@@ -64,7 +64,11 @@ cmd_build() {
     IMAGE="${ECR_REGISTRY}/${PROJECT}/${svc}"
     TAG="sha-$(git rev-parse --short HEAD)"
 
-    docker build -t "${IMAGE}:${TAG}" -t "${IMAGE}:latest" "services/${svc}"
+    if [ "$svc" = "ai-service" ]; then
+      docker build -t "${IMAGE}:${TAG}" -t "${IMAGE}:latest" "services/${svc}"
+    else
+      docker build -t "${IMAGE}:${TAG}" -t "${IMAGE}:latest" -f "services/${svc}/Dockerfile" .
+    fi
     docker push "${IMAGE}:${TAG}"
     docker push "${IMAGE}:latest"
     log "${svc} pushed → ${IMAGE}:${TAG}"

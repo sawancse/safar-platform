@@ -5,7 +5,7 @@ resource "aws_ecs_cluster" "main" {
 
   setting {
     name  = "containerInsights"
-    value = "enabled"
+    value = "disabled" # MVP cost saving (~$15/mo); enable for prod
   }
 }
 
@@ -14,9 +14,15 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
   capacity_providers = ["FARGATE", "FARGATE_SPOT"]
 
   default_capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 4
+    base              = 0
+  }
+
+  default_capacity_provider_strategy {
     capacity_provider = "FARGATE"
     weight            = 1
-    base              = 1
+    base              = 1 # 1 task always on regular Fargate (api-gateway)
   }
 }
 
@@ -54,7 +60,7 @@ resource "aws_cloudwatch_log_group" "services" {
   for_each = var.services
 
   name              = "/ecs/${var.project}/${each.key}"
-  retention_in_days = 30
+  retention_in_days = 7 # MVP cost saving; increase for prod
 }
 
 # ── ECS Task Definitions ────────────────────────────────────────────────────
