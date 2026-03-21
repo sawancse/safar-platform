@@ -1,0 +1,76 @@
+{
+  "common": {
+    "continue": "जारी रखें",
+    "cancel": "रद्द करें",
+    "save": "सेव करें",
+    "loading": "लोड हो रहा है...",
+    "error": "कुछ गड़बड़ हुई। कृपया फिर कोशिश करें।",
+    "success": "सफल!",
+    "back": "वापस",
+    "close": "बंद करें",
+    "yes": "हाँ",
+    "no": "नहीं"
+  },
+  "auth": {
+    "enterPhone": "अपना मोबाइल नंबर दर्ज करें",
+    "otpSent": "{phone} पर OTP भेजा गया",
+    "verifyOtp": "OTP सत्यापित करें",
+    "resendOtp": "{seconds} सेकंड में OTP दोबारा भेजें",
+    "signIn": "साइन इन",
+    "notSignedIn": "साइन इन नहीं है"
+  },
+  "nav": {
+    "explore": "खोजें",
+    "myTrips": "मेरी यात्राएं",
+    "profile": "प्रोफ़ाइल"
+  },
+  "search": {
+    "placeholder": "शहर से खोजें (जैसे मुंबई)",
+    "button": "खोजें",
+    "noResults": "कोई ठहराव नहीं मिला",
+    "tryDifferent": "कोई दूसरा शहर आज़माएं",
+    "findStay": "अपना परफेक्ट ठहराव खोजें",
+    "searchAbove": "ऊपर शहर से खोजें"
+  },
+  "listing": {
+    "perNight": "प्रति रात",
+    "bookNow": "अभी बुक करें",
+    "checkIn": "चेक-इन",
+    "checkOut": "चेक-आउट",
+    "guests": "{count} मेहमान",
+    "guestsPlural": "{count} मेहमान",
+    "wifiSpeed": "वाईफाई {speed} Mbps",
+    "safetyScore": "सुरक्षा: {score}/100",
+    "remoteWork": "रिमोट वर्क प्रमाणित",
+    "womensPick": "महिला सुरक्षा विकल्प",
+    "verified": "सत्यापित",
+    "instant": "इंस्टेंट"
+  },
+  "booking": {
+    "confirmBooking": "बुकिंग की पुष्टि करें",
+    "totalAmount": "कुल {amount}",
+    "gstIncluded": "18% GST सहित",
+    "bookingConfirmed": "बुकिंग हो गई!",
+    "ref": "रेफ: {ref}",
+    "nights": "{count} रात",
+    "nightsPlural": "{count} रातें"
+  },
+  "profile": {
+    "myListings": "मेरी लिस्टिंग",
+    "myTrips": "मेरी यात्राएं",
+    "logout": "लॉग आउट",
+    "logoutConfirm": "क्या आप लॉग आउट करना चाहते हैं?",
+    "language": "भाषा"
+  },
+  "miles": {
+    "balance": "{balance} प्रॉपर्टी माइल्स",
+    "earnInfo": "इस स्टे पर {miles} माइल्स कमाएं",
+    "redeem": "माइल्स इस्तेमाल करें",
+    "tier": "{tier} सदस्य"
+  },
+  "language": {
+    "label": "भाषा",
+    "en": "English",
+    "hi": "हिन्दी"
+  }
+}

@@ -1,0 +1,101 @@
+spring:
+  application:
+    name: auth-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/safar}
+    username: ${DB_USERNAME:safar}
+    password: ${DB_PASSWORD:safar}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 30000
+      connection-timeout: 20000
+      leak-detection-threshold: 30000
+      max-lifetime: 1800000
+      keepalive-time: 300000
+      validation-timeout: 5000
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+    properties:
+      hibernate:
+        default_schema: auth
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+
+  flyway:
+    enabled: true
+    schemas: auth
+    locations: classpath:db/migration
+
+  mail:
+    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:${MAIL_USERNAME:sawank.sit@gmail.com}}
+    password: ${SPRING_MAIL_PASSWORD:${MAIL_PASSWORD:tkmzezdqrcwxngdu}}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls.enable: true
+
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=300s
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 4
+          max-wait: 2000ms
+
+jwt:
+  secret: ${JWT_SECRET:l0UNaBuoYCf7Y/G8G1bihPxkUI7NZuPaZdzTbbEYqzM=}
+  expiry-minutes: ${JWT_EXPIRY_MINUTES:60}
+  refresh-expiry-days: ${JWT_REFRESH_EXPIRY_DAYS:30}
+
+otp:
+  expiry-minutes: 10
+  max-attempts: 3
+
+google:
+  client-id: ${GOOGLE_CLIENT_ID:your-google-client-id}
+
+services:
+  user:
+    url: ${USER_SERVICE_URL:http://localhost:8092}
+
+server:
+  port: ${SERVER_PORT:8888}
+  tomcat:
+    threads:
+      max: 50
+      min-spare: 5
+    max-connections: 200
+    accept-count: 50
+    connection-timeout: 10000
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+springdoc:
+  api-docs.path: /api-docs
+  swagger-ui.path: /swagger-ui.html

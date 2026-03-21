@@ -1,0 +1,41 @@
+package com.safar.user.dto;
+
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+public record HostKycDto(
+        UUID id,
+        UUID userId,
+        String status,
+        // Identity
+        String fullLegalName,
+        LocalDate dateOfBirth,
+        String aadhaarNumber,
+        Boolean aadhaarVerified,
+        String panNumber,
+        Boolean panVerified,
+        // Address
+        String addressLine1,
+        String addressLine2,
+        String city,
+        String state,
+        String pincode,
+        // Bank
+        String bankAccountName,
+        String bankAccountNumber,
+        String bankIfsc,
+        String bankName,
+        Boolean bankVerified,
+        // Business
+        String gstin,
+        Boolean gstVerified,
+        String businessName,
+        String businessType,
+        // Meta
+        OffsetDateTime submittedAt,
+        OffsetDateTime verifiedAt,
+        OffsetDateTime rejectedAt,
+        String rejectionReason,
+        int completionPercent
+) {}

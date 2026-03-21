@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <title>7 Days to Go!</title>
+    <style>
+        body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        body { margin: 0; padding: 0; width: 100% !important; background-color: #F7F7F7; }
+        @media only screen and (max-width: 620px) {
+            .email-container { width: 100% !important; }
+            .mobile-padding { padding-left: 16px !important; padding-right: 16px !important; }
+            .stack-column { display: block !important; width: 100% !important; }
+        }
+    </style>
+</head>
+<body style="margin:0; padding:0; background-color:#F7F7F7; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+
+    <div style="display:none; font-size:1px; color:#F7F7F7; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;"
+         th:text="${ctx.tone == 'CASUAL' ? '7 days until your ' + ctx.city + ' adventure! Get excited!' : 'Your stay at ' + ctx.listingTitle + ' is just 7 days away.'}"></div>
+
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#F7F7F7;">
+        <tr><td align="center" style="padding:20px 0;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="email-container" style="max-width:600px; background-color:#FFFFFF; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+
+                <!-- HEADER -->
+                <tr>
+                    <td style="background:linear-gradient(135deg,#FF5A5F 0%,#FF385C 100%); padding:28px 40px;" class="mobile-padding">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr>
+                            <td style="font-family:'Georgia','Times New Roman',serif; font-size:32px; font-weight:bold; color:#FFFFFF; letter-spacing:1px;"><span style="font-style:italic;">S</span>afar</td>
+                            <td align="right" valign="middle" style="font-size:13px; color:rgba(255,255,255,0.9); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                                <span th:if="${ctx.userName}" th:text="'Hi, ' + ${ctx.userName}">Hi, User</span>
+                            </td>
+                        </tr></table>
+                    </td>
+                </tr>
+
+                <!-- CHAPTER BANNER -->
+                <tr th:if="${ctx.chapterNumber != null and ctx.chapterNumber > 0}">
+                    <td style="background-color:#2D2D2D; padding:18px 40px;" class="mobile-padding">
+                        <p style="margin:0; font-size:11px; color:#FF5A5F; text-transform:uppercase; letter-spacing:2px; font-weight:600; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                            Chapter <span th:text="${ctx.chapterNumber}">3</span>
+                            <span style="color:#767676;"> of Your </span>
+                            <span th:text="${ctx.city ?: 'Journey'}" style="color:#00A699;">City</span>
+                            <span style="color:#767676;"> Journey</span>
+                        </p>
+                        <p style="margin:4px 0 0; font-size:16px; color:#FFFFFF; font-weight:600; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.chapterTitle ?: 'The Countdown Begins'}">The Countdown Begins</p>
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:12px;"><tr>
+                            <td style="padding-right:6px;" th:each="i : ${#numbers.sequence(1,9)}">
+                                <div th:style="${ctx.chapterNumber >= i ? 'width:24px;height:4px;border-radius:2px;background-color:#FF5A5F;' : 'width:24px;height:4px;border-radius:2px;background-color:#555555;'}"></div>
+                            </td>
+                        </tr></table>
+                    </td>
+                </tr>
+
+                <!-- CONTENT -->
+                <tr>
+                    <td style="padding:0;">
+
+                        <!-- Countdown Hero -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td align="center" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding:48px 40px;" class="mobile-padding">
+                                    <!-- Big countdown number -->
+                                    <div style="width:100px; height:100px; border-radius:50%; border:4px solid rgba(255,255,255,0.3); text-align:center; line-height:100px; margin:0 auto 16px;">
+                                        <span style="font-size:52px; font-weight:800; color:#FFFFFF; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">7</span>
+                                    </div>
+                                    <h1 th:if="${ctx.tone == 'CASUAL'}" style="margin:0 0 8px; font-size:32px; font-weight:800; color:#FFFFFF; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Days to Go!</h1>
+                                    <h1 th:if="${ctx.tone != 'CASUAL'}" style="margin:0 0 8px; font-size:32px; font-weight:800; color:#FFFFFF; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">7 Days Until Your Stay</h1>
+                                    <p style="margin:0; font-size:16px; color:rgba(255,255,255,0.9); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                                        <span th:text="${ctx.listingTitle}">Property Name</span> &middot; <span th:text="${ctx.city}">City</span>
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Property Preview -->
+                        <table th:if="${ctx.listingImageUrl}" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td style="padding:0;">
+                                    <img th:src="${ctx.listingImageUrl}" alt="Property" width="600" style="width:100%; max-width:600px; height:auto; display:block;" class="fluid"/>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Key Amenities -->
+                        <table th:if="${ctx.amenities}" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td style="padding:32px 40px 0;" class="mobile-padding">
+                                    <p style="margin:0 0 16px; font-size:18px; font-weight:700; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">What Awaits You</p>
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                        <tr>
+                                            <td th:each="amenity : ${ctx.amenities}" style="display:inline-block; padding:6px 14px; margin:0 8px 8px 0; background-color:#F0F7F7; color:#00A699; font-size:13px; font-weight:500; border-radius:20px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${amenity}">WiFi</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Weather Hint -->
+                        <table th:if="${ctx.weatherHint}" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td style="padding:24px 40px 0;" class="mobile-padding">
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#FFFDE7; border-radius:12px; border:1px solid #FFF9C4;">
+                                        <tr>
+                                            <td style="padding:16px 20px;">
+                                                <p style="margin:0 0 4px; font-size:13px; font-weight:700; color:#F9A825; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Weather in <span th:text="${ctx.city}">City</span></p>
+                                                <p style="margin:0; font-size:14px; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.weatherHint}">Expected to be sunny, around 28C</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Local Discovery Teasers -->
+                        <table th:if="${ctx.discoveryTeasers}" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td style="padding:24px 40px 0;" class="mobile-padding">
+                                    <p style="margin:0 0 16px; font-size:18px; font-weight:700; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                                        <span th:if="${ctx.tone == 'CASUAL'}">Things to Do Nearby</span>
+                                        <span th:if="${ctx.tone != 'CASUAL'}">Local Discoveries</span>
+                                    </p>
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                        <tr th:each="teaser : ${ctx.discoveryTeasers}">
+                                            <td style="padding:12px 0; border-bottom:1px solid #F0F0F0;">
+                                                <p style="margin:0 0 2px; font-size:15px; font-weight:600; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${teaser.title}">Local Attraction</p>
+                                                <p style="margin:0; font-size:13px; color:#767676; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${teaser.description}">Description</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- CTA -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td align="center" style="padding:32px 40px 40px;" class="mobile-padding">
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr>
+                                        <td style="border-radius:8px; background-color:#FF5A5F;">
+                                            <a th:href="${ctx.bookingUrl}" style="display:inline-block; padding:16px 48px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:16px; font-weight:600; color:#FFFFFF; text-decoration:none; border-radius:8px;">Start Planning</a>
+                                        </td>
+                                    </tr></table>
+                                </td>
+                            </tr>
+                        </table>
+
+                    </td>
+                </tr>
+
+                <!-- FOOTER -->
+                <tr>
+                    <td style="background-color:#FAFAFA; border-top:1px solid #EEEEEE; padding:32px 40px;" class="mobile-padding">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr><td align="center">
+                            <p style="margin:0 0 16px; font-family:'Georgia','Times New Roman',serif; font-size:22px; font-weight:bold; color:#FF5A5F;"><span style="font-style:italic;">S</span>afar</p>
+                            <p style="margin:0 0 12px; font-size:13px; color:#767676; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                                <a th:href="${ctx.emailPreferencesUrl ?: '#'}" style="color:#FF5A5F; text-decoration:none;">Email Preferences</a>
+                                <span style="color:#DDD; padding:0 8px;">|</span>
+                                <a th:href="${ctx.unsubscribeUrl ?: '#'}" style="color:#FF5A5F; text-decoration:none;">Unsubscribe</a>
+                                <span style="color:#DDD; padding:0 8px;">|</span>
+                                <a th:href="${ctx.helpUrl ?: '#'}" style="color:#FF5A5F; text-decoration:none;">Help Center</a>
+                            </p>
+                            <p style="margin:0 0 8px; font-size:14px; color:#484848; font-weight:500; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Safar &mdash; Your Journey, Your Story</p>
+                            <p style="margin:0; font-size:11px; color:#AAA; line-height:1.5; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                                This email was sent to <span th:text="${ctx.recipientEmail ?: 'you'}">you</span>.<br/>
+                                <span th:text="${ctx.companyAddress ?: 'Safar Technologies Pvt. Ltd., India'}">Safar Technologies Pvt. Ltd., India</span>
+                            </p>
+                        </td></tr></table>
+                    </td>
+                </tr>
+
+            </table>
+        </td></tr>
+    </table>
+</body>
+</html>

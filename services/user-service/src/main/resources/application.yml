@@ -1,0 +1,96 @@
+server:
+  port: 8092
+  tomcat:
+    threads:
+      max: 50
+      min-spare: 5
+    max-connections: 200
+    accept-count: 50
+    connection-timeout: 10000
+
+spring:
+  application:
+    name: user-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/safar?currentSchema=users
+    username: ${DB_USER:safar}
+    password: ${DB_PASS:safar}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 3
+      idle-timeout: 30000
+      connection-timeout: 10000
+      leak-detection-threshold: 15000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+    properties:
+      hibernate:
+        default_schema: users
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    schemas: users
+    locations: classpath:db/migration
+
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=300s
+
+spring.kafka:
+  bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  consumer:
+    group-id: user-service
+    auto-offset-reset: earliest
+    max-poll-records: 100
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    properties:
+      fetch.max.bytes: 5242880
+      max.partition.fetch.bytes: 1048576
+
+services:
+  auth:
+    url: ${AUTH_SERVICE_URL:http://localhost:8888}
+  listing:
+    url: ${LISTING_SERVICE_URL:http://localhost:8083}
+  booking:
+    url: ${BOOKING_SERVICE_URL:http://localhost:8095}
+
+encryption:
+  aes-key: ${ENCRYPTION_AES_KEY:t+YZDpLpyNyfaZcSbH9Ak2CMYbJjBKzEdJYZR130CDI=}
+  # ↑ CHANGE IN PRODUCTION — this is a 32-byte dev placeholder
+  # Generate with: openssl rand -base64 32
+
+jwt:
+  secret: ${JWT_SECRET:l0UNaBuoYCf7Y/G8G1bihPxkUI7NZuPaZdzTbbEYqzM=}
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+razorpay:
+  key-id: ${RAZORPAY_KEY_ID:rzp_test_placeholder}
+  key-secret: ${RAZORPAY_KEY_SECRET:placeholder_secret}
+  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:webhook_secret_placeholder}
+  plans:
+    starter: ${RAZORPAY_PLAN_STARTER:plan_starter}
+    pro: ${RAZORPAY_PLAN_PRO:plan_pro}
+    commercial: ${RAZORPAY_PLAN_COMMERCIAL:plan_commercial}
+
+springdoc:
+  api-docs.path: /api-docs
+  swagger-ui.path: /swagger-ui.html

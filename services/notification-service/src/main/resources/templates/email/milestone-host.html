@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <title>Host Achievement!</title>
+    <style>
+        body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        body { margin: 0; padding: 0; width: 100% !important; background-color: #F7F7F7; }
+        @media only screen and (max-width: 620px) {
+            .email-container { width: 100% !important; }
+            .mobile-padding { padding-left: 16px !important; padding-right: 16px !important; }
+        }
+    </style>
+</head>
+<body style="margin:0; padding:0; background-color:#F7F7F7; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+
+    <div style="display:none; font-size:1px; color:#F7F7F7; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;"
+         th:text="'Host Achievement! You have earned the ' + ${ctx.badgeName} + ' badge!'"></div>
+
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#F7F7F7;">
+        <tr><td align="center" style="padding:20px 0;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="email-container" style="max-width:600px; background-color:#FFFFFF; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+
+                <!-- HEADER (Host dark theme) -->
+                <tr>
+                    <td style="background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding:28px 40px;" class="mobile-padding">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr>
+                            <td>
+                                <p style="margin:0; font-family:'Georgia','Times New Roman',serif; font-size:32px; font-weight:bold; color:#FF5A5F; letter-spacing:1px;"><span style="font-style:italic;">S</span>afar</p>
+                                <p style="margin:2px 0 0; font-size:11px; color:rgba(255,255,255,0.5); letter-spacing:3px; text-transform:uppercase; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Host Dashboard</p>
+                            </td>
+                            <td align="right" valign="middle" style="font-size:13px; color:rgba(255,255,255,0.9); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                                <span th:if="${ctx.userName}" th:text="'Hi, ' + ${ctx.userName}">Hi, Host</span>
+                            </td>
+                        </tr></table>
+                    </td>
+                </tr>
+
+                <!-- CONTENT -->
+                <tr>
+                    <td style="padding:0;">
+
+                        <!-- Achievement Hero -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td align="center" style="background:linear-gradient(135deg, #FFB400 0%, #FF8A00 100%); padding:48px 40px;" class="mobile-padding">
+                                    <p style="margin:0 0 16px; font-size:14px; letter-spacing:8px; line-height:1;">&#9733; &#127942; &#9733;</p>
+
+                                    <!-- Badge (CSS-only) -->
+                                    <div style="width:120px; height:120px; margin:0 auto 20px;">
+                                        <div style="width:120px; height:120px; border-radius:50%; background:linear-gradient(135deg, #FFFFFF, #F0F0F0); text-align:center; display:table; box-shadow:0 4px 20px rgba(0,0,0,0.15);">
+                                            <div style="display:table-cell; vertical-align:middle;">
+                                                <div style="width:100px; height:100px; border-radius:50%; background:linear-gradient(135deg, #FFB400, #FF8A00); margin:0 auto; text-align:center; display:table;">
+                                                    <div style="display:table-cell; vertical-align:middle;">
+                                                        <p style="margin:0; font-size:40px; line-height:1;" th:text="${ctx.badgeEmoji ?: '&#127775;'}">&#127775;</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <h1 style="margin:0 0 8px; font-size:32px; font-weight:800; color:#FFFFFF; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Host Achievement!</h1>
+                                    <p style="margin:0; font-size:14px; color:rgba(255,255,255,0.9); text-transform:uppercase; letter-spacing:3px; font-weight:700; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.badgeName}">Super Host</p>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Achievement Details -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td align="center" style="padding:32px 40px;" class="mobile-padding">
+                                    <h2 style="margin:0 0 8px; font-size:22px; font-weight:700; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.milestoneTitle}">10 Bookings Hosted!</h2>
+                                    <p style="margin:0 0 24px; font-size:15px; color:#767676; line-height:1.6; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.milestoneDescription}">You've welcomed 10 guests to your property. Thank you for being an amazing host!</p>
+
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="background-color:#F7F7F7; border-radius:12px;">
+                                        <tr>
+                                            <td align="center" style="padding:20px 32px;">
+                                                <p style="margin:0 0 4px; font-size:11px; color:#767676; text-transform:uppercase; letter-spacing:1px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Badge Earned</p>
+                                                <p style="margin:0; font-size:20px; font-weight:700; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.badgeName}">Super Host</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Star Host Status -->
+                        <table th:if="${ctx.starHostProgressPercent != null}" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td style="padding:0 40px 24px;" class="mobile-padding">
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius:12px;">
+                                        <tr>
+                                            <td style="padding:20px;">
+                                                <p style="margin:0 0 12px; font-size:14px; font-weight:700; color:#FFB400; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">&#9733; Star Host Progress</p>
+                                                <div style="width:100%; height:8px; background-color:rgba(255,255,255,0.1); border-radius:4px; overflow:hidden;">
+                                                    <div th:style="'width:' + ${ctx.starHostProgressPercent} + '%; height:8px; background:linear-gradient(90deg, #FFB400, #FF8A00); border-radius:4px;'"></div>
+                                                </div>
+                                                <p style="margin:8px 0 0; font-size:12px; color:rgba(255,255,255,0.6); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.starHostProgressText ?: 'Keep up the great work!'}">Progress text</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- CTA -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td align="center" style="padding:0 40px 40px;" class="mobile-padding">
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr>
+                                        <td style="border-radius:8px; background-color:#484848;">
+                                            <a th:href="${ctx.dashboardUrl ?: '#'}" style="display:inline-block; padding:16px 48px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:16px; font-weight:600; color:#FFFFFF; text-decoration:none; border-radius:8px;">View Dashboard</a>
+                                        </td>
+                                    </tr></table>
+                                </td>
+                            </tr>
+                        </table>
+
+                    </td>
+                </tr>
+
+                <!-- FOOTER -->
+                <tr>
+                    <td style="background-color:#FAFAFA; border-top:1px solid #EEEEEE; padding:32px 40px;" class="mobile-padding">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr><td align="center">
+                            <p style="margin:0 0 16px; font-family:'Georgia','Times New Roman',serif; font-size:22px; font-weight:bold; color:#FF5A5F;"><span style="font-style:italic;">S</span>afar</p>
+                            <p style="margin:0 0 12px; font-size:13px; color:#767676; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                                <a th:href="${ctx.emailPreferencesUrl ?: '#'}" style="color:#FF5A5F; text-decoration:none;">Email Preferences</a>
+                                <span style="color:#DDD; padding:0 8px;">|</span>
+                                <a th:href="${ctx.unsubscribeUrl ?: '#'}" style="color:#FF5A5F; text-decoration:none;">Unsubscribe</a>
+                                <span style="color:#DDD; padding:0 8px;">|</span>
+                                <a th:href="${ctx.helpUrl ?: '#'}" style="color:#FF5A5F; text-decoration:none;">Help Center</a>
+                            </p>
+                            <p style="margin:0 0 8px; font-size:14px; color:#484848; font-weight:500; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Safar &mdash; Your Journey, Your Story</p>
+                            <p style="margin:0; font-size:11px; color:#AAA; line-height:1.5; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                                This email was sent to <span th:text="${ctx.recipientEmail ?: 'you'}">you</span>.<br/>
+                                <span th:text="${ctx.companyAddress ?: 'Safar Technologies Pvt. Ltd., India'}">Safar Technologies Pvt. Ltd., India</span>
+                            </p>
+                        </td></tr></table>
+                    </td>
+                </tr>
+
+            </table>
+        </td></tr>
+    </table>
+</body>
+</html>

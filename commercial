@@ -1,0 +1,56 @@
+● Now let me compile:
+
+● Bash(cd C:/Users/Win-10/safar-platform/frontend/web && NODE_OPTIONS="--max-old-space-size=256" npx tsc --noEmit 2>&1 | head
+      -15)
+  ⎿  (No output)
+  ⎿  (timeout 2m)
+
+● Everything compiles clean — backend (59 tests pass) and frontend (TypeScript clean). Here's the summary:
+
+  Commercial Listing Flow — Implemented
+
+  Backend:
+  - V20 migration — area_sqft, operating_hours_from, operating_hours_until columns
+  - Entity, DTOs, service all updated with new fields
+
+  Frontend Wizard — Adaptive for Commercial:
+
+  Step 1 (Type) — Commercial category now shows 8 subcategory cards with icons:
+  Meeting Room, Coworking Space, Event Venue, Photo Studio, Podcast Studio, Commercial Kitchen, Training Room, Rooftop Terrace
+
+  Step 2 (Details) — Adapts based on type:
+
+  ┌──────────────────────┬──────────────────────────────┐
+  │     Residential      │          Commercial          │
+  ├──────────────────────┼──────────────────────────────┤
+  │ Property Name        │ Space Name                   │
+  ├──────────────────────┼──────────────────────────────┤
+  │ Star Rating          │ (hidden)                     │
+  ├──────────────────────┼──────────────────────────────┤
+  │ Price per night      │ Price per hour               │
+  ├──────────────────────┼──────────────────────────────┤
+  │ Max Guests           │ Max Capacity (up to 500)     │
+  ├──────────────────────┼──────────────────────────────┤
+  │ Bedrooms / Bathrooms │ Area (sq.ft)                 │
+  ├──────────────────────┼──────────────────────────────┤
+  │ (hidden)             │ Min Booking Hours            │
+  ├──────────────────────┼──────────────────────────────┤
+  │ (hidden)             │ Operating Hours (open/close) │
+  ├──────────────────────┼──────────────────────────────┤
+  │ (hidden)             │ GSTIN (required)             │
+  └──────────────────────┴──────────────────────────────┘
+
+  Step 3 (Facilities) — Different checklist:
+
+  ┌──────────────────────────────────────────────────────────────────────────┬────────────────────────────────────────────┐
+  │                            Residential Groups                            │             Commercial Groups              │
+  ├──────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────┤
+  │ Most Popular, Guest Services, Outdoor, Safety, Accessibility, India      │ Tech & AV, Comfort, Services, Access &     │
+  │ Essentials                                                               │ Safety                                     │
+  └──────────────────────────────────────────────────────────────────────────┴────────────────────────────────────────────┘
+
+  Residential-only sections hidden: Breakfast, Pets, Children, Check-in/Check-out times
+
+  Step 4 (Review) — Shows commercial-specific summary: Capacity, Area, Min Hours, Operating Hours, GSTIN
+
+✻ Cooked for 2h 9m 8s

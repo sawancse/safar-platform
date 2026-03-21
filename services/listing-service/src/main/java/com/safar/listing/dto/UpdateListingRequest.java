@@ -1,0 +1,74 @@
+package com.safar.listing.dto;
+
+import com.safar.listing.entity.enums.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+public record UpdateListingRequest(
+        @Size(max = 255) String title,
+        String description,
+        CommercialCategory commercialCategory,
+        String addressLine1,
+        String addressLine2,
+        String city,
+        String state,
+        String pincode,
+        BigDecimal lat,
+        BigDecimal lng,
+        Integer maxGuests,
+        Integer bedrooms,
+        Integer bathrooms,
+        Integer totalRooms,
+        List<String> amenities,
+        @Min(100) Long basePricePaise,
+        PricingUnit pricingUnit,
+        Integer minBookingHours,
+        Boolean instantBook,
+        Boolean gstApplicable,
+        String gstin,
+        Boolean petFriendly,
+        Integer maxPets,
+        @Min(1) @jakarta.validation.constraints.Max(5) Integer starRating,
+        CancellationPolicy cancellationPolicy,
+        MealPlan mealPlan,
+        List<String> bedTypes,
+        List<String> accessibilityFeatures,
+        Boolean freeCancellation,
+        Boolean noPrepayment,
+        String checkInFrom,
+        String checkInUntil,
+        String checkOutFrom,
+        String checkOutUntil,
+        Boolean childrenAllowed,
+        com.safar.listing.entity.enums.ParkingType parkingType,
+        Boolean breakfastIncluded,
+        Integer areaSqft,
+        String operatingHoursFrom,
+        String operatingHoursUntil,
+        Boolean aashrayReady,
+        Integer aashrayDiscountPercent,
+        Long longTermMonthlyPaise,
+        Integer minStayDays,
+        String floorPlanUrl,
+        String panoramaUrl,
+        String videoTourUrl,
+        String neighborhoodPhotoUrls,
+        Integer weeklyDiscountPercent,
+        Integer monthlyDiscountPercent,
+        Long cleaningFeePaise,
+        Integer visibilityBoostPercent,
+        // PG/Co-living fields
+        String occupancyType,
+        String foodType,
+        String gateClosingTime,
+        Integer noticePeriodDays,
+        Long securityDepositPaise,
+        // Hotel fields
+        String hotelChain,
+        Boolean frontDesk24h,
+        String checkoutTime,
+        String checkinTime
+) {}

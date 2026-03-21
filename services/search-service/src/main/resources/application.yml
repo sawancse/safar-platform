@@ -1,0 +1,77 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: search-service
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URI:http://localhost:9200}
+    connection-timeout: 5s
+    socket-timeout: 30s
+
+elasticsearch:
+  index:
+    shards: ${ES_INDEX_SHARDS:1}
+    replicas: ${ES_INDEX_REPLICAS:0}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: search-service
+      auto-offset-reset: earliest
+      max-poll-records: 100
+      properties:
+        fetch.max.bytes: 5242880
+        max.partition.fetch.bytes: 1048576
+
+jwt:
+  secret: ${JWT_SECRET:l0UNaBuoYCf7Y/G8G1bihPxkUI7NZuPaZdzTbbEYqzM=}
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+services:
+  listing-service:
+    url: http://${LISTING_SERVICE_HOST:localhost}:8083
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+    instances:
+      listingService:
+        base-config: default
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - org.springframework.web.client.ResourceAccessException
+    instances:
+      listingService:
+        base-config: default
+  timelimiter:
+    configs:
+      default:
+        timeout-duration: 10s
+        cancel-running-future: true
+
+springdoc:
+  api-docs.path: /api-docs
+  swagger-ui.path: /swagger-ui.html

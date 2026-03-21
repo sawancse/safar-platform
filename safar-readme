@@ -1,0 +1,453 @@
+safar ai -service
+ uvicorn main:app --host 0.0.0.0 --port 8090 --reload
+Test it with:
+  GET  http://localhost:8090/health
+  POST http://localhost:8090/api/v1/ai/scout/generate-leads
+  POST http://localhost:8090/api/v1/ai/listing/generate-draft
+
+
+eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiI5NzA2NWViYy05ZmM2LTRiNDEtOTRkNS1lN2M4MmNmMjI0ZjEiLCJyb2xlIjoiR1VFU1QiLCJpYXQiOjE3NzI1NDMxNTcsImV4cCI6MTc3MjU0NDA1N30.bMoEccYY3RuhTDVu3NRm4BXVAJWmRlvpQj0dWyzSTlZKF_rNbdcxibWHPzNVIUwr
+{
+    "accessToken": "eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiI5NzA2NWViYy05ZmM2LTRiNDEtOTRkNS1lN2M4MmNmMjI0ZjEiLCJyb2xlIjoiR1VFU1QiLCJpYXQiOjE3NzI1NDMxNTcsImV4cCI6MTc3MjU0NDA1N30.",
+    "refreshToken": "7ea0f327-56dc-45e5-aa26-a878f48c994b",
+    "accessTokenExpiresIn": 900,
+    "user": {
+        "id": "97065ebc-9fc6-4b41-94d5-e7c82cf224f1",
+        "phone": "+919876543210",
+        "email": null,
+        "name": "Ravi Kumar",
+        "role": "GUEST",
+        "kycStatus": "PENDING",
+        "avatarUrl": null,
+        "language": "en"
+    }
+}
+old one iunuser service
+secret: ${JWT_SECRET:dGhpcyBpcyBhIHZlcnkgbG9uZyBzZWNyZXQga2V5IGZvciBzYWZhciBwbGF0Zm9ybQ==}	
+
+to start web:
+Win-10@DESKTOP-TV3S216 MINGW64 ~/safar-platform/frontend/web
+$ npm run dev
+----------------
+http://localhost:8092/api/v1
+
+{
+    "userId": "97065ebc-9fc6-4b41-94d5-e7c82cf224f1",
+    "name": "",
+    "email": null,
+    "avatarUrl": null,
+    "language": "en",
+    "updatedAt": null
+}
+
+{
+    "userId": "97065ebc-9fc6-4b41-94d5-e7c82cf224f1",
+    "name": "Ravi Kumar",
+    "email": "ravi@example.com",
+    "avatarUrl": null,
+    "language": "hi",
+    "updatedAt": "2026-03-07T04:16:56.486979Z"
+	
+	
+=======
+updt taste-preofil
+{
+    "id": "2e1d3756-8d06-47ab-ac61-8eb10040a02e",
+    "userId": "97065ebc-9fc6-4b41-94d5-e7c82cf224f1",
+    "travelStyle": "RELAXED",
+    "propertyVibe": "COZY",
+    "mustHaves": [
+        "wifi",
+        "ac",
+        "kitchen"
+    ],
+    "groupType": "COUPLE",
+    "budgetTier": "MID",
+    "updatedAt": null
+}
+---
+get test profile:
+-----------------
+{
+    "id": "2e1d3756-8d06-47ab-ac61-8eb10040a02e",
+    "userId": "97065ebc-9fc6-4b41-94d5-e7c82cf224f1",
+    "travelStyle": "RELAXED",
+    "propertyVibe": "COZY",
+    "mustHaves": [
+        "wifi",
+        "ac",
+        "kitchen"
+    ],
+    "groupType": "COUPLE",
+    "budgetTier": "MID",
+    "updatedAt": "2026-03-07T04:21:12.590491Z"
+}
+---
+create listing:
+{
+    "id": "498f6d26-c20f-47b6-9337-6e05da3a2339",
+    "hostId": "97065ebc-9fc6-4b41-94d5-e7c82cf224f1",
+    "title": "Cozy 2BHK in Bandra",
+    "description": "Beautiful apartment near the sea",
+    "type": "HOME",
+    "commercialCategory": null,
+    "addressLine1": "12 Pali Hill",
+    "addressLine2": null,
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "pincode": "400050",
+    "lat": 19.0596,
+    "lng": 72.8295,
+    "maxGuests": 4,
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "amenities": [
+        "wifi",
+        "ac",
+        "kitchen",
+        "parking"
+    ],
+    "basePricePaise": 500000,
+    "pricingUnit": "NIGHT",
+    "minBookingHours": 1,
+    "instantBook": true,
+    "status": "DRAFT",
+    "verificationNotes": null,
+    "gstApplicable": true,
+    "gstin": null,
+    "avgRating": 0.0,
+    "reviewCount": 0,
+    "createdAt": null,
+    "updatedAt": null
+}
+=====aws:
+https://624627192872.signin.aws.amazon.com/console
+User name
+
+sawank.sit
+Console password
+
+***************
+Show
+Access key
+
+
+AKIAZC3VOSQUK453WDMO
+Secret access key
+5rUYBIUGrkWKT2FV3BwdNBBqibMmw1UvGA0hzAqC
+Show
+
+  You need to set these environment variables before starting media-service:
+
+  export AWS_REGION=ap-south-1
+  export AWS_ACCESS_KEY_ID=AKIAZC3VOSQUK453WDMO
+  export AWS_SECRET_ACCESS_KEY=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
+  export S3_BUCKET=safar-media-dev
+  export CDN_DOMAIN=d1pei2hufbgxoj.cloudfront.net
+  
+ Now it reads moderationStatus from the event payload (defaults to PENDING if missing).
+                                                                                                                                         Restart listing-service, then redo the flow:
+  1. Get a new presigned URL
+  2. Upload video to S3
+  3. Confirm the upload (POST /api/v1/media/upload/confirm)
+  4. Submit the listing (POST /api/v1/listings/.../submit)
+
+kafka setup working
+D:\soft\kafka_2.13-4.2.0>.\bin\windows\kafka-storage.bat random-uuid
+2026-03-07T15:20:19.982488Z main ERROR Reconfiguration failed: No configuration found for '266474c2' at 'null' in 'null'
+0RNXKyh5QwKnFfUEmiQYNw
+
+D:\soft\kafka_2.13-4.2.0>.\bin\windows\kafka-storage.bat format -t 0RNXKyh5QwKnFfUEmiQYNw -c .\config\kraft\server.properties
+Terminate batch job (Y/N)? Y
+
+D:\soft\kafka_2.13-4.2.0>.\bin\windows\kafka-storage.bat format -t 0RNXKyh5QwKnFfUEmiQYNw -c .\config\server.properties
+2026-03-07T15:21:04.425533600Z main ERROR Reconfiguration failed: No configuration found for '266474c2' at 'null' in 'null'
+Because controller.quorum.voters is not set on this controller, you must specify one of the following: --standalone, --initial-controllers, or --no-initial-controllers.
+
+D:\soft\kafka_2.13-4.2.0>
+D:\soft\kafka_2.13-4.2.0>
+D:\soft\kafka_2.13-4.2.0>
+D:\soft\kafka_2.13-4.2.0>
+D:\soft\kafka_2.13-4.2.0>
+D:\soft\kafka_2.13-4.2.0>
+D:\soft\kafka_2.13-4.2.0>
+D:\soft\kafka_2.13-4.2.0>.\bin\windows\kafka-storage.bat format --standalone -t 0RNXKyh5QwKnFfUEmiQYNw -c .\config\server.properties
+2026-03-07T15:22:41.813339100Z main ERROR Reconfiguration failed: No configuration found for '266474c2' at 'null' in 'null'
+Bootstrap metadata: BootstrapMetadata(records=[ApiMessageAndVersion(FeatureLevelRecord(name='metadata.version', featureLevel=29) at version 0), ApiMessageAndVersion(FeatureLevelRecord(name='eligible.leader.replicas.version', featureLevel=1) at version 0), ApiMessageAndVersion(FeatureLevelRecord(name='group.version', featureLevel=1) at version 0), ApiMessageAndVersion(FeatureLevelRecord(name='share.version', featureLevel=1) at version 0), ApiMessageAndVersion(FeatureLevelRecord(name='streams.version', featureLevel=1) at version 0), ApiMessageAndVersion(FeatureLevelRecord(name='transaction.version', featureLevel=2) at version 0)], metadataVersionLevel=29, source=format command)
+Bootstrap metadata: BootstrapMetadata(records=[ApiMessageAndVersion(FeatureLevelRecord(name='metadata.version', featureLevel=29) at version 0), ApiMessageAndVersion(FeatureLevelRecord(name='eligible.leader.replicas.version', featureLevel=1) at version 0), ApiMessageAndVersion(FeatureLevelRecord(name='group.version', featureLevel=1) at version 0), ApiMessageAndVersion(FeatureLevelRecord(name='share.version', featureLevel=1) at version 0), ApiMessageAndVersion(FeatureLevelRecord(name='streams.version', featureLevel=1) at version 0), ApiMessageAndVersion(FeatureLevelRecord(name='transaction.version', featureLevel=2) at version 0)], metadataVersionLevel=29, source=format command)
+Formatting dynamic metadata voter directory D:/soft/kafka/data with metadata.version 4.2-IV1.
+
+D:\soft\kafka_2.13-4.2.0>.\bin\windows\kafka-server-start.bat config\server.properties
+rework on search again @21/03/.2026
+
+new googlke app password: tkmz ezdq rcwx ngdu
+
+
+
+////basePricePaise
+http://localhost:8095/api/v1/bookings
+{
+    "id": "0f1647bc-9164-4695-9a53-ab80cb6623e5",
+    "bookingRef": "SAF-BKG-V39ZTW",
+    "guestId": "97065ebc-9fc6-4b41-94d5-e7c82cf224f1",
+    "hostId": "97065ebc-9fc6-4b41-94d5-e7c82cf224f1",
+    "listingId": "498f6d26-c20f-47b6-9337-6e05da3a2339",
+    "checkIn": "2026-12-24T14:00:00",
+    "checkOut": "2026-12-25T14:00:00",
+    "guestsCount": 1,
+    "nights": 1,
+    "status": "PENDING_PAYMENT",
+    "baseAmountPaise": 500000,
+    "insuranceAmountPaise": 15000,
+    "gstAmountPaise": 90000,
+    "totalAmountPaise": 605000,
+    "hostPayoutPaise": 500000,
+    "cancellationReason": null,
+    "createdAt": null,
+    "updatedAt": null
+}
+----------
+{{baseListingUrl}}/listings/498f6d26-c20f-47b6-9337-6e05da3a2339/availability?from=2025-12-01&to=2026-12-31
+[
+    {
+        "id": "0bc5cc29-28d9-4080-846b-cf7b1a59289a",
+        "listingId": "498f6d26-c20f-47b6-9337-6e05da3a2339",
+        "date": "2025-12-25",
+        "isAvailable": false,
+        "priceOverridePaise": null,
+        "minStayNights": 1
+    },
+    {
+        "id": "7d19e028-7bf3-4f57-8311-567f37a17680",
+        "listingId": "498f6d26-c20f-47b6-9337-6e05da3a2339",
+        "date": "2026-12-24",
+        "isAvailable": false,
+        "priceOverridePaise": null,
+        "minStayNights": 1
+    },
+    {
+        "id": "369bf197-52fe-4667-8aa2-96ca63cf499c",
+        "listingId": "498f6d26-c20f-47b6-9337-6e05da3a2339",
+        "date": "2026-12-25",
+        "isAvailable": true,
+        "priceOverridePaise": null,
+        "minStayNights": 1
+    }
+]
+select status	FROM listings.listings ;
+UPDATE listings.listings SET status = 'DRAFT' WHERE id = '498f6d26-c20f-47b6-9337-6e05da3a2339';
+=======
+payment gateway required DNS 
+------
+$ cd C:/Users/Win-10/safar-platform/frontend/web && npm run dev
+rm -rf .next node_modules/.cache && npm run dev
+
+redis:
+C:\Program Files\Memurai
+(cd "C:/Users/Win-10/safar-platform/services/search-service" && JAVA_TOOL_OPTIONS="-Xmx128m -Xms64m -XX:+UseSerialGC" mvn test 2>&1 | grep -E "(Tests run|BUILD|F…)
+
+cd services/api-gateway && mvn spring-boot:run -Dspring-boot.run.jvmArguments="-Xss512k -Xms256m -Xmx512m"   
+topci
+bin/kafka-topics.sh --create --topic my-first-topic --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+
+bin\windows\kafka-topics.bat --create --topic listing.verified --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+listing.verified 
+bin\windows\kafka-topics.bat --create --topic host.registered --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+
+bin\windows\kafka-topics.bat --create --topic booking.checked-in --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+bin\windows\kafka-topics.bat --create --topic booking.completed --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+
+bin\windows\kafka-topics.bat --create --topicnotification.host.demand_alert --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+
+booking.completed
+booking.completed
+booking.checked-in
+notification.host.demand_alert
+
+ All 56 tests pass (42 user-service + 14 auth-service). Here's what was implemented:
+
+  Summary of Changes
+                                                                                                                                                                                      Backend
+                                                                                                                                                                                      ┌──────────────────────────┬─────────────────────────────────────────────────────────────────────────────────┐
+  │           File           │                                     Change                                      │
+  ├──────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ V11 migration            │ Added phone, role, created_at columns to users.profiles                         │
+  ├──────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ UserProfile.java         │ Added phone, role, createdAt fields                                             │
+  ├──────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ AdminHostDto.java        │ New DTO with id, name, phone, email, role, subscriptionTier, createdAt          │
+  ├──────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ SyncProfileRequest.java  │ New DTO for internal sync endpoint                                              │
+  ├──────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ ProfileService.java      │ Added getAllHostsForAdmin() (joins profiles + subscriptions) and syncFromAuth() │
+  ├──────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ AdminUserController.java │ Returns List<AdminHostDto> instead of List<MyProfileDto>                        │
+  ├──────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ InternalController.java  │ New POST /internal/users/{id}/sync-profile endpoint                             │
+  ├──────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ AuthService.java         │ Calls user-service to sync phone/name/role on every login                       │
+  ├──────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ AppConfig.java           │ Added RestTemplate bean for auth-service                                        │
+  ├──────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ application.yml (auth)   │ Added services.user.url config                                                  │
+  └──────────────────────────┴─────────────────────────────────────────────────────────────────────────────────┘
+
+  Frontend
+
+  ┌───────────────┬────────────────────────────────────────────────────────────────────────────┐
+  │     File      │                                   Change                                   │
+  ├───────────────┼────────────────────────────────────────────────────────────────────────────┤
+  │ HostsPage.tsx │ Fixed Host interface to match backend, phone + name display with fallbacks │
+  └───────────────┴────────────────────────────────────────────────────────────────────────────┘
+
+  How it works
+
+  1. User logs in via auth-service → auth-service syncs phone, name, role to user-service profiles table
+  2. Admin opens Hosts page → calls /api/v1/admin/hosts → returns enriched data with phone, name, role, and subscription tier
+  3. Existing users will get synced on their next login
+
+ We're on Red Hat — Emotions & Feelings. I shared perspectives from host, guest, and admin.
+                                                                                                                                                                                      What's your gut feeling, ramasystem?
+
+  - Should deactivation feel instant and easy, or deliberate with a confirmation/reason step?
+  - Should guests with bookings be notified immediately, or should we block deactivation if active bookings exist?
+  - What emotional tone feels right — "pause your listing" (gentle, temporary) vs "deactivate" (firm, decisive)?
+
+  No right or wrong here — just your instinct!
+
+> let s saveit as arint task and will do later                                                                                                                                      
+● Let me save the session progress.
+
+● Read 1 file (ctrl+o to expand)
+
+● Update(_bmad-output\brainstorming\brainstorming-session-2026-03-11-1730.md)
+  ⎿  Added 36 lines
+      39  - **Reverse Brainstorming:** Destructive thinking to surface edge cases — broken bookings, race conditions, stale search data — flipped into defensive safeguards
+      40                                                                                                                                                                                  41  **AI Rationale:** Technical system design across multiple services requires structured decomposition (Hats), exhaustive option exploration (Morphological), and def                 ensive edge-case hunting (Reverse). This sequence moves from understanding → design options → stress testing.                                                                   42 +                                                                                                                                                                                43 +## Technique Execution Progress (Partial — Session Paused)
+      44 +
+      45 +### Six Thinking Hats — In Progress
+      46 +
+      47 +**White Hat (Facts) — Completed:**
+      48 +
+      49 +- **[Facts #1]**: Hosts Need Deactivation Control — Hosts are actively requesting this feature, validated demand
+      50 +- Current statuses: DRAFT → PENDING_VERIFICATION → VERIFIED → PAUSED (and REJECTED)
+      51 +- Only one deactivation path: VERIFIED → PAUSED via `pauseListing()`, no reactivation path exists
+      52 +- No deactivation from DRAFT — host can only delete drafts
+      53 +- Search index only contains VERIFIED listings — no event for deactivation/reactivation
+      54 +- Bookings reference `listingId` — deactivating with active bookings creates orphan references
+      55 +- No `deactivatedAt` timestamp for analytics
+      56 +- Reviews tied to listings — should persist when deactivated
+      57 +- Admin portal has no visibility into deactivated listings
+      58 +
+      59 +**Red Hat (Emotions) — Started, Not Completed:**
+      60 +
+      61 +- Host feelings: urgency ("need to take off market NOW"), fear of losing reviews/verification, anxiety about accidental deactivation with upcoming bookings
+      62 +- Guest feelings: confusion if bookmarked listing vanishes, anxiety about existing bookings disappearing
+      63 +- Admin feelings: inability to distinguish churning hosts vs temporary breaks, concern about on/off gaming for search ranking
+      64 +- Open questions: instant vs deliberate UX, notification strategy for guests, emotional tone (pause vs deactivate)
+      65 +
+      66 +**Remaining Hats (Not Started):**
+      67 +- Yellow Hat (Benefits)
+      68 +- Black Hat (Risks)
+      69 +- Green Hat (Creativity)
+      70 +- Blue Hat (Process)
+      71 +
+      72 +**Remaining Techniques (Not Started):**
+      73 +- Morphological Analysis
+      74 +- Reverse Brainstorming
+      75 +
+      76 +---
+      77 +_Session paused on 2026-03-11. Resume with `/bmad-brainstorming` and select "Continue this session"._
+
+● Session saved to _bmad-output/brainstorming/brainstorming-session-2026-03-11-1730.md. You can resume anytime with /bmad-brainstorming — it will detect the existing session and
+  pick up where we left off (Red Hat, then Yellow/Black/Green/Blue, then Morphological Analysis, then Reverse Brainstorming).
+  
+
+> how to do reindex
+● Bash(curl -s -X POST http://localhost:8084/api/v1/search/reindex-all --max-time 30)                                                                                        ⎿  Running… (6s · timeout 35s)
+     ctrl+b to run in background
+
+· Caramelizing…
+● Bash(curl -s -X POST http://localhost:8084/api/v1/search/reindex-all --max-time 30)
+  ⎿  Reindexed 9 listings
+  ⎿  (timeout 35s)
+
+proxy setup
+Add your authtoken:
+
+Don’t have an authtoken? Sign up for a free account.
+
+Copy code
+ngrok config add-authtoken <token>
+Start an endpoint:
+
+Copy code
+ngrok http 80
+9R5DCE5NH9
+5CUS936M8R
+HW2YZVAK7S
+FNSXDYAZEV
+ZBWVKX3GEW
+WB32JPGSVV
+ZSR6SC7RCU
+K5F37839B4
+D9UC357BY9
+QNVCXMRQEM
+
+to check for error
+npx tsc --noEmit 2>&1
+
+=================
+ Here's a summary of everything implemented:
+
+  Review System - All Features Done
+
+  ┌─────────────────────┬──────────┬─────────────────────────────────────────────────────────────────────────────────────┐
+  │       Feature       │ Priority │                                       Status                                        │
+  ├─────────────────────┼──────────┼─────────────────────────────────────────────────────────────────────────────────────┤
+  │ Sorting (createdAt) │ Low      │ @PageableDefault(sort = "createdAt") on controller                                  │
+  ├─────────────────────┼──────────┼─────────────────────────────────────────────────────────────────────────────────────┤
+  │ Rating filter       │ Low      │ ?rating=5 query param, findByListingIdAndRating()                                   │
+  ├─────────────────────┼──────────┼─────────────────────────────────────────────────────────────────────────────────────┤
+  │ Edit review         │ Medium   │ PUT /api/v1/reviews/{id} + frontend updateReview()                                  │
+  ├─────────────────────┼──────────┼─────────────────────────────────────────────────────────────────────────────────────┤
+  │ Delete review       │ Medium   │ DELETE /api/v1/reviews/{id} + frontend deleteReview()                               │
+  ├─────────────────────┼──────────┼─────────────────────────────────────────────────────────────────────────────────────┤
+  │ Kafka rating sync   │ High     │ ReviewEventConsumer in listing-service updates avg_rating/review_count in real-time │
+  ├─────────────────────┼──────────┼─────────────────────────────────────────────────────────────────────────────────────┤
+  │ Write Review button │ High     │ Dashboard shows "Write Review" on CONFIRMED bookings with star rating modal         │
+  └─────────────────────┴──────────┴─────────────────────────────────────────────────────────────────────────────────────┘
+  
+C:\Users\Win-10> curl -X POST http://localhost:8083/api/v1/listings/internal/geocode-all
+
+echo 'export NODE_OPTIONS="--max-old-space-size=4096"'
+
+booking.checked-in
+
+1. in home page provide register and sign in option
+        a). sign in should have using email address/mobile with otp sent on email or mobile
+		or using Goofle, Apple, Facebook
+2. provide recent searches
+3. still interested ?
+4. recommendation
+5. after sign user should have profile pic name and under that My Account , Booking & Trip etc should be there as it's integrated everything here if any missing
+
+
+ Starting the AI Service
+
+  cd C:/Users/Win-10/safar-platform/services/ai-service                                                                   pip install -r requirements.txt                                                                                         uvicorn main:app --host 0.0.0.0 --port 8090 --reload                                                                                                                                                                                            Testing
+                                                                                                                          Health check:                                                                                                           curl http://localhost:8090/health
+                                                                                                                          Run unit tests:
+  cd C:/Users/Win-10/safar-platform/services/ai-service
+  pytest
+
+  Available routers (5 routers at /api/v1/ai/... via gateway on 8080, or directly on 8090):                                                                                                                                                       ┌────────────────────┬────────────────────────────────┐                                                                 │       Router       │              File              │                                                                 ├────────────────────┼────────────────────────────────┤
+  │ AI Scout           │ services/scout.py              │
+  ├────────────────────┼────────────────────────────────┤
+  │ Listing Generator  │ services/listing_generator.py  │                                                                 ├────────────────────┼────────────────────────────────┤
+  │ Dynamic Pricing    │ services/dynamic_pricing.py    │                                                                 ├────────────────────┼────────────────────────────────┤
+  │ Smart Messaging    │ services/smart_messaging.py    │
+  ├────────────────────┼────────────────────────────────┤                                                                 │ Calendar Optimizer │ services/calendar_optimizer.py │
+  └────────────────────┴────────────────────────────────┘                                                               
+  Interactive API docs (once running): http://localhost:8090/docs — FastAPI's auto-generated Swagger UI where you can     test all endpoints directly.
+                                                                                                                        ✻ Worked for 46s

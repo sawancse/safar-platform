@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <title th:text="${ctx.festivalName ?: 'Festival Sale'}">Festival Campaign</title>
+    <style>
+        body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        body { margin: 0; padding: 0; width: 100% !important; background-color: #F7F7F7; }
+        @media only screen and (max-width: 620px) {
+            .email-container { width: 100% !important; }
+            .mobile-padding { padding-left: 16px !important; padding-right: 16px !important; }
+            .stack-column { display: block !important; width: 100% !important; }
+        }
+    </style>
+</head>
+<body style="margin:0; padding:0; background-color:#F7F7F7; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+
+    <div style="display:none; font-size:1px; color:#F7F7F7; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;"
+         th:text="${ctx.festivalName + ' - ' + (ctx.campaignHeadline ?: 'Special deals on stays!')}"></div>
+
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#F7F7F7;">
+        <tr><td align="center" style="padding:20px 0;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="email-container" style="max-width:600px; background-color:#FFFFFF; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+
+                <!-- HEADER -->
+                <tr>
+                    <td style="background:linear-gradient(135deg,#FF5A5F 0%,#FF385C 100%); padding:28px 40px;" class="mobile-padding">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr>
+                            <td style="font-family:'Georgia','Times New Roman',serif; font-size:32px; font-weight:bold; color:#FFFFFF; letter-spacing:1px;"><span style="font-style:italic;">S</span>afar</td>
+                            <td align="right" valign="middle" style="font-size:13px; color:rgba(255,255,255,0.9); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                                <span th:if="${ctx.userName}" th:text="'Hi, ' + ${ctx.userName}">Hi, User</span>
+                            </td>
+                        </tr></table>
+                    </td>
+                </tr>
+
+                <!-- CONTENT -->
+                <tr>
+                    <td style="padding:0;">
+
+                        <!-- Festival Hero -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td align="center" th:style="'background:' + (ctx.festivalGradient ?: 'linear-gradient(135deg, #FF5A5F 0%, #FF8A00 30%, #FFB400 60%, #00A699 100%)') + '; padding:48px 40px;'" class="mobile-padding">
+                                    <!-- Festival decorations -->
+                                    <p style="margin:0 0 8px; font-size:48px; line-height:1;" th:text="${ctx.festivalEmojis ?: '&#127878; &#10024; &#127878;'}">&#127878; &#10024; &#127878;</p>
+
+                                    <!-- Festival greeting -->
+                                    <p th:if="${ctx.festivalGreeting}" style="margin:0 0 8px; font-size:16px; color:rgba(255,255,255,0.9); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.festivalGreeting}">Happy Diwali!</p>
+
+                                    <!-- Festival name -->
+                                    <h1 style="margin:0 0 12px; font-size:36px; font-weight:800; color:#FFFFFF; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; text-shadow:0 2px 4px rgba(0,0,0,0.2);" th:text="${ctx.festivalName}">Festival Name</h1>
+
+                                    <!-- Campaign headline -->
+                                    <p style="margin:0; font-size:20px; font-weight:600; color:#FFFFFF; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.campaignHeadline}">Up to 50% off on festive stays!</p>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Campaign body -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td align="center" style="padding:32px 40px 16px;" class="mobile-padding">
+                                    <p th:if="${ctx.campaignBody}" style="margin:0; font-size:16px; color:#484848; line-height:1.6; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:utext="${ctx.campaignBody}">Campaign body text</p>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Offer card -->
+                        <table th:if="${ctx.offerText}" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td style="padding:0 40px 24px;" class="mobile-padding">
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius:12px; border:2px solid #FFB400;">
+                                        <tr>
+                                            <td align="center" style="padding:24px;">
+                                                <p style="margin:0 0 4px; font-size:11px; color:#FFB400; text-transform:uppercase; letter-spacing:2px; font-weight:600; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Festival Offer</p>
+                                                <p style="margin:0 0 8px; font-size:24px; font-weight:800; color:#FFFFFF; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.offerText}">Flat 30% Off!</p>
+                                                <p th:if="${ctx.offerCode}" style="margin:0 0 4px; font-size:14px; color:rgba(255,255,255,0.7); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                                                    Use code: <span th:text="${ctx.offerCode}" style="font-weight:700; color:#FFB400; font-size:18px; letter-spacing:3px;">DIWALI30</span>
+                                                </p>
+                                                <p th:if="${ctx.offerExpiry}" style="margin:0; font-size:12px; color:rgba(255,255,255,0.5); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                                                    Valid until <span th:text="${ctx.offerExpiry}">Nov 15</span>
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Discovery Categories -->
+                        <table th:if="${ctx.discoveryCategories}" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td style="padding:0 40px 24px;" class="mobile-padding">
+                                    <p style="margin:0 0 12px; font-size:18px; font-weight:700; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Explore Festive Stays</p>
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                                        <tr>
+                                            <td th:each="cat : ${ctx.discoveryCategories}" style="padding:0 8px 8px 0;">
+                                                <a th:href="${ctx.exploreUrl + '?category=' + cat}" style="display:inline-block; padding:10px 18px; background:linear-gradient(135deg, #FFF0F0, #FFFFFF); color:#FF5A5F; font-size:14px; font-weight:600; border-radius:20px; text-decoration:none; border:1px solid #FFE0E0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${cat}">Category</a>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Featured stays -->
+                        <table th:if="${ctx.featuredStays}" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td style="padding:0 40px 24px;" class="mobile-padding">
+                                    <p style="margin:0 0 16px; font-size:18px; font-weight:700; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Featured Stays</p>
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                        <tr th:each="stay : ${ctx.featuredStays}">
+                                            <td style="padding-bottom:12px;">
+                                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#F7F7F7; border-radius:12px; overflow:hidden;">
+                                                    <tr>
+                                                        <td th:if="${stay.imageUrl}" width="120" valign="top">
+                                                            <img th:src="${stay.imageUrl}" alt="" width="120" style="width:120px; height:90px; object-fit:cover; display:block;"/>
+                                                        </td>
+                                                        <td valign="middle" style="padding:12px 16px;">
+                                                            <p style="margin:0 0 2px; font-size:15px; font-weight:600; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${stay.title}">Stay Name</p>
+                                                            <p style="margin:0 0 4px; font-size:12px; color:#767676; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${stay.location}">Location</p>
+                                                            <p th:if="${stay.price}" style="margin:0; font-size:14px; font-weight:700; color:#FF5A5F; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${stay.price}">&#8377;2,500/night</p>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Regional imagery placeholder -->
+                        <table th:if="${ctx.festivalImageUrl}" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td style="padding:0 40px 24px;" class="mobile-padding">
+                                    <img th:src="${ctx.festivalImageUrl}" alt="Festival" width="520" style="width:100%; max-width:520px; height:auto; border-radius:12px; display:block;"/>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- CTA -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td align="center" style="padding:0 40px 40px;" class="mobile-padding">
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr>
+                                        <td style="border-radius:8px; background:linear-gradient(135deg, #FF5A5F, #FF385C);">
+                                            <a th:href="${ctx.exploreUrl ?: '#'}" style="display:inline-block; padding:16px 48px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:16px; font-weight:600; color:#FFFFFF; text-decoration:none; border-radius:8px;">Explore Stays</a>
+                                        </td>
+                                    </tr></table>
+                                </td>
+                            </tr>
+                        </table>
+
+                    </td>
+                </tr>
+
+                <!-- FOOTER -->
+                <tr>
+                    <td style="background-color:#FAFAFA; border-top:1px solid #EEEEEE; padding:32px 40px;" class="mobile-padding">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr><td align="center">
+                            <p style="margin:0 0 16px; font-family:'Georgia','Times New Roman',serif; font-size:22px; font-weight:bold; color:#FF5A5F;"><span style="font-style:italic;">S</span>afar</p>
+                            <p style="margin:0 0 12px; font-size:13px; color:#767676; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                                <a th:href="${ctx.emailPreferencesUrl ?: '#'}" style="color:#FF5A5F; text-decoration:none;">Email Preferences</a>
+                                <span style="color:#DDD; padding:0 8px;">|</span>
+                                <a th:href="${ctx.unsubscribeUrl ?: '#'}" style="color:#FF5A5F; text-decoration:none;">Unsubscribe</a>
+                                <span style="color:#DDD; padding:0 8px;">|</span>
+                                <a th:href="${ctx.helpUrl ?: '#'}" style="color:#FF5A5F; text-decoration:none;">Help Center</a>
+                            </p>
+                            <p style="margin:0 0 8px; font-size:14px; color:#484848; font-weight:500; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Safar &mdash; Your Journey, Your Story</p>
+                            <p style="margin:0; font-size:11px; color:#AAA; line-height:1.5; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                                This email was sent to <span th:text="${ctx.recipientEmail ?: 'you'}">you</span>.<br/>
+                                <span th:text="${ctx.companyAddress ?: 'Safar Technologies Pvt. Ltd., India'}">Safar Technologies Pvt. Ltd., India</span>
+                            </p>
+                        </td></tr></table>
+                    </td>
+                </tr>
+
+            </table>
+        </td></tr>
+    </table>
+</body>
+</html>

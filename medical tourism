@@ -1,0 +1,226 @@
+ 🎩 BMAD Brainstorming: Medical Tourism Feature Design for Safar
+
+  Topic: Full medical tourism product design — connecting patients with hospital-adjacent stays in India.
+
+  ---
+  ⚪ White Hat — What Exists Today
+
+● Searched for 2 patterns, read 2 files (ctrl+o to expand)
+
+● Now I have the complete picture. Here's the full brainstorming:
+
+  ---
+  ⚪ White Hat — Current State
+
+  Backend:
+  - hospital_partners table: id, name, city, address, lat/lng, specialties, accreditations, contact_email
+  - medical_stay_packages table: listing_id, hospital_id, distance_km, includes_pickup,
+  includes_translator, caregiver_friendly, medical_price_paise, min_stay_nights
+  - listings.medical_stay boolean flag on listings
+  - MedicalStayService with search/register endpoints
+  - API: GET /api/v1/listings/medical/search, GET /api/v1/listings/medical/hospitals
+
+  Frontend Web (/medical):
+  - City input + specialty dropdown filters
+  - Left sidebar: Hospital partner cards (name, city, rating, specialty tags, accreditations)
+  - Right grid: Medical stay package cards (listing title, hospital name, distance, amenities,
+  price/night)
+  - Click specialty on hospital → filters packages
+
+  Mobile (app/medical.tsx):
+  - Same pattern adapted for mobile
+
+  What's MISSING for a proper medical tourism product:
+
+  ┌───────────────────────────────────────────────────────────────┬───────────────────────────────────┐
+  │                              Gap                              │              Impact               │
+  ├───────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ No treatment type selection (procedure, not just specialty)   │ Patients search by procedure      │
+  ├───────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ No estimated treatment cost                                   │ Key decision factor               │
+  ├───────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ No hospital profile pages                                     │ Patients need detail before       │
+  │                                                               │ choosing                          │
+  ├───────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ No patient journey wizard (treatment → hospital → stay →      │ Fragmented experience             │
+  │ transport)                                                    │                                   │
+  ├───────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ No visa/travel assistance info                                │ International patients need this  │
+  ├───────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ No caregiver accommodation options                            │ Families travel together          │
+  ├───────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ No post-treatment follow-up stays                             │ Recovery needs differ             │
+  ├───────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ No insurance/payment plan info                                │ Cost is #1 concern                │
+  ├───────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ No reviews specific to medical stays                          │ Trust is critical                 │
+  ├───────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ No multilingual support for international patients            │ Hindi/English only                │
+  └───────────────────────────────────────────────────────────────┴───────────────────────────────────┘
+
+  ---
+  🟢  Green Hat — Full Product Design
+
+  User Journey: Medical Tourism on Safar
+
+  Step 1: SELECT TREATMENT
+    "What procedure do you need?"
+    → Cardiology: Bypass, Angioplasty, Valve Replacement
+    → Orthopedics: Knee Replacement, Hip Replacement, Spine Surgery
+    → Oncology: Chemotherapy stays, Post-surgery recovery
+    → Dental: Implants, Root Canal, Cosmetic
+    → Ophthalmology: LASIK, Cataract
+    → Fertility: IVF, IUI
+    → Cosmetic: Hair Transplant, Rhinoplasty
+    → Wellness: Ayurveda, Detox, Yoga Retreat
+
+  Step 2: SELECT CITY/HOSPITAL
+    → Recommended hospitals for that procedure
+    → Rating, accreditations (NABH, JCI), success rate
+    → Estimated treatment cost range
+    → Distance from airport
+
+  Step 3: FIND NEARBY STAYS
+    → Listings within 5km of hospital
+    → Filtered for medical-friendly features
+    → Caregiver rooms, wheelchair access, kitchen
+    → Min stay duration matched to recovery
+
+  Step 4: BOOK PACKAGE
+    → Combined: Stay + Hospital pickup + Translator
+    → Price: Treatment estimate + Stay cost + Services
+    → Payment: EMI options, insurance partner links
+
+  Step 5: POST-BOOKING
+    → Pre-arrival checklist
+    → Hospital contact info
+    → Airport pickup scheduling
+    → Recovery timeline
+
+  India's Medical Tourism Strengths (design for these)
+
+  - Cost advantage: 60-90% cheaper than US/UK for same procedures
+  - Top cities: Chennai, Mumbai, Delhi, Bangalore, Hyderabad, Kochi
+  - Accreditations: NABH (National), JCI (International)
+  - Key specialties: Cardiac, Orthopedic, Oncology, Dental, Fertility, Ayurveda
+
+  ---
+  🟡  Yellow Hat — What to Build for MVP
+
+  Tier 1: Quick Wins (enhance existing)
+
+  1. Treatment picker — Add procedure-level search (not just specialty)
+  2. Hospital detail page — Full profile with procedures, costs, success rates
+  3. "Medical-friendly" badge on listings — filter by: wheelchair, kitchen, caregiver room, ground floor
+  4. Package builder — Combine hospital + stay + services with total cost estimate
+
+  Tier 2: Differentiators
+
+  5. Cost estimator — "Knee replacement in Chennai: ₹2.5-4L treatment + ₹15K/week stay"
+  6. Recovery timeline — "Post knee surgery: 7-10 days hospital + 14 days recovery stay"
+  7. Caregiver mode — Book 2 rooms (patient + family), shared kitchen, pickup
+
+  Tier 3: Growth Features
+
+  8. International patient portal — Visa letter from hospital, airport pickup, translator
+  9. Insurance partnerships — Pre-approved coverage, cashless treatment
+  10. Telemedicine pre-consultation — Video call with doctor before travel
+
+  ---
+  ⚫ Black Hat — What to Skip
+
+  - Don't become a hospital booking platform (that's Practo/Credihealth)
+  - Don't guarantee treatment outcomes
+  - Don't handle medical records (HIPAA/privacy nightmare)
+  - Don't build a full EMR — just link to hospital systems
+  - Visa processing — just provide information, not service
+
+  ---
+  🔴 Red Hat — Gut Feel
+
+  - Treatment picker + cost estimator is the killer feature — patients Google "knee replacement cost
+  India" and land on Safar
+  - Hospital detail page builds trust — accreditations, photos, success rates
+  - The "package" concept (treatment + stay + transport) is what makes Safar unique vs just booking on
+  Booking.com
+  - Caregiver accommodation is a real unmet need — families travel for medical treatment
+
+  ---
+  🔵 Blue Hat — Recommended Design
+
+  Phase 1: Enhanced Medical Tourism Page (Web + Mobile)
+
+  New /medical page layout:
+
+  ┌─────────────────────────────────────────────┐
+  │ 🏥 Medical Tourism                          │
+  │ Find the best hospital + stay combination   │
+  ├─────────────────────────────────────────────┤
+  │ What treatment? [  Knee Replacement    ▾ ]  │
+  │ Which city?     [  Chennai             ▾ ]  │
+  │ When?           [  March 2026              ]│
+  │ Travelers       [  Patient + 1 caregiver   ]│
+  │                              [ Search   ]   │
+  ├─────────────────────────────────────────────┤
+  │                                             │
+  │  RECOMMENDED HOSPITALS (3 cards)            │
+  │  ┌──────────┐ ┌──────────┐ ┌──────────┐    │
+  │  │ Apollo   │ │ Fortis   │ │ MIOT     │    │
+  │  │ Chennai  │ │ Chennai  │ │ Chennai  │    │
+  │  │ ★ 4.8   │ │ ★ 4.6   │ │ ★ 4.7   │    │
+  │  │ NABH JCI│ │ NABH    │ │ NABH JCI│    │
+  │  │ ₹2.5-4L │ │ ₹3-5L  │ │ ₹2-3.5L │    │
+  │  │ [Select] │ │ [Select] │ │ [Select] │    │
+  │  └──────────┘ └──────────┘ └──────────┘    │
+  │                                             │
+  │  NEARBY STAYS (selected hospital)           │
+  │  ┌────────────────────────────────────┐     │
+  │  │ 🏠 Recovery Home near Apollo       │     │
+  │  │ 1.2 km · ♿ Wheelchair · 🍳 Kitchen│     │
+  │  │ ₹2,500/night · Min 7 nights       │     │
+  │  │ ✅ Pickup ✅ Translator ✅ Caregiver│     │
+  │  │                    [Book Package →]│     │
+  │  └────────────────────────────────────┘     │
+  │                                             │
+  │  COST ESTIMATE                              │
+  │  Treatment: ₹2,50,000 - ₹4,00,000         │
+  │  Stay (14 nights): ₹35,000                 │
+  │  Services: ₹5,000                          │
+  │  ─────────────────────                     │
+  │  Total: ₹2,90,000 - ₹4,40,000             │
+  │                                             │
+  │  RECOVERY TIMELINE                          │
+  │  Day 1-3: Hospital stay                     │
+  │  Day 4-14: Recovery at nearby stay          │
+  │  Day 15: Follow-up & discharge              │
+  └─────────────────────────────────────────────┘
+
+  New Backend Needed
+
+  ┌───────────────────────────────────────┬────────────────────────────────────────────────────────────┐
+  │              Table/Field              │                          Purpose                           │
+  ├───────────────────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ hospital_procedures                   │ procedure_name, specialty, est_cost_min_paise,             │
+  │                                       │ est_cost_max_paise, recovery_days, hospital_days           │
+  ├───────────────────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ hospital_partners.photos              │ Hospital images                                            │
+  ├───────────────────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ hospital_partners.success_rate        │ "95% success rate"                                         │
+  ├───────────────────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ hospital_partners.airport_distance_km │ Distance from nearest airport                              │
+  ├───────────────────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ medical_stay_packages.recovery_days   │ Expected stay duration                                     │
+  ├───────────────────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ listings.caregiver_friendly           │ Already exists in schema                                   │
+  ├───────────────────────────────────────┼────────────────────────────────────────────────────────────┤
+  │ listings.wheelchair_accessible        │ Already in accessibility_features                          │
+  └───────────────────────────────────────┴────────────────────────────────────────────────────────────┘
+
+  ---
+  Want me to implement Phase 1 now? That would include:
+
+  1. Treatment/procedure picker with cost estimates
+  2. Hospital detail cards with accreditations + estimated costs
+  3. "Medical-friendly" listing badges
+  4. Cost estimator summary
+  5. Recovery timeline component

@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.iml
+
+# Build artifacts
+**/target/
+**/node_modules/
+**/.next/
+**/dist/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Terraform
+infrastructure/terraform/.terraform
+infrastructure/terraform/*.tfstate*
+infrastructure/terraform/*.tfvars
+!infrastructure/terraform/*.tfvars.example
+
+# Docker
+docker-compose.yml
+
+# Docs
+docs/
+*.md
+!README.md

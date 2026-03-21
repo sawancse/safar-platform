@@ -1,0 +1,239 @@
+{
+  "info": {
+    "name": "Safar Platform — Sprint 3",
+    "description": "Review Service, Gateway smoke tests, and OpenAPI endpoints (S10-S15)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "safar-sprint-3"
+  },
+  "variable": [
+    { "key": "baseReviewUrl",  "value": "http://localhost:8087/api/v1" },
+    { "key": "baseGatewayUrl", "value": "http://localhost:8080/api/v1" },
+    { "key": "accessToken",    "value": "" },
+    { "key": "listingId",      "value": "" },
+    { "key": "bookingId",      "value": "" },
+    { "key": "reviewId",       "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Review Service (S12)",
+      "item": [
+        {
+          "name": "Create Review",
+          "request": {
+            "method": "POST",
+            "url": "{{baseReviewUrl}}/reviews",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"rating\": 5,\n  \"comment\": \"Absolutely fantastic stay! Host was very responsive.\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('reviewId', body.id);",
+              "pm.test('Has rating', () => pm.expect(body.rating).to.eql(5));",
+              "pm.test('Has listingId', () => pm.expect(body.listingId).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Create Review — Duplicate (expect 409)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseReviewUrl}}/reviews",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"rating\": 4,\n  \"comment\": \"Good stay\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 409 for duplicate', () => pm.response.to.have.status(409));"
+            ]}
+          }]
+        },
+        {
+          "name": "Create Review — Invalid Rating (expect 400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseReviewUrl}}/reviews",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"00000000-0000-0000-0000-000000000099\",\n  \"rating\": 6,\n  \"comment\": \"Invalid rating\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 400 for invalid rating', () => pm.response.to.have.status(400));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Reviews for Listing (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseReviewUrl}}/reviews/listing/{{listingId}}"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Add Host Reply",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseReviewUrl}}/reviews/{{reviewId}}/reply?reply=Thank you for staying with us!",
+              "query": [{ "key": "reply", "value": "Thank you for staying with us!" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has reply', () => pm.expect(pm.response.json().reply).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Get My Reviews",
+          "request": {
+            "method": "GET",
+            "url": "{{baseReviewUrl}}/reviews/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Gateway Smoke Tests (S10)",
+      "item": [
+        {
+          "name": "Search via Gateway (public)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseGatewayUrl}}/search/listings?city=Mumbai",
+              "query": [{ "key": "city", "value": "Mumbai" }]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200 (gateway proxies search)', () => pm.response.to.have.status(200));"
+            ]}
+          }]
+        },
+        {
+          "name": "Search Autocomplete via Gateway (public)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseGatewayUrl}}/search/autocomplete?q=Mum",
+              "query": [{ "key": "q", "value": "Mum" }]
+            }
+          }
+        },
+        {
+          "name": "Get My Bookings via Gateway",
+          "request": {
+            "method": "GET",
+            "url": "{{baseGatewayUrl}}/bookings/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200 (gateway proxies bookings)', () => pm.response.to.have.status(200));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Reviews via Gateway (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseGatewayUrl}}/reviews/listing/{{listingId}}"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "OpenAPI Docs (S14)",
+      "item": [
+        {
+          "name": "Review Service — API Docs",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8087/api-docs"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has openapi field', () => pm.expect(pm.response.json().openapi).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Booking Service — API Docs",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8085/api-docs"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]}
+          }]
+        },
+        {
+          "name": "Search Service — API Docs",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8084/api-docs"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]}
+          }]
+        }
+      ]
+    }
+  ]
+}

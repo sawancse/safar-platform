@@ -1,0 +1,177 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: safar-postgres
+    environment:
+      POSTGRES_DB: safar
+      POSTGRES_USER: safar
+      POSTGRES_PASSWORD: safar_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U safar"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: safar-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: safar-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: safar-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: safar-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  # ── Application Services ────────────────────────────────────────────────────
+  booking-service:
+    build: ./services/booking-service
+    container_name: safar-booking
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://safar-postgres:5432/safar
+      SPRING_DATASOURCE_USERNAME: safar
+      SPRING_DATASOURCE_PASSWORD: safar_dev
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: safar-kafka:9092
+      SPRING_DATA_REDIS_HOST: safar-redis
+      JWT_SECRET: ${JWT_SECRET:-dGhpcyBpcyBhIHZlcnkgbG9uZyBzZWNyZXQga2V5IGZvciBzYWZhciBwbGF0Zm9ybQ==}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  payment-service:
+    build: ./services/payment-service
+    container_name: safar-payment
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://safar-postgres:5432/safar
+      SPRING_DATASOURCE_USERNAME: safar
+      SPRING_DATASOURCE_PASSWORD: safar_dev
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: safar-kafka:9092
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-rzp_test_placeholder}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-placeholder_secret}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-placeholder_webhook_secret}
+      JWT_SECRET: ${JWT_SECRET:-dGhpcyBpcyBhIHZlcnkgbG9uZyBzZWNyZXQga2V5IGZvciBzYWZhciBwbGF0Zm9ybQ==}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+
+  media-service:
+    build: ./services/media-service
+    container_name: safar-media
+    ports:
+      - "8088:8088"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: safar-kafka:9092
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-safar-media-dev}
+      AWS_CLOUDFRONT_DOMAIN: ${AWS_CLOUDFRONT_DOMAIN:-cdn.safar.dev}
+      AWS_REGION: ${AWS_REGION:-ap-south-1}
+      JWT_SECRET: ${JWT_SECRET:-dGhpcyBpcyBhIHZlcnkgbG9uZyBzZWNyZXQga2V5IGZvciBzYWZhciBwbGF0Zm9ybQ==}
+    depends_on:
+      kafka:
+        condition: service_started
+
+  search-service:
+    build: ./services/search-service
+    container_name: safar-search
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_ELASTICSEARCH_URIS: http://safar-elasticsearch:9200
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: safar-kafka:9092
+      JWT_SECRET: ${JWT_SECRET:-dGhpcyBpcyBhIHZlcnkgbG9uZyBzZWNyZXQga2V5IGZvciBzYWZhciBwbGF0Zm9ybQ==}
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+
+  review-service:
+    build: ./services/review-service
+    container_name: safar-review
+    ports:
+      - "8087:8087"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://safar-postgres:5432/safar
+      SPRING_DATASOURCE_USERNAME: safar
+      SPRING_DATASOURCE_PASSWORD: safar_dev
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: safar-kafka:9092
+      JWT_SECRET: ${JWT_SECRET:-dGhpcyBpcyBhIHZlcnkgbG9uZyBzZWNyZXQga2V5IGZvciBzYWZhciBwbGF0Zm9ybQ==}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+
+  notification-service:
+    build: ./services/notification-service
+    container_name: safar-notification
+    ports:
+      - "8089:8089"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: safar-kafka:9092
+      SPRING_MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      SPRING_MAIL_PORT: ${MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      NOTIFICATION_FROM_EMAIL: ${NOTIFICATION_FROM_EMAIL:-noreply@safar.in}
+      JWT_SECRET: ${JWT_SECRET:-dGhpcyBpcyBhIHZlcnkgbG9uZyBzZWNyZXQga2V5IGZvciBzYWZhciBwbGF0Zm9ybQ==}
+    depends_on:
+      kafka:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  es_data:

@@ -1,0 +1,59 @@
+Bash(mvn compile -pl services/booking-service,services/notification-service,services/user-servic
+      e,services/search-service -q 2>&1 | tail -10)
+  ⎿  (No output)
+  ⎿  (timeout 2m)
+
+● All services compile cleanly. Let me run the tests to verify.
+
+● Bash(mvn test -pl services/booking-service,services/notification-service,services/user-service,s
+      ervices/search-service -q 2>&1 | tail -20)
+  ⎿  22:29:44.742 [main] INFO com.safar.booking.service.GroupBookingService -- Group booking
+     b868e5f6-2765-44e8-842c-ecbe43ec2900 created with 2 bookings, discount=10%
+     22:29:45.094 [main] INFO com.safar.booking.service.LiveAnywhereService -- Live Anywhere
+     … +30 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)                                                                                                                                                                                   ● All tests pass. Here's the complete medical MVP implementation summary:
+
+  ---                                                                                               Medical Tourism MVP — Complete
+                                                                                                    1. Medical Booking Integration (booking-service)
+
+  - MEDICAL booking type added alongside SHORT_TERM/LONG_TERM/AASHRAY
+  - 9 new fields: procedureName, hospitalName, hospitalId, specialty, procedureDate, hospitalDays,
+   recoveryDays, treatmentCostPaise, patientNotes
+  - Migration V13: adds all columns to bookings table
+  - Kafka event: medical.booking.created published with procedure details
+  - DTOs, service mapping, and GroupBookingService all updated
+
+  2. Patient Medical Profiles (user-service)
+
+  - Migration V17: medical_profiles table (blood group, allergies, medications, surgeries, chronic
+   conditions, emergency contact, insurance, dietary/mobility needs)
+  - Entity + Repository + Service + Controller
+  - Endpoints:
+    - GET /api/v1/users/medical-profile — get my profile
+    - PUT /api/v1/users/medical-profile — create/update
+    - DELETE /api/v1/users/medical-profile — delete
+    - GET /api/v1/internal/users/{userId}/medical-profile — internal
+
+  3. Medical Notifications (notification-service)
+
+  - MedicalBookingEventConsumer listens on medical.booking.created
+  - Sends confirmation email with procedure details, hospital info, date, and medical reminders
+  (bring records, arrive early, update profile)
+
+  4. Medical Search Indexing (search-service)
+
+
+
+
+
+  - 4 new ES fields: medicalStay, hospitalNames, medicalSpecialties, procedureNames
+  - 3 new search filters: medicalStay=true, specialty=Cardiology, procedure=Knee Replacement
+  - 2 new aggregations: medicalStay count + medicalSpecialties facet (top 30)
+  - Indexed during listing sync from listing-service
+
+  Build Status
+
+  - All 4 services compile cleanly
+  - All tests pass (booking: 29, notification: 8, user: 42, search: 14)
+
+  Ready for P4/P5/P6, or would you like to wire up the medical booking flow in the frontend?

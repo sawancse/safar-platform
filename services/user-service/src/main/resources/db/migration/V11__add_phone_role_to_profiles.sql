@@ -1,0 +1,3 @@
+ALTER TABLE users.profiles ADD COLUMN phone VARCHAR(13);
+ALTER TABLE users.profiles ADD COLUMN role VARCHAR(20) DEFAULT 'GUEST';
+ALTER TABLE users.profiles ADD COLUMN created_at TIMESTAMPTZ DEFAULT NOW();

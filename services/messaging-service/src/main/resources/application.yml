@@ -1,0 +1,64 @@
+server:
+  port: 8091
+  tomcat:
+    threads:
+      max: 5
+      min-spare: 5
+    max-connections: 25
+    accept-count: 25
+    connection-timeout: 2000
+
+spring:
+  application:
+    name: messaging-service
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/safar}
+    username: ${SPRING_DATASOURCE_USERNAME:safar}
+    password: ${SPRING_DATASOURCE_PASSWORD:safar}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 2
+      minimum-idle: 2
+      idle-timeout: 30000
+      connection-timeout: 10000
+      leak-detection-threshold: 15000
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+    show-sql: false
+    properties:
+      hibernate:
+        default_schema: messages
+
+  flyway:
+    enabled: true
+    schemas: messages
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+jwt:
+  secret: ${JWT_SECRET:l0UNaBuoYCf7Y/G8G1bihPxkUI7NZuPaZdzTbbEYqzM=}
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+springdoc:
+  api-docs.path: /api-docs
+  swagger-ui.path: /swagger-ui.html

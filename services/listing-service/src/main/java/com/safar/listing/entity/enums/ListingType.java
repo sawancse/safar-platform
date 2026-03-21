@@ -1,0 +1,8 @@
+package com.safar.listing.entity.enums;
+
+public enum ListingType {
+    HOME, ROOM, UNIQUE, COMMERCIAL,
+    VILLA, RESORT, HOMESTAY, HOSTEL, GUESTHOUSE,
+    FARMSTAY, BNB, LODGE, CHALET, APARTMENT, VACATION_HOME,
+    PG, COLIVING, HOTEL, BUDGET_HOTEL, HOSTEL_DORM
+}

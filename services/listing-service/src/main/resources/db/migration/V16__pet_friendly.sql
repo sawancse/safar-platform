@@ -1,0 +1,2 @@
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS pet_friendly BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS max_pets INTEGER DEFAULT 0;

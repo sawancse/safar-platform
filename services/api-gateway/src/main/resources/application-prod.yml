@@ -1,0 +1,123 @@
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - ${CORS_ORIGIN:https://safar.com}
+            allowedMethods: [ GET, POST, PUT, DELETE, OPTIONS ]
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+
+      routes:
+        - id: auth-otp-send
+          uri: http://${AUTH_SERVICE_HOST}:8888
+          predicates:
+            - Path=/api/v1/auth/otp/send
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 3
+                redis-rate-limiter.burstCapacity: 5
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
+
+        - id: auth-service
+          uri: http://${AUTH_SERVICE_HOST}:8888
+          predicates:
+            - Path=/api/v1/auth/**
+
+        - id: user-service
+          uri: http://${USER_SERVICE_HOST}:8092
+          predicates:
+            - Path=/api/v1/users/**
+
+        - id: listing-service
+          uri: http://${LISTING_SERVICE_HOST}:8083
+          predicates:
+            - Path=/api/v1/listings/**
+
+        - id: locations
+          uri: http://${LISTING_SERVICE_HOST}:8083
+          predicates:
+            - Path=/api/v1/locations/**
+
+        - id: search-service
+          uri: http://${SEARCH_SERVICE_HOST}:8084
+          predicates:
+            - Path=/api/v1/search/**
+
+        - id: booking-service
+          uri: http://${BOOKING_SERVICE_HOST}:8095
+          predicates:
+            - Path=/api/v1/bookings/**
+
+        - id: payment-service-webhook
+          uri: http://${PAYMENT_SERVICE_HOST}:8086
+          predicates:
+            - Path=/api/v1/payments/webhook/**
+
+        - id: payment-service
+          uri: http://${PAYMENT_SERVICE_HOST}:8086
+          predicates:
+            - Path=/api/v1/payments/**
+
+        - id: media-service
+          uri: http://${MEDIA_SERVICE_HOST}:8088
+          predicates:
+            - Path=/api/v1/media/**
+
+        - id: review-service
+          uri: http://${REVIEW_SERVICE_HOST}:8087
+          predicates:
+            - Path=/api/v1/reviews/**
+
+        - id: messaging-service
+          uri: http://${MESSAGING_SERVICE_HOST}:8091
+          predicates:
+            - Path=/api/v1/messages/**
+
+        - id: notification-service
+          uri: http://${NOTIFICATION_SERVICE_HOST}:8089
+          predicates:
+            - Path=/api/v1/notifications/**
+
+        - id: ai-service
+          uri: http://${AI_SERVICE_HOST}:8090
+          predicates:
+            - Path=/api/v1/ai/**
+
+        - id: admin-user-service
+          uri: http://${USER_SERVICE_HOST}:8092
+          predicates:
+            - Path=/api/v1/admin/hosts,/api/v1/admin/hosts/**,/api/v1/admin/analytics/**,/api/v1/admin/cohost/**
+
+        - id: admin-kyc
+          uri: http://${USER_SERVICE_HOST}:8092
+          predicates:
+            - Path=/api/v1/admin/kyc/**
+
+        - id: admin-payments
+          uri: http://${PAYMENT_SERVICE_HOST}:8086
+          predicates:
+            - Path=/api/v1/admin/payouts/**,/api/v1/admin/settlements/**,/api/v1/admin/reconciliation/**,/api/v1/admin/commission/**
+
+        - id: admin-listing-service
+          uri: http://${LISTING_SERVICE_HOST}:8083
+          predicates:
+            - Path=/api/v1/admin/**
+
+jwt:
+  secret: ${JWT_SECRET}
+
+logging:
+  level:
+    com.safar.gateway: INFO
+    org.springframework.cloud.gateway: WARN

@@ -1,0 +1,360 @@
+{
+  "info": {
+    "name": "Safar Platform — Sprint 6",
+    "description": "Safar Miles, Safety Score, Remote-Work Certification, Group Bookings, and Recurring Bookings APIs (S23-S27)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "safar-sprint-6"
+  },
+  "variable": [
+    { "key": "baseUrl",            "value": "http://localhost:8080" },
+    { "key": "token",              "value": "" },
+    { "key": "listingId",          "value": "" },
+    { "key": "certificationId",    "value": "" },
+    { "key": "groupId",            "value": "" },
+    { "key": "groupBookingId",     "value": "" },
+    { "key": "recurringBookingId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Safar Miles (S23)",
+      "item": [
+        {
+          "name": "Get Miles Balance",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/miles/balance",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has balance', () => pm.expect(pm.response.json().balance).to.be.a('number'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Miles History",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/miles/history",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Redeem Miles",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/miles/redeem",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"miles\": 500,\n  \"bookingId\": \"{{bookingId}}\",\n  \"description\": \"Redeem miles for Munnar treehouse booking discount\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has discountPaise', () => pm.expect(pm.response.json().discountPaise).to.be.a('number'));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Safety Score (S24)",
+      "item": [
+        {
+          "name": "Get Listing Safety Score",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/listings/{{listingId}}/safety-score",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Has overallScore', () => pm.expect(body.overallScore).to.be.a('number'));",
+              "pm.test('Has categories', () => pm.expect(body.categories).to.be.an('object'));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Remote-Work Certification (S25)",
+      "item": [
+        {
+          "name": "Apply for RW Certification",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/listings/{{listingId}}/rw-certification",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"wifiSpeedMbps\": 150,\n  \"hasDedicatedWorkspace\": true,\n  \"hasBackupPower\": true,\n  \"hasAC\": true,\n  \"quietHoursEnforced\": true,\n  \"monitorAvailable\": false,\n  \"ergonomicChair\": true\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('certificationId', body.id);",
+              "pm.test('Status PENDING', () => pm.expect(body.status).to.eql('PENDING'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get RW Certification for Listing",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/listings/{{listingId}}/rw-certification",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has wifiSpeedMbps', () => pm.expect(pm.response.json().wifiSpeedMbps).to.be.a('number'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Admin — Review RW Certification",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/admin/rw-certifications/{{certificationId}}/review",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approved\": true,\n  \"score\": 92,\n  \"remarks\": \"Excellent remote-work setup in Koramangala, Bengaluru. High-speed fibre verified.\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Status APPROVED', () => pm.expect(pm.response.json().status).to.eql('APPROVED'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Admin — Get Pending RW Certifications",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/admin/rw-certifications/pending",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Group Bookings (S26)",
+      "item": [
+        {
+          "name": "Create Listing Group",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/listing-groups",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Coorg Coffee Estate Cluster\",\n  \"description\": \"Three adjacent cottages in Madikeri with shared garden and pool\",\n  \"city\": \"Madikeri\",\n  \"state\": \"Karnataka\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('groupId', body.id);",
+              "pm.test('Has name', () => pm.expect(body.name).to.eql('Coorg Coffee Estate Cluster'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Listing Group",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/listing-groups/{{groupId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has members array', () => pm.expect(pm.response.json().members).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Update Group Members",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/listing-groups/{{groupId}}/members",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listingIds\": [\n    \"{{listingId}}\",\n    \"00000000-0000-0000-0000-000000000002\",\n    \"00000000-0000-0000-0000-000000000003\"\n  ]\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Members updated', () => pm.expect(pm.response.json().members.length).to.eql(3));"
+            ]}
+          }]
+        },
+        {
+          "name": "Create Group Booking",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/bookings/group",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"groupId\": \"{{groupId}}\",\n  \"checkIn\": \"2026-04-10\",\n  \"checkOut\": \"2026-04-14\",\n  \"totalGuests\": 12,\n  \"guestName\": \"Vikram Mehta\",\n  \"guestPhone\": \"+919876501234\",\n  \"specialRequests\": \"Corporate offsite — need projector and whiteboard in one cottage\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('groupBookingId', body.id);",
+              "pm.test('Has totalAmountPaise', () => pm.expect(body.totalAmountPaise).to.be.a('number'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Group Booking",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/bookings/group/{{groupBookingId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has bookings array', () => pm.expect(pm.response.json().bookings).to.be.an('array'));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Recurring Bookings (S27)",
+      "item": [
+        {
+          "name": "Create Recurring Booking",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/bookings/recurring",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listingId\": \"{{listingId}}\",\n  \"frequency\": \"WEEKLY\",\n  \"dayOfWeek\": \"FRIDAY\",\n  \"checkInTime\": \"15:00\",\n  \"checkOutTime\": \"11:00\",\n  \"startDate\": \"2026-04-03\",\n  \"endDate\": \"2026-06-26\",\n  \"guests\": 2,\n  \"guestName\": \"Priya Sharma\",\n  \"guestPhone\": \"+919823456789\",\n  \"note\": \"Weekend getaway — same Alibaug beach house every Friday to Sunday\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('recurringBookingId', body.id);",
+              "pm.test('Has occurrences', () => pm.expect(body.occurrences).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Recurring Bookings",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/bookings/recurring",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Cancel Recurring Booking",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/bookings/recurring/{{recurringBookingId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]}
+          }]
+        }
+      ]
+    }
+  ]
+}

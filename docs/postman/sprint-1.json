@@ -1,0 +1,324 @@
+{
+  "info": {
+    "name": "Safar Platform — Sprint 1",
+    "description": "Auth, User Profile, Host Subscription, and Listing APIs for Sprint 1 (S1-S4)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "safar-sprint-1"
+  },
+  "variable": [
+    { "key": "baseAuthUrl",    "value": "http://localhost:8081/api/v1" },
+    { "key": "baseUserUrl",    "value": "http://localhost:8082/api/v1" },
+    { "key": "baseListingUrl", "value": "http://localhost:8083/api/v1" },
+    { "key": "accessToken",    "value": "" },
+    { "key": "refreshToken",   "value": "" },
+    { "key": "listingId",      "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth Service",
+      "item": [
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{baseAuthUrl}}/auth/otp/send",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+919876543210\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] }
+          }]
+        },
+        {
+          "name": "Send OTP — Invalid Phone (expect 400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseAuthUrl}}/auth/otp/send",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"12345\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Status 400', () => pm.response.to.have.status(400));"] }
+          }]
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{baseAuthUrl}}/auth/otp/verify",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+919876543210\",\n  \"otp\": \"123456\",\n  \"name\": \"Ravi Kumar\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                "const body = pm.response.json();",
+                "pm.collectionVariables.set('accessToken', body.accessToken);",
+                "pm.collectionVariables.set('refreshToken', body.refreshToken);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Refresh Tokens",
+          "request": {
+            "method": "POST",
+            "url": "{{baseAuthUrl}}/auth/refresh",
+            "header": [{ "key": "X-Refresh-Token", "value": "{{refreshToken}}" }]
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                "const body = pm.response.json();",
+                "pm.collectionVariables.set('accessToken', body.accessToken);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{baseAuthUrl}}/auth/logout",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{accessToken}}" },
+              { "key": "X-Refresh-Token", "value": "{{refreshToken}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Status 204', () => pm.response.to.have.status(204));"] }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "User Service",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUserUrl}}/users/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] }
+          }]
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUserUrl}}/users/me",
+            "header": [
+              { "key": "Authorization",  "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ravi Kumar\",\n  \"email\": \"ravi@example.com\",\n  \"language\": \"hi\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] }
+          }]
+        },
+        {
+          "name": "Get Taste Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUserUrl}}/users/me/taste-profile",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          }
+        },
+        {
+          "name": "Upsert Taste Profile",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUserUrl}}/users/me/taste-profile",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"travelStyle\": \"RELAXED\",\n  \"propertyVibe\": \"COZY\",\n  \"mustHaves\": [\"wifi\", \"ac\", \"kitchen\"],\n  \"groupType\": \"COUPLE\",\n  \"budgetTier\": \"MID\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] }
+          }]
+        },
+        {
+          "name": "Start Host Trial",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUserUrl}}/hosts/me/subscription/start-trial?tier=STARTER",
+              "query": [{ "key": "tier", "value": "STARTER" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Status 201', () => pm.response.to.have.status(201));"] }
+          }]
+        },
+        {
+          "name": "Get Host Subscription",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUserUrl}}/hosts/me/subscription",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Listing Service",
+      "item": [
+        {
+          "name": "Create Listing (HOME)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseListingUrl}}/listings",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Cozy 2BHK in Bandra\",\n  \"description\": \"Beautiful apartment near the sea\",\n  \"type\": \"HOME\",\n  \"addressLine1\": \"12 Pali Hill\",\n  \"city\": \"Mumbai\",\n  \"state\": \"Maharashtra\",\n  \"pincode\": \"400050\",\n  \"lat\": 19.0596,\n  \"lng\": 72.8295,\n  \"maxGuests\": 4,\n  \"bedrooms\": 2,\n  \"bathrooms\": 2,\n  \"amenities\": [\"wifi\", \"ac\", \"kitchen\", \"parking\"],\n  \"basePricePaise\": 500000,\n  \"pricingUnit\": \"NIGHT\",\n  \"instantBook\": true,\n  \"gstApplicable\": true\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                "const body = pm.response.json();",
+                "pm.collectionVariables.set('listingId', body.id);",
+                "pm.test('Status is DRAFT', () => pm.expect(body.status).to.eql('DRAFT'));"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Listing by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseListingUrl}}/listings/{{listingId}}"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] }
+          }]
+        },
+        {
+          "name": "Get My Listings",
+          "request": {
+            "method": "GET",
+            "url": "{{baseListingUrl}}/listings/mine",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          }
+        },
+        {
+          "name": "Update Listing",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseListingUrl}}/listings/{{listingId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Cozy 2BHK in Bandra — Updated\",\n  \"basePricePaise\": 600000\n}"
+            }
+          }
+        },
+        {
+          "name": "Submit for Verification (expect 400 — no video)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseListingUrl}}/listings/{{listingId}}/submit",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Status 400 — no approved video', () => pm.response.to.have.status(400));"] }
+          }]
+        },
+        {
+          "name": "Block Availability Date",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseListingUrl}}/listings/{{listingId}}/availability",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2025-12-25\",\n  \"isAvailable\": false,\n  \"minStayNights\": 1\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] }
+          }]
+        },
+        {
+          "name": "Get Availability Range",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseListingUrl}}/listings/{{listingId}}/availability?from=2025-12-01&to=2025-12-31",
+              "query": [
+                { "key": "from", "value": "2025-12-01" },
+                { "key": "to",   "value": "2025-12-31" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] }
+          }]
+        },
+        {
+          "name": "Search Listings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseListingUrl}}/listings?city=Mumbai",
+              "query": [{ "key": "city", "value": "Mumbai" }]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,236 @@
+{
+  "info": {
+    "name": "Safar Platform — Sprint 7",
+    "description": "Vacation Partner Network, Demand Alert, Language Preference, and Bucket List / Discovery APIs (S28-S32)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "safar-sprint-7"
+  },
+  "variable": [
+    { "key": "baseUrl",   "value": "http://localhost:8080" },
+    { "key": "token",     "value": "" },
+    { "key": "listingId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Vacation Partner Network (S28)",
+      "item": [
+        {
+          "name": "Enroll Listing in VPN",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/listings/{{listingId}}/vpn/enroll",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"exchangeType\": \"MUTUAL\",\n  \"availableFrom\": \"2026-05-01\",\n  \"availableTo\": \"2026-09-30\",\n  \"preferredLocations\": [\"Shimla\", \"Manali\", \"Dharamshala\"],\n  \"maxGuestCapacity\": 4\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('Has enrollmentId', () => pm.expect(pm.response.json().enrollmentId).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Remove Listing from VPN",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/listings/{{listingId}}/vpn",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]}
+          }]
+        },
+        {
+          "name": "Generate VPN Referral Link",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/listings/{{listingId}}/vpn/referral-link",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"referralNote\": \"Invite your friends to join the Vacation Partner Network and earn bonus miles\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('Has referralLink', () => pm.expect(pm.response.json().referralLink).to.include('http'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Browse VPN Listings",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/vpn/listings",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get My VPN Referrals",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/vpn/referrals",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Demand Alert (S29)",
+      "item": [
+        {
+          "name": "Get Demand Alert for Listing",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/listings/{{listingId}}/demand-alert",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Has demandLevel', () => pm.expect(body.demandLevel).to.be.a('string'));",
+              "pm.test('Has suggestedPricePaise', () => pm.expect(body.suggestedPricePaise).to.be.a('number'));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Language Preference (S30)",
+      "item": [
+        {
+          "name": "Update Language Preference",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/users/me/language",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"language\": \"hi\",\n  \"region\": \"IN\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Language set to Hindi', () => pm.expect(pm.response.json().language).to.eql('hi'));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Bucket List & Discovery (S32)",
+      "item": [
+        {
+          "name": "Add Listing to Bucket List",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/bucket-list/{{listingId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));"
+            ]}
+          }]
+        },
+        {
+          "name": "Remove Listing from Bucket List",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/bucket-list/{{listingId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get My Bucket List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/bucket-list",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Discovery Feed",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/discovery/feed",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has sections', () => pm.expect(pm.response.json().sections).to.be.an('array'));"
+            ]}
+          }]
+        }
+      ]
+    }
+  ]
+}

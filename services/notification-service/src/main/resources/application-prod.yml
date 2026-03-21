@@ -1,0 +1,46 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    properties:
+      security.protocol: SASL_SSL
+      sasl.mechanism: AWS_MSK_IAM
+      sasl.jaas.config: software.amazon.msk.auth.iam.IAMLoginModule required;
+      sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+    consumer:
+      properties:
+        security.protocol: SASL_SSL
+        sasl.mechanism: AWS_MSK_IAM
+        sasl.jaas.config: software.amazon.msk.auth.iam.IAMLoginModule required;
+        sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+
+  mail:
+    host: ${SPRING_MAIL_HOST}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME}
+    password: ${SPRING_MAIL_PASSWORD}
+
+  thymeleaf:
+    cache: true
+
+notification:
+  from-email: ${NOTIFICATION_FROM_EMAIL}
+  base-url: ${NOTIFICATION_BASE_URL:https://safar.com}
+
+services:
+  booking:
+    url: http://${BOOKING_SERVICE_HOST}:8095
+  user:
+    url: http://${USER_SERVICE_HOST}:8092
+
+jwt:
+  secret: ${JWT_SECRET}
+
+logging:
+  level:
+    com.safar: INFO
+    org.springframework: WARN

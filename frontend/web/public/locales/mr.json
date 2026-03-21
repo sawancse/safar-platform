@@ -1,0 +1,98 @@
+{
+  "nav": {
+    "home": "मुख्यपृष्ठ",
+    "search": "शोध",
+    "listProperty": "यजमान",
+    "dashboard": "डॅशबोर्ड",
+    "login": "साइन इन",
+    "signup": "साइन अप",
+    "logout": "लॉग आउट",
+    "becomeHost": "यजमान व्हा"
+  },
+  "hero": {
+    "title": "भारतात तुमचा परिपूर्ण मुक्काम शोधा",
+    "subtitle": "घरे, खोल्या, व्यावसायिक जागा — यजमानांसाठी शून्य कमिशन",
+    "badges": {
+      "zeroDeposit": "शून्य ठेव",
+      "verified": "सत्यापित यादी",
+      "upi": "तात्काळ UPI",
+      "ai": "AI क्युरेटेड"
+    }
+  },
+  "search": {
+    "placeholder": "कुठे? (शहर)",
+    "button": "शोधा",
+    "guests": "{count} पाहुणा",
+    "guestsPlural": "{count} पाहुणे",
+    "checkIn": "चेक-इन",
+    "checkOut": "चेक-आउट",
+    "filters": "फिल्टर",
+    "sortBy": "क्रमवारी",
+    "sortRelevance": "संबंधितता",
+    "sortPriceLow": "किंमत: कमी ते जास्त",
+    "sortPriceHigh": "किंमत: जास्त ते कमी",
+    "sortRating": "सर्वोच्च रेटिंग",
+    "results": "{count} मुक्काम सापडले",
+    "noResults": "कोणताही मुक्काम सापडला नाही",
+    "tryDifferent": "वेगळे शहर वापरून पहा"
+  },
+  "booking": {
+    "dates": "तारखा",
+    "guests": "पाहुणे",
+    "price": "किंमत",
+    "perNight": "प्रति रात्र",
+    "bookNow": "आत्ता बुक करा",
+    "confirmBooking": "बुकिंग निश्चित करा",
+    "totalAmount": "एकूण {amount}",
+    "gstIncluded": "18% GST समाविष्ट",
+    "bookingConfirmed": "बुकिंग निश्चित!",
+    "ref": "संदर्भ: {ref}",
+    "checkIn": "चेक-इन",
+    "checkOut": "चेक-आउट",
+    "nights": "{count} रात्र",
+    "nightsPlural": "{count} रात्री"
+  },
+  "listing": {
+    "verified": "सत्यापित",
+    "instantBook": "तात्काळ",
+    "wifiSpeed": "WiFi {speed} Mbps",
+    "safetyScore": "सुरक्षितता: {score}/100",
+    "remoteWork": "रिमोट वर्क प्रमाणित",
+    "womensPick": "महिला सुरक्षा पिक"
+  },
+  "aashray": {
+    "title": "आश्रय — आणीबाणी गृहनिर्माण",
+    "createCase": "केस तयार करा",
+    "familySize": "कुटुंबाचा आकार",
+    "children": "मुले",
+    "elderly": "वृद्ध",
+    "budget": "बजेट",
+    "specialNeeds": "विशेष गरजा",
+    "matchFound": "जुळणी सापडली",
+    "caseStatus": "केस स्थिती",
+    "open": "उघडा",
+    "matched": "जुळले",
+    "housed": "गृहनिर्माण दिले"
+  },
+  "common": {
+    "loading": "लोड होत आहे...",
+    "error": "काहीतरी चुकीचे झाले. पुन्हा प्रयत्न करा.",
+    "success": "यशस्वी!",
+    "cancel": "रद्द करा",
+    "save": "जतन करा",
+    "back": "मागे",
+    "continue": "पुढे चला",
+    "close": "बंद करा",
+    "yes": "होय",
+    "no": "नाही"
+  },
+  "language": {
+    "label": "भाषा",
+    "en": "English",
+    "hi": "हिन्दी",
+    "mr": "मराठी"
+  },
+  "footer": {
+    "copyright": "Safar India Pvt. Ltd. · शून्य कमिशन, 100% तुमचे."
+  }
+}

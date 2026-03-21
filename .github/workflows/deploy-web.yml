@@ -1,0 +1,67 @@
+name: Deploy Web Frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/web/**'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-south-1
+  ECS_CLUSTER: safar-production-cluster
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/web/package-lock.json
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: sha-${{ github.sha }}
+        working-directory: frontend/web
+        run: |
+          IMAGE=$ECR_REGISTRY/safar/web-frontend
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }} \
+            --build-arg NEXT_PUBLIC_CDN_DOMAIN=${{ vars.NEXT_PUBLIC_CDN_DOMAIN }} \
+            -t $IMAGE:$IMAGE_TAG -t $IMAGE:latest .
+          docker push $IMAGE:$IMAGE_TAG
+          docker push $IMAGE:latest
+
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service web-frontend \
+            --force-new-deployment
+
+      - name: Wait for deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services web-frontend
+          echo "✅ Web frontend deployed"

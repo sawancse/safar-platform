@@ -1,0 +1,46 @@
+# Environment
+.env
+*.env.local
+
+# Maven
+target/
+*.class
+*.jar
+*.war
+
+# Node
+node_modules/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.code-workspace
+.vs/
+.project
+.settings/
+.classpath
+
+# Logs
+*.log
+logs/
+hs_err_pid*.log
+replay_pid*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Spring Boot
+spring-shell.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Next.js
+.next/
+
+# Build
+dist/

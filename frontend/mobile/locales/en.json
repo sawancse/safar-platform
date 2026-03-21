@@ -1,0 +1,76 @@
+{
+  "common": {
+    "continue": "Continue",
+    "cancel": "Cancel",
+    "save": "Save",
+    "loading": "Loading...",
+    "error": "Something went wrong. Please try again.",
+    "success": "Success!",
+    "back": "Back",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "auth": {
+    "enterPhone": "Enter your mobile number",
+    "otpSent": "OTP sent to {phone}",
+    "verifyOtp": "Verify OTP",
+    "resendOtp": "Resend OTP in {seconds}s",
+    "signIn": "Sign in",
+    "notSignedIn": "Not signed in"
+  },
+  "nav": {
+    "explore": "Explore",
+    "myTrips": "My Trips",
+    "profile": "Profile"
+  },
+  "search": {
+    "placeholder": "Search by city (e.g. Mumbai)",
+    "button": "Search",
+    "noResults": "No stays found",
+    "tryDifferent": "Try a different city",
+    "findStay": "Find your perfect stay",
+    "searchAbove": "Search by city above"
+  },
+  "listing": {
+    "perNight": "per night",
+    "bookNow": "Book Now",
+    "checkIn": "Check-in",
+    "checkOut": "Check-out",
+    "guests": "{count} Guest",
+    "guestsPlural": "{count} Guests",
+    "wifiSpeed": "WiFi {speed} Mbps",
+    "safetyScore": "Safety: {score}/100",
+    "remoteWork": "Remote Work Certified",
+    "womensPick": "Women's Safety Pick",
+    "verified": "Verified",
+    "instant": "Instant"
+  },
+  "booking": {
+    "confirmBooking": "Confirm Booking",
+    "totalAmount": "Total {amount}",
+    "gstIncluded": "Includes 18% GST",
+    "bookingConfirmed": "Booking Confirmed!",
+    "ref": "Ref: {ref}",
+    "nights": "{count} night",
+    "nightsPlural": "{count} nights"
+  },
+  "profile": {
+    "myListings": "My Listings",
+    "myTrips": "My Trips",
+    "logout": "Log out",
+    "logoutConfirm": "Are you sure you want to log out?",
+    "language": "Language"
+  },
+  "miles": {
+    "balance": "{balance} Property Miles",
+    "earnInfo": "Earn {miles} miles on this stay",
+    "redeem": "Use Miles",
+    "tier": "{tier} Member"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "hi": "हिन्दी"
+  }
+}

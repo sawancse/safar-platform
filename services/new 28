@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# List your project folder names here
+PROJECTS=("api-gateway" "auth-service" "user-service" "listing-service" "search-service" "booking-service" "payment-service" "review-service" "media-service" "notification-se")
+
+for project in "${PROJECTS[@]}"
+do
+    echo "Starting $project..."
+    
+    # 'sh' tells Git Bash to execute the command string
+    # '--login -i' ensures your bash profile/path is loaded
+    start "" "C:\Program Files\Git\git-bash.exe" -c "cd $project && mvn clean spring-boot:run; read -p 'Press enter to close...'"
+done

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <title th:text="${ctx.subject ?: 'Safar'}">Safar</title>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <![endif]-->
+    <style>
+        /* Reset */
+        body, table, td, p, a, li, blockquote { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+        body { margin: 0; padding: 0; width: 100% !important; height: 100% !important; }
+        a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; font-size: inherit !important; font-family: inherit !important; font-weight: inherit !important; line-height: inherit !important; }
+
+        /* Responsive */
+        @media only screen and (max-width: 620px) {
+            .email-container { width: 100% !important; max-width: 100% !important; }
+            .fluid { max-width: 100% !important; height: auto !important; }
+            .stack-column { display: block !important; width: 100% !important; max-width: 100% !important; }
+            .stack-column-center { text-align: center !important; }
+            .center-on-narrow { text-align: center !important; display: block !important; margin-left: auto !important; margin-right: auto !important; float: none !important; }
+            table.center-on-narrow { display: inline-block !important; }
+            .mobile-padding { padding-left: 16px !important; padding-right: 16px !important; }
+            .mobile-hide { display: none !important; }
+            .mobile-full-width { width: 100% !important; }
+        }
+    </style>
+</head>
+<body style="margin:0; padding:0; background-color:#F7F7F7; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+
+    <!-- Preheader (hidden preview text) -->
+    <div style="display:none; font-size:1px; color:#F7F7F7; line-height:1px; max-height:0px; max-width:0px; opacity:0; overflow:hidden;"
+         th:text="${ctx.preheaderText ?: ''}"></div>
+
+    <!-- Outer wrapper -->
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#F7F7F7;">
+        <tr>
+            <td align="center" style="padding: 20px 0;">
+
+                <!-- Email container -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="email-container" style="max-width:600px; background-color:#FFFFFF; border-radius:12px; overflow:hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
+
+                    <!-- ============ HEADER ============ -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #FF5A5F 0%, #FF385C 100%); padding: 28px 40px;" class="mobile-padding">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                    <td>
+                                        <!-- Safar Logo as styled text -->
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                                            <tr>
+                                                <td style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 32px; font-weight: bold; color: #FFFFFF; letter-spacing: 1px;">
+                                                    <span style="font-style: italic;">S</span>afar
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; color: rgba(255,255,255,0.8); letter-spacing: 3px; text-transform: uppercase; padding-top: 2px;">
+                                                    Your Journey, Your Story
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                    <td align="right" valign="middle" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; color: rgba(255,255,255,0.9);">
+                                        <span th:if="${ctx.userName}" th:text="'Hi, ' + ${ctx.userName}">Hi, User</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- ============ CHAPTER BANNER ============ -->
+                    <tr th:if="${ctx.chapterNumber != null and ctx.chapterNumber > 0}">
+                        <td style="background-color: #2D2D2D; padding: 18px 40px;" class="mobile-padding">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                    <td>
+                                        <p style="margin:0; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size:11px; color:#FF5A5F; text-transform:uppercase; letter-spacing:2px; font-weight:600;">
+                                            <span th:text="'Chapter ' + ${ctx.chapterNumber}">Chapter 1</span>
+                                            <span style="color:#767676;"> of Your </span>
+                                            <span th:text="${ctx.city ?: 'Journey'}" style="color:#00A699;">City</span>
+                                            <span style="color:#767676;"> Journey</span>
+                                        </p>
+                                        <p th:if="${ctx.chapterTitle}" style="margin:4px 0 0; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size:16px; color:#FFFFFF; font-weight:600;" th:text="${ctx.chapterTitle}">Chapter Title</p>
+                                    </td>
+                                </tr>
+                                <!-- Progress dots -->
+                                <tr>
+                                    <td style="padding-top: 12px;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                                            <tr>
+                                                <!--/* Chapter 1 */-->
+                                                <td style="padding-right:6px;">
+                                                    <div th:style="${ctx.chapterNumber >= 1 ? 'width:24px;height:4px;border-radius:2px;background-color:#FF5A5F;' : 'width:24px;height:4px;border-radius:2px;background-color:#555555;'}"></div>
+                                                </td>
+                                                <!--/* Chapter 2 */-->
+                                                <td style="padding-right:6px;">
+                                                    <div th:style="${ctx.chapterNumber >= 2 ? 'width:24px;height:4px;border-radius:2px;background-color:#FF5A5F;' : 'width:24px;height:4px;border-radius:2px;background-color:#555555;'}"></div>
+                                                </td>
+                                                <!--/* Chapter 3 */-->
+                                                <td style="padding-right:6px;">
+                                                    <div th:style="${ctx.chapterNumber >= 3 ? 'width:24px;height:4px;border-radius:2px;background-color:#FF5A5F;' : 'width:24px;height:4px;border-radius:2px;background-color:#555555;'}"></div>
+                                                </td>
+                                                <!--/* Chapter 4 */-->
+                                                <td style="padding-right:6px;">
+                                                    <div th:style="${ctx.chapterNumber >= 4 ? 'width:24px;height:4px;border-radius:2px;background-color:#FF5A5F;' : 'width:24px;height:4px;border-radius:2px;background-color:#555555;'}"></div>
+                                                </td>
+                                                <!--/* Chapter 5 */-->
+                                                <td style="padding-right:6px;">
+                                                    <div th:style="${ctx.chapterNumber >= 5 ? 'width:24px;height:4px;border-radius:2px;background-color:#FF5A5F;' : 'width:24px;height:4px;border-radius:2px;background-color:#555555;'}"></div>
+                                                </td>
+                                                <!--/* Chapter 6 */-->
+                                                <td style="padding-right:6px;">
+                                                    <div th:style="${ctx.chapterNumber >= 6 ? 'width:24px;height:4px;border-radius:2px;background-color:#FF5A5F;' : 'width:24px;height:4px;border-radius:2px;background-color:#555555;'}"></div>
+                                                </td>
+                                                <!--/* Chapter 7 */-->
+                                                <td style="padding-right:6px;">
+                                                    <div th:style="${ctx.chapterNumber >= 7 ? 'width:24px;height:4px;border-radius:2px;background-color:#FF5A5F;' : 'width:24px;height:4px;border-radius:2px;background-color:#555555;'}"></div>
+                                                </td>
+                                                <!--/* Chapter 8 */-->
+                                                <td style="padding-right:6px;">
+                                                    <div th:style="${ctx.chapterNumber >= 8 ? 'width:24px;height:4px;border-radius:2px;background-color:#FF5A5F;' : 'width:24px;height:4px;border-radius:2px;background-color:#555555;'}"></div>
+                                                </td>
+                                                <!--/* Chapter 9 */-->
+                                                <td>
+                                                    <div th:style="${ctx.chapterNumber >= 9 ? 'width:24px;height:4px;border-radius:2px;background-color:#FF5A5F;' : 'width:24px;height:4px;border-radius:2px;background-color:#555555;'}"></div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- ============ CONTENT SLOT ============ -->
+                    <tr>
+                        <td th:fragment="content" style="padding: 0;">
+                            <!-- Override this in child templates -->
+                        </td>
+                    </tr>
+
+                    <!-- ============ FOOTER ============ -->
+                    <tr>
+                        <td style="background-color: #FAFAFA; border-top: 1px solid #EEEEEE; padding: 32px 40px;" class="mobile-padding">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                    <td align="center">
+                                        <!-- Footer logo -->
+                                        <p style="margin:0 0 16px; font-family:'Georgia', 'Times New Roman', serif; font-size:22px; font-weight:bold; color:#FF5A5F;">
+                                            <span style="font-style:italic;">S</span>afar
+                                        </p>
+
+                                        <!-- Footer links -->
+                                        <p style="margin:0 0 12px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size:13px; color:#767676;">
+                                            <a th:href="${ctx.emailPreferencesUrl ?: '#'}" style="color:#FF5A5F; text-decoration:none;">Email Preferences</a>
+                                            <span style="color:#DDDDDD; padding:0 8px;">|</span>
+                                            <a th:href="${ctx.unsubscribeUrl ?: '#'}" style="color:#FF5A5F; text-decoration:none;">Unsubscribe</a>
+                                            <span style="color:#DDDDDD; padding:0 8px;">|</span>
+                                            <a th:href="${ctx.helpUrl ?: '#'}" style="color:#FF5A5F; text-decoration:none;">Help Center</a>
+                                        </p>
+
+                                        <!-- Tagline -->
+                                        <p style="margin:0 0 8px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size:14px; color:#484848; font-weight:500;">
+                                            Safar &mdash; Your Journey, Your Story
+                                        </p>
+
+                                        <!-- Legal -->
+                                        <p style="margin:0; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size:11px; color:#AAAAAA; line-height:1.5;">
+                                            This email was sent to <span th:text="${ctx.recipientEmail ?: 'you'}">you</span>.
+                                            <br/>
+                                            <span th:text="${ctx.companyAddress ?: 'Safar Technologies Pvt. Ltd., India'}">Safar Technologies Pvt. Ltd., India</span>
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                </table>
+                <!-- /Email container -->
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

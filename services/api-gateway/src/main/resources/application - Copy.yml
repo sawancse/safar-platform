@@ -1,0 +1,256 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  cloud:
+    gateway:
+      # Global CORS — one place for all services
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3000"   # Next.js web
+              - "http://localhost:3001"   # Admin dashboard
+              - "http://localhost:19006"  # Expo dev server
+              - "${ALLOWED_ORIGIN:http://localhost:3000}"
+            allowedMethods: [ GET, POST, PUT, DELETE, OPTIONS ]
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+
+      routes:
+        # ── OTP send: rate-limited to 3 req/hour per IP ──────────────────────
+        - id: auth-otp-send
+          uri: http://${AUTH_SERVICE_HOST:localhost}:8888
+          predicates:
+            - Path=/api/v1/auth/otp/send
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 3
+                redis-rate-limiter.burstCapacity: 5
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
+
+        # ── All other auth routes (verify, refresh, logout) ──────────────────
+        - id: auth-service
+          uri: http://${AUTH_SERVICE_HOST:localhost}:8888
+          predicates:
+            - Path=/api/v1/auth/**
+
+        # ── User profiles & subscriptions ────────────────────────────────────
+        - id: user-service
+          uri: http://${USER_SERVICE_HOST:localhost}:8082
+          predicates:
+            - Path=/api/v1/users/**
+
+        # ── Listings (GET public, mutations need JWT) ─────────────────────────
+        - id: listing-service
+          uri: http://${LISTING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/v1/listings/**
+
+        # ── Search (all GET endpoints are public) ─────────────────────────────
+        - id: search-service
+          uri: http://${SEARCH_SERVICE_HOST:localhost}:8084
+          predicates:
+            - Path=/api/v1/search/**
+
+        # ── Bookings ──────────────────────────────────────────────────────────
+        - id: booking-service
+          uri: http://${BOOKING_SERVICE_HOST:localhost}:8085
+          predicates:
+            - Path=/api/v1/bookings/**
+
+        # ── Payments — webhook first (no JWT), then authenticated routes ──────
+        - id: payment-service-webhook
+          uri: http://${PAYMENT_SERVICE_HOST:localhost}:8086
+          predicates:
+            - Path=/api/v1/payments/webhook/**
+
+        - id: payment-service
+          uri: http://${PAYMENT_SERVICE_HOST:localhost}:8086
+          predicates:
+            - Path=/api/v1/payments/**
+
+        # ── Media uploads ─────────────────────────────────────────────────────
+        - id: media-service
+          uri: http://${MEDIA_SERVICE_HOST:localhost}:8088
+          predicates:
+            - Path=/api/v1/media/**
+
+        # ── Reviews ───────────────────────────────────────────────────────────
+        - id: review-service
+          uri: http://${REVIEW_SERVICE_HOST:localhost}:8087
+          predicates:
+            - Path=/api/v1/reviews/**
+
+        # ── Guest subscriptions (S18) ───────────────────────────────────────
+        - id: guest-service
+          uri: http://${USER_SERVICE_HOST:localhost}:8082
+          predicates:
+            - Path=/api/v1/guests/**
+
+        # ── Video reviews (S19) ─────────────────────────────────────────────
+        - id: video-review-service
+          uri: http://${BOOKING_SERVICE_HOST:localhost}:8085
+          predicates:
+            - Path=/api/v1/video-reviews/**
+
+        # ── Wallet (S20) ────────────────────────────────────────────────────
+        - id: wallet-service
+          uri: http://${USER_SERVICE_HOST:localhost}:8082
+          predicates:
+            - Path=/api/v1/wallet/**
+
+        # ── Property miles (S23) ────────────────────────────────────────────
+        - id: miles-service
+          uri: http://${BOOKING_SERVICE_HOST:localhost}:8085
+          predicates:
+            - Path=/api/v1/miles/**
+
+        # ── Listing groups (S26) ────────────────────────────────────────────
+        - id: listing-groups-service
+          uri: http://${LISTING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/v1/listing-groups/**
+
+        # ── Vacant property network (S28) ───────────────────────────────────
+        - id: vpn-service
+          uri: http://${LISTING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/v1/vpn/**
+
+        # ── Bucket list & discovery feed (S32) ──────────────────────────────
+        - id: bucket-list-service
+          uri: http://${USER_SERVICE_HOST:localhost}:8082
+          predicates:
+            - Path=/api/v1/bucket-list/**
+
+        - id: discovery-service
+          uri: http://${USER_SERVICE_HOST:localhost}:8082
+          predicates:
+            - Path=/api/v1/discovery/**
+
+        # ── Managed stays (S33) ─────────────────────────────────────────────
+        - id: managed-stay-service
+          uri: http://${LISTING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/v1/managed-stay/**
+
+        # ── Guaranteed income (S34) ─────────────────────────────────────────
+        - id: guaranteed-income-service
+          uri: http://${LISTING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/v1/guaranteed-income/**
+
+        # ── Co-hosting (S35) ────────────────────────────────────────────────
+        - id: cohost-service
+          uri: http://${USER_SERVICE_HOST:localhost}:8082
+          predicates:
+            - Path=/api/v1/cohost/**
+
+        # ── Cleaning network (S36) ──────────────────────────────────────────
+        - id: cleaning-service
+          uri: http://${BOOKING_SERVICE_HOST:localhost}:8085
+          predicates:
+            - Path=/api/v1/cleaning/**
+
+        # ── Host business suite (S37) ───────────────────────────────────────
+        - id: host-business-service
+          uri: http://${PAYMENT_SERVICE_HOST:localhost}:8086
+          predicates:
+            - Path=/api/v1/host/**
+
+        # ── App marketplace (S38) ───────────────────────────────────────────
+        - id: marketplace-service
+          uri: http://${LISTING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/v1/marketplace/**
+
+        # ── B2B data intelligence (S39) ─────────────────────────────────────
+        - id: b2b-service
+          uri: http://${LISTING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/b2b/v1/**
+
+        # ── Live anywhere (S41) ─────────────────────────────────────────────
+        - id: live-anywhere-service
+          uri: http://${BOOKING_SERVICE_HOST:localhost}:8085
+          predicates:
+            - Path=/api/v1/live-anywhere/**
+
+        # ── NomadPrime (S42) ────────────────────────────────────────────────
+        - id: nomad-prime-service
+          uri: http://${USER_SERVICE_HOST:localhost}:8082
+          predicates:
+            - Path=/api/v1/nomad-prime/**
+
+        # ── Experiences (S43) ───────────────────────────────────────────────
+        - id: experiences-service
+          uri: http://${LISTING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/v1/experiences/**
+
+        - id: experience-bookings-service
+          uri: http://${LISTING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/v1/experience-bookings/**
+
+        # ── Medical tourism (S44) ───────────────────────────────────────────
+        - id: medical-stay-service
+          uri: http://${LISTING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/v1/medical-stay/**
+
+        # ── Nomad network (S45) ─────────────────────────────────────────────
+        - id: nomad-network-service
+          uri: http://${USER_SERVICE_HOST:localhost}:8082
+          predicates:
+            - Path=/api/v1/nomad/**
+
+        # ── AI service (Python FastAPI — scout & listing generator) ──────────
+        - id: ai-service
+          uri: http://${AI_SERVICE_HOST:localhost}:8090
+          predicates:
+            - Path=/api/v1/ai/**
+
+        # ── Admin: user/host management (user-service) ────────────────────────
+        - id: admin-user-service
+          uri: http://${USER_SERVICE_HOST:localhost}:8082
+          predicates:
+            - Path=/api/v1/admin/hosts,/api/v1/admin/hosts/**,/api/v1/admin/analytics/**,/api/v1/admin/cohost/**
+
+        # ── Admin: cleaning (booking-service) ────────────────────────────────
+        - id: admin-cleaning-service
+          uri: http://${BOOKING_SERVICE_HOST:localhost}:8085
+          predicates:
+            - Path=/api/v1/admin/cleaning/**
+
+        # ── Admin: listing verification & catch-all (listing-service) ────────
+        - id: admin-listing-service
+          uri: http://${LISTING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/v1/admin/**
+
+jwt:
+  secret: ${JWT_SECRET:dGhpcyBpcyBhIHZlcnkgbG9uZyBzZWNyZXQga2V5IGZvciBzYWZhciBwbGF0Zm9ybQ==}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+
+logging:
+  level:
+    com.safar.gateway: INFO
+    org.springframework.cloud.gateway: WARN

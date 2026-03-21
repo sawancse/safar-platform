@@ -1,0 +1,274 @@
+{
+  "info": {
+    "name": "Safar Platform — Sprint 5",
+    "description": "Guest Subscription, Video Reviews, Wallet & Shares, Scout Leads, and AI Listing Draft APIs (S18-S22)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "safar-sprint-5"
+  },
+  "variable": [
+    { "key": "baseUrl",      "value": "http://localhost:8080" },
+    { "key": "token",        "value": "" },
+    { "key": "listingId",    "value": "" },
+    { "key": "bookingId",    "value": "" },
+    { "key": "leadId",       "value": "" },
+    { "key": "draftId",      "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Guest Subscription (S18)",
+      "item": [
+        {
+          "name": "Start Guest Subscription",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/guests/me/subscription",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan\": \"MONTHLY\",\n  \"autoRenew\": true\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('Has subscriptionId', () => pm.expect(pm.response.json().subscriptionId).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Guest Subscription",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/guests/me/subscription",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has plan', () => pm.expect(pm.response.json().plan).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Cancel Guest Subscription",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/guests/me/subscription",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Video Reviews (S19)",
+      "item": [
+        {
+          "name": "Get Video Reviews for Listing",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/video-reviews/listing/{{listingId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Video Review for Booking",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/video-reviews/booking/{{bookingId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has videoUrl', () => pm.expect(pm.response.json().videoUrl).to.not.be.empty);"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Wallet & Shares (S20)",
+      "item": [
+        {
+          "name": "Get My Wallet",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/wallet/me",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has balance', () => pm.expect(pm.response.json().balance).to.be.a('number'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Submit Share for Revenue",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/wallet/shares/submit",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listingId\": \"{{listingId}}\",\n  \"shareCount\": 5,\n  \"note\": \"Partial share sell for Goa villa\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has transactionId', () => pm.expect(pm.response.json().transactionId).to.not.be.empty);"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Scout Leads — Admin (S21)",
+      "item": [
+        {
+          "name": "Get Scout Leads",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/admin/scout/leads",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Update Scout Lead Status",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/admin/scout/leads/{{leadId}}/status",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"APPROVED\",\n  \"remarks\": \"Property verified in Jaipur, Rajasthan. Approved for onboarding.\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Status updated', () => pm.expect(pm.response.json().status).to.eql('APPROVED'));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "AI Listing Draft (S22)",
+      "item": [
+        {
+          "name": "Generate Listing Draft via AI",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/listings/generate-draft",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyType\": \"VILLA\",\n  \"city\": \"Udaipur\",\n  \"state\": \"Rajasthan\",\n  \"bedrooms\": 3,\n  \"bathrooms\": 2,\n  \"amenities\": [\"POOL\", \"WIFI\", \"LAKE_VIEW\", \"AC\"],\n  \"description\": \"Beautiful lakeside villa near Fateh Sagar Lake with traditional Rajasthani architecture\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('draftId', body.draftId);",
+              "pm.test('Has generated title', () => pm.expect(body.title).to.not.be.empty);",
+              "pm.test('Has generated description', () => pm.expect(body.generatedDescription).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Create Listing from Draft",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/listings/from-draft/{{draftId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pricePerNightPaise\": 850000,\n  \"maxGuests\": 6,\n  \"address\": {\n    \"line1\": \"42 Lake Palace Road\",\n    \"city\": \"Udaipur\",\n    \"state\": \"Rajasthan\",\n    \"pincode\": \"313001\"\n  }\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('Has listingId', () => pm.expect(pm.response.json().id).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Get My Drafts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/listings/drafts",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+name: Deploy Services
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/**'
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to deploy (or "all")'
+        required: true
+        default: 'all'
+
+env:
+  AWS_REGION: ap-south-1
+  ECS_CLUSTER: safar-production-cluster
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - id: set-matrix
+        run: |
+          if [ "${{ github.event.inputs.service }}" = "all" ] || [ -z "${{ github.event.inputs.service }}" ]; then
+            # Auto-detect changed services
+            CHANGED=$(git diff --name-only HEAD~1 HEAD | grep '^services/' | cut -d'/' -f2 | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))')
+            if [ "$CHANGED" = "[]" ] || [ -z "$CHANGED" ]; then
+              echo "matrix={\"service\":[]}" >> $GITHUB_OUTPUT
+            else
+              echo "matrix={\"service\":$CHANGED}" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo 'matrix={"service":["${{ github.event.inputs.service }}"]}' >> $GITHUB_OUTPUT
+          fi
+
+  build-and-deploy:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.matrix != '{"service":[]}' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up JDK 17
+        if: matrix.service != 'ai-service'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build Java service
+        if: matrix.service != 'ai-service'
+        working-directory: services/${{ matrix.service }}
+        run: mvn clean package -DskipTests -q
+
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: sha-${{ github.sha }}
+        run: |
+          IMAGE=$ECR_REGISTRY/safar/${{ matrix.service }}
+          docker build -t $IMAGE:$IMAGE_TAG -t $IMAGE:latest services/${{ matrix.service }}
+          docker push $IMAGE:$IMAGE_TAG
+          docker push $IMAGE:latest
+
+      - name: Deploy to ECS
+        run: |
+          # Update task definition with new image
+          TASK_DEF=$(aws ecs describe-task-definition \
+            --task-definition safar-${{ matrix.service }} \
+            --query 'taskDefinition' --output json)
+
+          NEW_IMAGE="${{ steps.ecr-login.outputs.registry }}/safar/${{ matrix.service }}:sha-${{ github.sha }}"
+
+          NEW_TASK_DEF=$(echo $TASK_DEF | jq \
+            --arg IMAGE "$NEW_IMAGE" \
+            '.containerDefinitions[0].image = $IMAGE |
+             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+
+          NEW_TASK_ARN=$(aws ecs register-task-definition \
+            --cli-input-json "$NEW_TASK_DEF" \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ matrix.service }} \
+            --task-definition $NEW_TASK_ARN
+
+      - name: Wait for deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ matrix.service }}
+          echo "✅ ${{ matrix.service }} deployed successfully"

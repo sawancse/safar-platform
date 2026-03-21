@@ -1,0 +1,103 @@
+{
+  "info": {
+    "name": "Safar Sprint 4 — Frontend & Admin",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",     "value": "http://localhost:8080" },
+    { "key": "adminToken",  "value": "" },
+    { "key": "guestToken",  "value": "" },
+    { "key": "listingId",   "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Admin — GET Pending Listings",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "url": "{{baseUrl}}/api/v1/admin/listings/pending"
+      }
+    },
+    {
+      "name": "Admin — Verify Listing",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+          { "key": "Content-Type",  "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/v1/admin/listings/{{listingId}}/verify",
+        "body": { "mode": "raw", "raw": "{}" }
+      }
+    },
+    {
+      "name": "Admin — Reject Listing",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+          { "key": "Content-Type",  "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/v1/admin/listings/{{listingId}}/reject",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"notes\": \"Photos are unclear. Please re-upload high-resolution images.\"}"
+        }
+      }
+    },
+    {
+      "name": "Admin — GET All Hosts",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "url": "{{baseUrl}}/api/v1/admin/hosts"
+      }
+    },
+    {
+      "name": "Web Search — city filter",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/search/listings?city=Mumbai&size=6",
+          "host": ["{{baseUrl}}"],
+          "path": ["api","v1","search","listings"],
+          "query": [
+            { "key": "city", "value": "Mumbai" },
+            { "key": "size", "value": "6" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Web Search — type filter",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/search/listings?type=HOME&size=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api","v1","search","listings"],
+          "query": [
+            { "key": "type", "value": "HOME" },
+            { "key": "size", "value": "10" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "My Bookings (guest dashboard)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{guestToken}}" }],
+        "url": "{{baseUrl}}/api/v1/bookings/me"
+      }
+    },
+    {
+      "name": "My Listings (host dashboard)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{guestToken}}" }],
+        "url": "{{baseUrl}}/api/v1/listings/mine"
+      }
+    }
+  ]
+}

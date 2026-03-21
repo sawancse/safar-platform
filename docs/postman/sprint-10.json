@@ -1,0 +1,627 @@
+{
+  "info": {
+    "name": "Safar Platform — Sprint 10",
+    "description": "Live Anywhere, Nomad Prime, Experiences, Medical Stay, and Nomad Community APIs (S41-S45)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "safar-sprint-10"
+  },
+  "variable": [
+    { "key": "baseUrl",              "value": "http://localhost:8080" },
+    { "key": "token",                "value": "" },
+    { "key": "listingId",            "value": "" },
+    { "key": "experienceId",         "value": "" },
+    { "key": "sessionId",            "value": "" },
+    { "key": "experienceBookingId",  "value": "" },
+    { "key": "postId",               "value": "" },
+    { "key": "connectionId",         "value": "" },
+    { "key": "skillSwapId",          "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Live Anywhere (S41)",
+      "item": [
+        {
+          "name": "Subscribe to Live Anywhere",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/live-anywhere/subscribe",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan\": \"EXPLORER\",\n  \"durationMonths\": 6,\n  \"preferredCities\": [\"Bengaluru\", \"Goa\", \"Pondicherry\", \"Kochi\"],\n  \"maxMonthlyBudgetPaise\": 7500000,\n  \"startDate\": \"2026-04-01\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('Has subscriptionId', () => pm.expect(pm.response.json().subscriptionId).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Cancel Live Anywhere Subscription",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/live-anywhere/subscribe",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Live Anywhere Subscription",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/live-anywhere/subscription",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has plan', () => pm.expect(pm.response.json().plan).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Book Live Anywhere Stay",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/live-anywhere/book",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listingId\": \"{{listingId}}\",\n  \"checkIn\": \"2026-04-01\",\n  \"checkOut\": \"2026-04-30\",\n  \"city\": \"Goa\",\n  \"guests\": 1,\n  \"specialRequests\": \"Need a stable wifi connection for remote work. Ground floor preferred.\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('Has stayId', () => pm.expect(pm.response.json().stayId).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Live Anywhere Stays",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/live-anywhere/stays",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Nomad Prime (S42)",
+      "item": [
+        {
+          "name": "Subscribe to Nomad Prime",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/nomad-prime/subscribe",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tier\": \"GOLD\",\n  \"billingCycle\": \"ANNUAL\",\n  \"paymentMethodId\": \"pm_razorpay_001\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('Has membershipId', () => pm.expect(pm.response.json().membershipId).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Cancel Nomad Prime Subscription",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/nomad-prime/subscribe",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Nomad Prime Membership",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/nomad-prime/membership",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Has tier', () => pm.expect(body.tier).to.not.be.empty);",
+              "pm.test('Has expiryDate', () => pm.expect(body.expiryDate).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Nomad Prime Benefits",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/nomad-prime/benefits",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has benefits array', () => pm.expect(pm.response.json().benefits).to.be.an('array'));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Experiences (S43)",
+      "item": [
+        {
+          "name": "Create Experience",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/experiences",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sunrise Trek to Kudremukh Peak\",\n  \"description\": \"A guided 6-hour trek through the Western Ghats to the stunning Kudremukh Peak. Includes breakfast at base camp and packed lunch. Suitable for intermediate trekkers.\",\n  \"category\": \"ADVENTURE\",\n  \"city\": \"Chikmagalur\",\n  \"state\": \"Karnataka\",\n  \"durationMinutes\": 360,\n  \"maxParticipants\": 12,\n  \"pricePerPersonPaise\": 350000,\n  \"languages\": [\"en\", \"kn\", \"hi\"],\n  \"includes\": [\"BREAKFAST\", \"LUNCH\", \"GUIDE\", \"FIRST_AID\"],\n  \"meetingPoint\": {\n    \"address\": \"Kudremukh National Park Gate, Chikmagalur\",\n    \"latitude\": 13.1833,\n    \"longitude\": 75.2500\n  }\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('experienceId', body.id);",
+              "pm.test('Has title', () => pm.expect(body.title).to.include('Kudremukh'));"
+            ]}
+          }]
+        },
+        {
+          "name": "List Experiences",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/experiences",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Experience by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/experiences/{{experienceId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has meetingPoint', () => pm.expect(pm.response.json().meetingPoint).to.be.an('object'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Create Experience Session",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/experiences/{{experienceId}}/sessions",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-04-12\",\n  \"startTime\": \"05:00\",\n  \"maxParticipants\": 12,\n  \"notes\": \"Full moon trek — headlamps provided\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('sessionId', body.id);",
+              "pm.test('Has sessionId', () => pm.expect(body.id).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Book Experience",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/experience-bookings",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"participants\": 3,\n  \"guestName\": \"Deepa Nair\",\n  \"guestPhone\": \"+919876012345\",\n  \"specialRequests\": \"One participant is vegetarian. Please adjust packed lunch.\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('experienceBookingId', body.id);",
+              "pm.test('Has totalAmountPaise', () => pm.expect(body.totalAmountPaise).to.be.a('number'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get My Experience Bookings",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/experience-bookings",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Medical Stay (S44)",
+      "item": [
+        {
+          "name": "Search Medical Stay Listings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/medical-stay/search?city=Chennai&treatmentType=CARDIAC&budgetMaxPaise=500000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "medical-stay", "search"],
+              "query": [
+                { "key": "city",             "value": "Chennai" },
+                { "key": "treatmentType",    "value": "CARDIAC" },
+                { "key": "budgetMaxPaise",   "value": "500000000" }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Hospital Partners",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/medical-stay/hospitals?city=Chennai",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "medical-stay", "hospitals"],
+              "query": [
+                { "key": "city", "value": "Chennai" }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Create Medical Stay Package",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/medical-stay/listings/{{listingId}}/package",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"packageName\": \"Post-Surgery Recovery Stay\",\n  \"description\": \"Fully furnished apartment 500m from Apollo Hospital, Chennai. Includes daily housekeeping, home-cooked meals, and nurse-on-call service.\",\n  \"treatmentTypes\": [\"CARDIAC\", \"ORTHOPAEDIC\", \"GENERAL_SURGERY\"],\n  \"partnerHospitalId\": \"hosp-apollo-chennai-001\",\n  \"pricePerNightPaise\": 800000,\n  \"minStayNights\": 7,\n  \"amenities\": [\"WHEELCHAIR_ACCESS\", \"MEDICAL_BED\", \"NURSE_CALL\", \"HOME_COOKED_MEALS\", \"AC\", \"WIFI\"],\n  \"distanceFromHospitalKm\": 0.5\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('Has packageId', () => pm.expect(pm.response.json().packageId).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Admin — Add Hospital Partner",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/admin/hospital-partners",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Apollo Hospitals, Greams Road\",\n  \"city\": \"Chennai\",\n  \"state\": \"Tamil Nadu\",\n  \"address\": \"21 Greams Lane, Off Greams Road, Chennai 600006\",\n  \"specialties\": [\"CARDIAC\", \"ORTHOPAEDIC\", \"NEUROLOGY\", \"ONCOLOGY\"],\n  \"contactEmail\": \"partnerships@apollohospitals.com\",\n  \"contactPhone\": \"+914428293333\",\n  \"website\": \"https://www.apollohospitals.com\",\n  \"accreditations\": [\"NABH\", \"JCI\"]\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('Has partnerId', () => pm.expect(pm.response.json().id).to.not.be.empty);"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Nomad Community (S45)",
+      "item": [
+        {
+          "name": "Create Post",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/nomad/posts",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Best coworking-friendly cafes in Pondicherry\",\n  \"content\": \"I have been working remotely from Pondy for 3 months now. Here are my top 5 cafes with great wifi and power outlets:\\n\\n1. Cafe des Arts — White Town, amazing filter coffee\\n2. Le Dupleix — quiet garden seating\\n3. Artika Cafe — best chai and croissants combo\\n4. Baker Street — reliable 50 Mbps wifi\\n5. Kasha Ki Aasha — rooftop with sea breeze\",\n  \"tags\": [\"remote-work\", \"pondicherry\", \"coworking\", \"cafes\"],\n  \"city\": \"Pondicherry\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('postId', body.id);",
+              "pm.test('Has postId', () => pm.expect(body.id).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Nomad Feed",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/nomad/feed",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Post by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/nomad/posts/{{postId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has title', () => pm.expect(pm.response.json().title).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Add Comment to Post",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/nomad/posts/{{postId}}/comments",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Great list! I would add Zuka to this — it is on Mission Street and has excellent cold brew. Also their power backup is solid during monsoon season.\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('Has commentId', () => pm.expect(pm.response.json().id).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Upvote Post",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/nomad/posts/{{postId}}/upvote",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has upvoteCount', () => pm.expect(pm.response.json().upvoteCount).to.be.a('number'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Send Connection Request",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/nomad/connections",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetUserId\": \"00000000-0000-0000-0000-000000000042\",\n  \"message\": \"Hi! I saw your post about Goa coworking spaces. I am also a remote worker based in Goa. Would love to connect and share tips.\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('connectionId', body.id);",
+              "pm.test('Status PENDING', () => pm.expect(body.status).to.eql('PENDING'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Accept Connection Request",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/nomad/connections/{{connectionId}}/accept",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Status CONNECTED', () => pm.expect(pm.response.json().status).to.eql('CONNECTED'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get My Connections",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/nomad/connections",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Create Skill Swap",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/nomad/skill-swaps",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"offering\": \"UI/UX Design — Figma prototyping and design systems\",\n  \"seeking\": \"Hindi language practice — conversational level for daily interactions\",\n  \"availableHoursPerWeek\": 4,\n  \"city\": \"Bengaluru\",\n  \"mode\": \"HYBRID\",\n  \"bio\": \"Product designer with 6 years experience. Recently relocated from London to Bengaluru and looking to improve my Hindi.\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('skillSwapId', body.id);",
+              "pm.test('Has skillSwapId', () => pm.expect(body.id).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Browse Skill Swaps",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/nomad/skill-swaps",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        }
+      ]
+    }
+  ]
+}

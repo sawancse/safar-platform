@@ -1,0 +1,9 @@
+aws:
+  s3:
+    bucket: test-bucket
+    region: eu-north-1
+  cloudfront:
+    domain: cdn.test.safar.in
+
+jwt:
+  secret: l0UNaBuoYCf7Y/G8G1bihPxkUI7NZuPaZdzTbbEYqzM=

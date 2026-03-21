@@ -1,0 +1,10 @@
+-- Medical booking fields
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS procedure_name VARCHAR(255);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hospital_name VARCHAR(255);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hospital_id UUID;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS specialty VARCHAR(100);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS procedure_date DATE;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hospital_days INTEGER;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS recovery_days INTEGER;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS treatment_cost_paise BIGINT;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS patient_notes TEXT;

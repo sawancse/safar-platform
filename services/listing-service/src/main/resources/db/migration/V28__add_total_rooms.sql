@@ -1,0 +1,1 @@
+ALTER TABLE listings.listings ADD COLUMN total_rooms INTEGER NOT NULL DEFAULT 1;

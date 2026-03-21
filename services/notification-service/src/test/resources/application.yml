@@ -1,0 +1,20 @@
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+  mail:
+    host: localhost
+    port: 25
+    username: test
+    password: test
+
+notification:
+  from-email: noreply@safar.in
+
+services:
+  booking:
+    url: http://localhost:8085
+  user:
+    url: http://localhost:8082
+
+jwt:
+  secret: dGhpcyBpcyBhIHZlcnkgbG9uZyBzZWNyZXQga2V5IGZvciBzYWZhciBwbGF0Zm9ybQ==

@@ -1,0 +1,365 @@
+while doing search based on city and date and after clicking submit along with result also provide filter option as in booking service website
+below is sample
+
+Find your perfect stay
+Your budget (per night)
+₹ 1,000 – ₹ 20,000+
+Popular filters
+Breakfast included
+380
+Very Good: 8+
+227
+Based on guest reviews
+Airport shuttle
+147
+Hotels
+673
+Free cancellation
+955
+4 stars
+197
+Less than 3 km
+5
+Distance from address
+Homestays
+6
+Meals
+Kitchen facilities
+286
+Breakfast included
+380
+All meals included
+65
+All-inclusive
+10
+Breakfast & lunch included
+41
+Breakfast & dinner included
+96
+Review score
+Wonderful: 9+
+93
+Very Good: 8+
+227
+Good: 7+
+380
+Pleasant: 6+
+506
+Facilities
+Parking
+657
+Restaurant
+230
+Room service
+675
+24-hour front desk
+646
+Fitness center
+75
+Show all 13
+Room facilities
+Complimentary evening snacks and drinks in the executive lounge
+1
+Entire unit wheelchair accessible
+112
+Executive lounge access
+18
+Oven
+65
+Flat-screen TV
+874
+
+Show all 25
+
+Property Type
+
+Hotels
+673
+
+Entire homes & apartments
+272
+
+Apartments
+178
+
+Villas
+61
+
+Vacation Homes
+20
+
+Guesthouses
+12
+
+Resorts
+10
+
+Farm Stays
+6
+
+Homestays
+6
+
+Bed and Breakfasts
+5
+
+Hostels
+4
+
+Lodges
+3
+
+Chalets
+2
+
+Bedrooms and bathrooms
+Bedrooms
+0
+Bathrooms
+0
+
+Reservation policy
+
+Free cancellation
+955
+
+Book without credit card
+613
+
+No prepayment
+753
+
+Property rating
+Find high-quality hotels and vacation rentals
+
+1 star
+8
+
+2 stars
+43
+
+3 stars
+422
+
+4 stars
+197
+
+5 stars
+29
+
+Distance from Hyderabad Rajiv Gandhi International Airport
+
+Less than 1 km
+1
+
+Less than 3 km
+5
+
+Less than 5 km
+11
+
+Travel group
+
+Pet friendly
+175
+
+Fun Things To Do
+
+Fitness center
+75
+
+Fitness
+43
+
+Spa
+39
+
+Spa facilities
+35
+
+Spa/Wellness packages
+31
+
+Bed preference
+
+Twin beds
+163
+
+Double bed
+941
+
+Cribs
+65
+
+Landmarks
+
+Salar Jung Museum
+7
+
+Charminar
+4
+
+Brands
+
+OYO Rooms
+259
+
+FabHotels
+51
+
+Treebo Hotels
+31
+
+Bloom Hotels
+5
+
+Holiday Inn Express
+2
+
+Luxury Collection
+2
+
+Sarovar (Louvre)
+2
+
+Best Western
+1
+
+Novotel
+1
+
+Mercure
+1
+
+Show all 20
+
+Highly rated features
+Based on guest reviews
+
+Very good breakfast
+49
+
+Certifications
+
+Sustainability certification
+7
+
+Online Payment
+
+Accepts online payments
+113
+
+Property Accessibility
+
+Toilet with grab rails
+38
+
+Raised toilet
+34
+
+Lowered sink
+33
+
+Bathroom emergency cord
+18
+
+Visual aids (Braille)
+8
+
+Visual aids (tactile signs)
+7
+
+Auditory guidance
+12
+
+Room Accessibility
+
+Entire unit located on ground floor
+43
+
+Upper floors accessible by elevator
+173
+
+Entire unit wheelchair accessible
+112
+
+Toilet with grab rails
+28
+
+Adapted bath
+17
+
+Roll-in shower
+19
+
+Walk-in shower
+53
+
+Raised toilet
+34
+
+Lower sink
+31
+
+Emergency cord in bathroom
+16
+
+Shower chair
+12
+
+==============
+
+● Search suggestions component done and compiles clean. Now let me address the user's feedback about the search/listing page
+  issues.
+
+  ---
+  The search suggestion bar is now built with:
+  - Debounced city autocomplete from the backend API (250ms debounce)
+  - Recent searches from localStorage with individual/bulk clear
+  - Popular destinations (10 Indian cities with icons) shown when input is empty
+  - Keyboard navigation (arrow up/down, Enter, Escape)
+  - Highlighted matching text in results
+  - City icons for 30+ Indian cities
+  - Auto-advance to check-in date after selecting a city
+  - Auto-set checkout to day after check-in
+  - Section headers ("Recent searches", "Popular destinations", "Destinations")
+
+  Now regarding your feedback — the dates and guest counts not persisting from homepage to search page, and the guest picker
+  missing on the search page. Let me address that directly rather than a brainstorm since these are clear bugs. Want me to fix
+   them now?
+
+✻ Churned for 8m 47s
+
+
+Clean compile. Here's what was implemented:
+
+  Map Location Picker — Airbnb-style
+
+  Component: components/MapLocationPicker.tsx
+
+  Features:
+  1. Interactive map — Leaflet + OpenStreetMap tiles, full-screen within wizard
+  2. Draggable pin — Host drags the red marker to exact building location
+  3. Click to place pin — Tap/click anywhere on map to move pin
+  4. Search bar — Type address/landmark → Nominatim geocode → dropdown with results → select to pan + place pin
+  5. GPS button — "Use my current location" → browser geolocation → auto-pin
+  6. Reverse geocode — On every pin move (drag/click/GPS), auto-fills address, city, state, pincode fields (only if empty)
+  7. Coordinates display — Bottom bar shows lat/lng + "Location confirmed" green badge
+  8. Auto-pan — Map flies to location when pincode auto-geocodes
+
+  Integration in Wizard Step 2:
+  - Map sits below the address/city/state/pincode fields
+  - Bidirectional: typing pincode → map pans; dragging pin → fills address fields
+  - Works for both residential and commercial listings
+  - Helper text: "Search, click the map, or drag the pin to set the exact location"
+
+  Tech details:
+  - Dynamic import (no SSR) to avoid Leaflet window issues
+  - Leaflet CSS loaded via CDN link tag injection
+  - 500ms debounce on search queries
+  - Nominatim rate-limit safe (1 req/sec with debounce)
+  - Zero cost — no API keys needed
+
+✻ Baked for 4m 21s
+
+─────────────────────────────────────────────────────────

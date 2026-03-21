@@ -1,0 +1,415 @@
+{
+  "info": {
+    "name": "Safar Platform — Sprint 8",
+    "description": "Managed Stay, Guaranteed Income, Co-Host Marketplace, and Cleaning Management APIs (S33-S36)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "safar-sprint-8"
+  },
+  "variable": [
+    { "key": "baseUrl",      "value": "http://localhost:8080" },
+    { "key": "token",        "value": "" },
+    { "key": "listingId",    "value": "" },
+    { "key": "contractId",   "value": "" },
+    { "key": "cohostId",     "value": "" },
+    { "key": "profileId",    "value": "" },
+    { "key": "agreementId",  "value": "" },
+    { "key": "cleanerId",    "value": "" },
+    { "key": "jobId",        "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Managed Stay (S33)",
+      "item": [
+        {
+          "name": "Enroll Listing in Managed Stay",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/listings/{{listingId}}/managed-stay/enroll",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractDurationMonths\": 12,\n  \"ownerRevenueSplitPercent\": 70,\n  \"propertyAddress\": {\n    \"line1\": \"Villa 14, Candolim Beach Road\",\n    \"city\": \"Candolim\",\n    \"state\": \"Goa\",\n    \"pincode\": \"403515\"\n  },\n  \"furnishingLevel\": \"FULLY_FURNISHED\",\n  \"bankAccountNumber\": \"50100123456789\",\n  \"ifscCode\": \"HDFC0001234\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('contractId', body.contractId);",
+              "pm.test('Has contractId', () => pm.expect(body.contractId).to.not.be.empty);",
+              "pm.test('Status ACTIVE', () => pm.expect(body.status).to.eql('ACTIVE'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Remove Listing from Managed Stay",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/listings/{{listingId}}/managed-stay",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Managed Stay Contracts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/managed-stay/contracts",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Admin — Add Managed Stay Expense",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/admin/managed-stay/{{contractId}}/expenses",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"MAINTENANCE\",\n  \"amountPaise\": 1500000,\n  \"description\": \"Plumbing repair and water heater replacement in master bathroom\",\n  \"vendor\": \"Ravi Kumar Plumbing Services, Panaji\",\n  \"invoiceDate\": \"2026-03-15\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('Has expenseId', () => pm.expect(pm.response.json().expenseId).to.not.be.empty);"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Guaranteed Income (S34)",
+      "item": [
+        {
+          "name": "Enroll in Guaranteed Income",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/listings/{{listingId}}/guaranteed-income",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"guaranteedMonthlyPaise\": 5000000,\n  \"contractDurationMonths\": 12,\n  \"propertyType\": \"APARTMENT\",\n  \"city\": \"Hyderabad\",\n  \"state\": \"Telangana\",\n  \"bedrooms\": 2,\n  \"bankAccountNumber\": \"91020034567890\",\n  \"ifscCode\": \"SBIN0005678\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.test('Has contractId', () => pm.expect(body.contractId).to.not.be.empty);",
+              "pm.test('Guaranteed amount matches', () => pm.expect(body.guaranteedMonthlyPaise).to.eql(5000000));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Guaranteed Income Contracts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/guaranteed-income/contracts",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Co-Host Marketplace (S35)",
+      "item": [
+        {
+          "name": "Create Co-Host Profile",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/cohost/profile",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Ananya Reddy\",\n  \"bio\": \"5 years of hospitality experience managing villas in Goa and Kerala. Superhost on multiple platforms.\",\n  \"languages\": [\"en\", \"hi\", \"te\"],\n  \"serviceCities\": [\"Panaji\", \"Kochi\", \"Bengaluru\"],\n  \"commissionPercent\": 15,\n  \"services\": [\"GUEST_COMMUNICATION\", \"CHECK_IN\", \"CLEANING_COORDINATION\", \"PRICING_OPTIMIZATION\"]\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('profileId', body.id);",
+              "pm.collectionVariables.set('cohostId', body.id);",
+              "pm.test('Has profileId', () => pm.expect(body.id).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Update Co-Host Profile",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/cohost/profile",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"commissionPercent\": 12,\n  \"services\": [\"GUEST_COMMUNICATION\", \"CHECK_IN\", \"CLEANING_COORDINATION\", \"PRICING_OPTIMIZATION\", \"MAINTENANCE\"]\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Commission updated', () => pm.expect(pm.response.json().commissionPercent).to.eql(12));"
+            ]}
+          }]
+        },
+        {
+          "name": "Browse Co-Host Profiles",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/cohost/profiles",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Invite Co-Host to Listing",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/cohost/listings/{{listingId}}/invite/{{cohostId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Hi Ananya, I would like you to co-host my villa in Calangute. It has 3 bedrooms and gets regular bookings.\",\n  \"proposedCommissionPercent\": 15\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('agreementId', body.agreementId);",
+              "pm.test('Status PENDING', () => pm.expect(body.status).to.eql('PENDING'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Accept Co-Host Agreement",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/cohost/agreements/{{agreementId}}/accept",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Status ACTIVE', () => pm.expect(pm.response.json().status).to.eql('ACTIVE'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Co-Host Earnings",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/cohost/earnings",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has totalEarningsPaise', () => pm.expect(pm.response.json().totalEarningsPaise).to.be.a('number'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Admin — Verify Co-Host Profile",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/admin/cohost/{{profileId}}/verify",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verified\": true,\n  \"remarks\": \"Background check passed. Hospitality experience confirmed via references.\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Verified', () => pm.expect(pm.response.json().verified).to.eql(true));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Cleaning Management (S36)",
+      "item": [
+        {
+          "name": "Create Cleaner Profile",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/cleaning/cleaner-profiles",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Lakshmi Devi\",\n  \"phone\": \"+919845012345\",\n  \"city\": \"Jaipur\",\n  \"state\": \"Rajasthan\",\n  \"serviceRadius\": 15,\n  \"hourlyRatePaise\": 50000,\n  \"specialties\": [\"DEEP_CLEAN\", \"LAUNDRY\", \"KITCHEN\"],\n  \"availableDays\": [\"MONDAY\", \"TUESDAY\", \"WEDNESDAY\", \"THURSDAY\", \"FRIDAY\"],\n  \"idProofType\": \"AADHAAR\",\n  \"idProofNumber\": \"XXXX-XXXX-1234\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('cleanerId', body.id);",
+              "pm.test('Has cleanerId', () => pm.expect(body.id).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Create Cleaning Job",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/cleaning/jobs",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listingId\": \"{{listingId}}\",\n  \"cleanerId\": \"{{cleanerId}}\",\n  \"scheduledDate\": \"2026-04-05\",\n  \"scheduledTime\": \"10:00\",\n  \"type\": \"CHECKOUT_CLEAN\",\n  \"instructions\": \"Guest checked out at 11 AM. Please replace all linens and restock toiletries. Deep clean kitchen.\",\n  \"estimatedDurationMinutes\": 120\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('jobId', body.id);",
+              "pm.test('Status SCHEDULED', () => pm.expect(body.status).to.eql('SCHEDULED'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Complete Cleaning Job",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/cleaning/jobs/{{jobId}}/complete",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"completedAt\": \"2026-04-05T12:15:00\",\n  \"notes\": \"All rooms cleaned. Replaced 6 towels, 3 bed sheets. Kitchen deep cleaned. Noticed minor wall paint chipping in bedroom 2.\",\n  \"photoUrls\": [\"https://media.safar.in/cleaning/job-001-before.jpg\", \"https://media.safar.in/cleaning/job-001-after.jpg\"]\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Status COMPLETED', () => pm.expect(pm.response.json().status).to.eql('COMPLETED'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Cleaning Jobs",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/cleaning/jobs",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Admin — Verify Cleaner",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/admin/cleaning/cleaners/{{cleanerId}}/verify",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verified\": true,\n  \"remarks\": \"Aadhaar verified. Completed background check. 3 years experience confirmed.\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Verified', () => pm.expect(pm.response.json().verified).to.eql(true));"
+            ]}
+          }]
+        }
+      ]
+    }
+  ]
+}

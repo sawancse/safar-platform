@@ -1,0 +1,371 @@
+{
+  "info": {
+    "name": "Safar Platform — Sprint 9",
+    "description": "Host Tax & Accounting, App Marketplace, B2B Analytics, and Investment Signal APIs (S37-S40)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "safar-sprint-9"
+  },
+  "variable": [
+    { "key": "baseUrl",   "value": "http://localhost:8080" },
+    { "key": "token",     "value": "" },
+    { "key": "listingId", "value": "" },
+    { "key": "appId",     "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Host Tax & Accounting (S37)",
+      "item": [
+        {
+          "name": "Create Tax Profile",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/host/tax-profile",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"panNumber\": \"ABCDE1234F\",\n  \"gstNumber\": \"27ABCDE1234F1ZK\",\n  \"legalName\": \"Rajesh Kumar Hospitality LLP\",\n  \"businessType\": \"LLP\",\n  \"address\": {\n    \"line1\": \"301, Trade Centre, Bandra Kurla Complex\",\n    \"city\": \"Mumbai\",\n    \"state\": \"Maharashtra\",\n    \"pincode\": \"400051\"\n  },\n  \"bankAccountNumber\": \"00261140002345\",\n  \"ifscCode\": \"HDFC0000026\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('Has PAN', () => pm.expect(pm.response.json().panNumber).to.eql('ABCDE1234F'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Tax Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/host/tax-profile",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has gstNumber', () => pm.expect(pm.response.json().gstNumber).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Add Host Expense",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/host/expenses",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listingId\": \"{{listingId}}\",\n  \"category\": \"UTILITIES\",\n  \"amountPaise\": 850000,\n  \"description\": \"Electricity bill for March 2026 — Tata Power\",\n  \"date\": \"2026-03-01\",\n  \"vendor\": \"Tata Power\",\n  \"receiptUrl\": \"https://media.safar.in/receipts/elec-mar-2026.pdf\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('Has expenseId', () => pm.expect(pm.response.json().id).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Host Expenses",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/host/expenses",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get GST Invoices",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/host/gst-invoices",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get TDS Report",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/host/tds-report",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Has totalTdsPaise', () => pm.expect(body.totalTdsPaise).to.be.a('number'));",
+              "pm.test('Has financialYear', () => pm.expect(body.financialYear).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Profit & Loss Report",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/host/pnl",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Has totalRevenuePaise', () => pm.expect(body.totalRevenuePaise).to.be.a('number'));",
+              "pm.test('Has totalExpensesPaise', () => pm.expect(body.totalExpensesPaise).to.be.a('number'));",
+              "pm.test('Has netProfitPaise', () => pm.expect(body.netProfitPaise).to.be.a('number'));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "App Marketplace (S38)",
+      "item": [
+        {
+          "name": "Submit App to Marketplace",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/marketplace/apps",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"SmartLock Integration\",\n  \"description\": \"Automate keyless check-in with Yale and Godrej smart locks. Generates unique codes for each guest booking.\",\n  \"category\": \"ACCESS_CONTROL\",\n  \"version\": \"1.0.0\",\n  \"developer\": \"TechHaven Solutions Pvt Ltd\",\n  \"webhookUrl\": \"https://api.techhaven.in/safar/webhook\",\n  \"pricingModel\": \"PER_BOOKING\",\n  \"pricePerUsePaise\": 2500,\n  \"iconUrl\": \"https://media.safar.in/apps/smartlock-icon.png\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('appId', body.id);",
+              "pm.test('Status PENDING_REVIEW', () => pm.expect(body.status).to.eql('PENDING_REVIEW'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get My Apps",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/marketplace/apps",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Browse Marketplace",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/marketplace",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has apps array', () => pm.expect(pm.response.json().apps).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Install App",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/marketplace/apps/{{appId}}/install",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"listingIds\": [\"{{listingId}}\"],\n  \"configuration\": {\n    \"autoGenerateCodes\": true,\n    \"codeValidityMinutes\": 30\n  }\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has installationId', () => pm.expect(pm.response.json().installationId).to.not.be.empty);"
+            ]}
+          }]
+        },
+        {
+          "name": "Admin — Approve App",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/admin/marketplace/apps/{{appId}}/approve",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approved\": true,\n  \"remarks\": \"Security review passed. API integration tested. Approved for marketplace listing.\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Status APPROVED', () => pm.expect(pm.response.json().status).to.eql('APPROVED'));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "B2B Analytics (S39)",
+      "item": [
+        {
+          "name": "Get Rental Yields",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/b2b/v1/rental-yields?city=Mumbai&propertyType=APARTMENT&bedrooms=2",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "b2b", "v1", "rental-yields"],
+              "query": [
+                { "key": "city",         "value": "Mumbai" },
+                { "key": "propertyType", "value": "APARTMENT" },
+                { "key": "bedrooms",     "value": "2" }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Has averageYieldPercent', () => pm.expect(body.averageYieldPercent).to.be.a('number'));",
+              "pm.test('Has city', () => pm.expect(body.city).to.eql('Mumbai'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Demand Trends",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/b2b/v1/demand-trends?city=Goa&period=LAST_6_MONTHS",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "b2b", "v1", "demand-trends"],
+              "query": [
+                { "key": "city",   "value": "Goa" },
+                { "key": "period", "value": "LAST_6_MONTHS" }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has dataPoints', () => pm.expect(pm.response.json().dataPoints).to.be.an('array'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Occupancy Rates",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/b2b/v1/occupancy-rates?city=Bengaluru&propertyType=VILLA",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "b2b", "v1", "occupancy-rates"],
+              "query": [
+                { "key": "city",         "value": "Bengaluru" },
+                { "key": "propertyType", "value": "VILLA" }
+              ]
+            },
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Has averageOccupancyPercent', () => pm.expect(body.averageOccupancyPercent).to.be.a('number'));"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Investment Signal (S40)",
+      "item": [
+        {
+          "name": "Get Investment Signal for Listing",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/listings/{{listingId}}/investment-signal",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Has signal', () => pm.expect(body.signal).to.be.a('string'));",
+              "pm.test('Has projectedYieldPercent', () => pm.expect(body.projectedYieldPercent).to.be.a('number'));",
+              "pm.test('Has confidenceScore', () => pm.expect(body.confidenceScore).to.be.a('number'));"
+            ]}
+          }]
+        }
+      ]
+    }
+  ]
+}

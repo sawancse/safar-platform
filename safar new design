@@ -1,0 +1,87 @@
+---
+  🎩 Safar Aashray — Refugee Housing Design
+
+  The Big Idea
+
+  "Safar Aashray" (Safar Shelter) — a module within the existing platform connecting displaced persons
+  with housing through a 3-sided marketplace: Hosts, Refugees, and Funding Organizations
+  (NGOs/governments/CSR).
+
+  ---
+  Why It Fits Safar Perfectly
+
+  ┌────────────────────────────┬─────────────────────────────┬─────────────────────────────────┐
+  │     Safar Already Has      │    Refugee Housing Needs    │               Fit               │
+  ├────────────────────────────┼─────────────────────────────┼─────────────────────────────────┤
+  │ Property listings + search │ Available housing inventory │ Direct reuse                    │
+  ├────────────────────────────┼─────────────────────────────┼─────────────────────────────────┤
+  │ Booking engine             │ Stay management             │ Extend for 30-360 day stays     │
+  ├────────────────────────────┼─────────────────────────────┼─────────────────────────────────┤
+  │ KYC system                 │ Identity verification       │ Add UNHCR cert, LTV, FRO        │
+  ├────────────────────────────┼─────────────────────────────┼─────────────────────────────────┤
+  │ Payment service            │ NGO bulk payments           │ Add bank transfer invoicing     │
+  ├────────────────────────────┼─────────────────────────────┼─────────────────────────────────┤
+  │ Medical tourism            │ Refugee healthcare access   │ Direct synergy                  │
+  ├────────────────────────────┼─────────────────────────────┼─────────────────────────────────┤
+  │ Multi-language (en/hi)     │ Multilingual refugees       │ Extend to Arabic, Dari, Burmese │
+  ├────────────────────────────┼─────────────────────────────┼─────────────────────────────────┤
+  │ Subscription model         │ NGO org accounts            │ Repurpose for case worker seats │
+  └────────────────────────────┴─────────────────────────────┴─────────────────────────────────┘
+
+  "Safar" means journey. Every refugee is on a safar.
+
+  ---
+  Recommended Phased Approach
+
+  Phase 1 (Low-cost, 3 months): Foundation
+
+  - aashrayReady flag on listings — hosts opt-in
+  - ORGANIZATION role — NGO accounts with case workers
+  - Extended stay bookings (30-360 days, monthly billing)
+  - Alternative ID types (UNHCR cert, LTV, FRO registration)
+  - NGO invoice-based payment (bank transfer)
+  - Target: 50 listings, 3 NGOs, 20 families housed
+
+  Phase 2 (Months 4-9): Scale
+
+  - New case-service — refugee profiles, placement tracking, integration milestones
+  - Smart matching (family size vs capacity, proximity to schools/hospitals)
+  - Language expansion (Arabic, Dari, Burmese, Tamil)
+  - Host guarantee fund (damage protection, NGO-funded)
+  - Public impact dashboard
+
+  Phase 3 (Months 10-18): Global
+
+  - Multi-currency payments (Wise/Stripe for international NGOs)
+  - Emergency rapid response mode (geo-fenced, one-click activation)
+  - International pilot (Bangladesh or Uganda)
+  - CSR portal for Indian companies (Section 135, 80G receipts)
+  - White-label SaaS for other NGOs
+
+  ---
+  Revenue Model
+
+  ┌─────────────────────────┬──────────────────────────────┬─────────────┐
+  │         Stream          │            Source            │ Est. Annual │
+  ├─────────────────────────┼──────────────────────────────┼─────────────┤
+  │ NGO platform fees       │ UNHCR, JRS, IRC              │ 30-50 LPA   │
+  ├─────────────────────────┼──────────────────────────────┼─────────────┤
+  │ Booking commission (5%) │ Per-stay on funded bookings  │ 10-25 LPA   │
+  ├─────────────────────────┼──────────────────────────────┼─────────────┤
+  │ CSR portal              │ Indian corporate CSR         │ 20-40 LPA   │
+  ├─────────────────────────┼──────────────────────────────┼─────────────┤
+  │ Government contracts    │ State refugee programs       │ 15-30 LPA   │
+  ├─────────────────────────┼──────────────────────────────┼─────────────┤
+  │ SaaS licensing          │ International NGOs (Phase 3) │ 25-50 LPA   │
+  └─────────────────────────┴──────────────────────────────┴─────────────┘
+
+  ---
+  India-Specific Opportunity
+
+  - 300K+ refugees in India (Tibetan, Afghan, Rohingya, Sri Lankan Tamil, Myanmar Chin)
+  - 25M+ climate-displaced annually (floods, cyclones) — same infrastructure serves disaster relief
+  - Section 135 CSR — mandatory 2% CSR spend, refugee housing is eligible
+
+  Want me to implement Phase 1 now?
+
+✻ Sautéed for 3m 28s
