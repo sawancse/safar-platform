@@ -19,7 +19,7 @@ variable "environment" {
 variable "domain_name" {
   description = "Primary domain name"
   type        = string
-  default     = "safar.com"
+  default     = "ysafar.com"
 }
 
 variable "db_password" {

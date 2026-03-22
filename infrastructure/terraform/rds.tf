@@ -25,7 +25,7 @@ resource "aws_db_instance" "main" {
   identifier = "${local.name_prefix}-db"
 
   engine         = "postgres"
-  engine_version = "16.3"
+  engine_version = "16.6"
   instance_class = "db.t3.micro" # MVP sizing (saves ~$40/mo; upgrade to t3.medium for prod)
 
   allocated_storage     = 50
@@ -47,7 +47,7 @@ resource "aws_db_instance" "main" {
 
   final_snapshot_identifier = "${local.name_prefix}-db-final"
 
-  backup_retention_period = 7
+  backup_retention_period = 1 # Free tier limit; increase for prod
   backup_window           = "03:00-04:00"
   maintenance_window      = "sun:04:00-sun:05:00"
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Image, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { getAccessToken, getUserRole, clearTokens } from '@/lib/auth';
@@ -52,6 +52,27 @@ export default function ProfileScreen() {
     })();
   }, []);
 
+  async function handleSignOutAll() {
+    Alert.alert('Sign out all devices', 'This will sign you out from all devices. Continue?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign out all',
+        style: 'destructive',
+        onPress: async () => {
+          const token = await getAccessToken();
+          if (token) {
+            try {
+              await api.logoutAll(token);
+            } catch {}
+          }
+          await clearTokens();
+          setRole(null);
+          router.replace('/');
+        },
+      },
+    ]);
+  }
+
   async function handleLogout() {
     Alert.alert(t('profile.logout'), t('profile.logoutConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
@@ -84,7 +105,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <View style={styles.avatarBox}>
         {avatarUrl ? (
           <Image
@@ -125,8 +146,18 @@ export default function ProfileScreen() {
           <Text style={styles.menuArrow}>›</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/dashboard')}>
+          <Text style={styles.menuLabel}>📊 Dashboard</Text>
+          <Text style={styles.menuArrow}>›</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/saved')}>
           <Text style={styles.menuLabel}>♥ Saved Stays</Text>
+          <Text style={styles.menuArrow}>›</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/my-reviews')}>
+          <Text style={styles.menuLabel}>⭐ My Reviews</Text>
           <Text style={styles.menuArrow}>›</Text>
         </TouchableOpacity>
 
@@ -157,8 +188,18 @@ export default function ProfileScreen() {
           <Text style={styles.menuArrow}>›</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/looking-for')}>
+          <Text style={styles.menuLabel}>🔍 Looking For (AI Scout)</Text>
+          <Text style={styles.menuArrow}>›</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/miles')}>
           <Text style={styles.menuLabel}>🏅 Property Miles</Text>
+          <Text style={styles.menuArrow}>›</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/aashray')}>
+          <Text style={styles.menuLabel}>🙏 Aashray</Text>
           <Text style={styles.menuArrow}>›</Text>
         </TouchableOpacity>
 
@@ -177,11 +218,15 @@ export default function ProfileScreen() {
           <Text style={styles.menuArrow}>›</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity style={styles.menuItem} onPress={handleSignOutAll}>
+          <Text style={[styles.menuLabel, { color: '#dc2626' }]}>🔒 Sign out all devices</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={[styles.menuItem, styles.menuItemLast]} onPress={handleLogout}>
           <Text style={[styles.menuLabel, { color: '#ef4444' }]}>{t('profile.logout')}</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 

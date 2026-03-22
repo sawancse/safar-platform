@@ -7,7 +7,7 @@ export async function getAccessToken(): Promise<string | null> {
   return store.get('access_token')?.value ?? null;
 }
 
-export function setAuthCookies(accessToken: string, refreshToken: string) {
+export async function setAuthCookies(accessToken: string, refreshToken: string) {
   const store = cookies();
   store.set('access_token', accessToken, {
     httpOnly: true,
@@ -25,7 +25,7 @@ export function setAuthCookies(accessToken: string, refreshToken: string) {
   });
 }
 
-export function clearAuthCookies() {
+export async function clearAuthCookies() {
   const store = cookies();
   store.delete('access_token');
   store.delete('refresh_token');

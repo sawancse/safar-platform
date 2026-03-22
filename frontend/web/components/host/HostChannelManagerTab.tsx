@@ -2,15 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/lib/auth';
-
 const CHANNEL_ICONS: Record<string, string> = {
   AIRBNB: '🏠', BOOKING_COM: '🅱️', MMT: '🇮🇳', OYO: '🔴',
   AGODA: '🟣', EXPEDIA: '✈️', GOIBIBO: '🚂',
 };
 
 export default function HostChannelManagerTab({ listingId }: { listingId: string }) {
-  const { token } = useAuthStore();
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') ?? '' : '';
   const [status, setStatus] = useState<any>(null);
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

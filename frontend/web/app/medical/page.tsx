@@ -33,6 +33,8 @@ const TOP_PROCEDURES: Record<string, string[]> = {
 
 const CITIES = ['Chennai', 'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Kochi', 'Kolkata', 'Pune'];
 
+export const dynamic = 'force-dynamic';
+
 export default function MedicalPage() {
   const searchParams = useSearchParams();
   const router = useRouter();

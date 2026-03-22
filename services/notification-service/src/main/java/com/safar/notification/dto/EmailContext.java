@@ -313,7 +313,7 @@ public class EmailContext {
     }
     public String getStayDuration() { return nights + " night" + (nights != 1 ? "s" : ""); }
     public String getSubject() { return "Booking " + (bookingRef != null ? bookingRef : ""); }
-    public String getSupportUrl() { return "https://safar.com/support"; }
+    public String getSupportUrl() { return "https://ysafar.com/support"; }
     public String getSupportPhone() { return "+91-1800-SAFAR"; }
     public String getCompanyAddress() { return "Safar Technologies, India"; }
     public String getExploreUrl() { return dashboardUrl != null ? dashboardUrl : "http://localhost:3000"; }
@@ -374,7 +374,7 @@ public class EmailContext {
     public String getFestivalImageUrl() { return null; }
     public String getServiceFee() { return platformFee; }
     public String getBookingAmount() { return totalAmount; }
-    public String getHelpUrl() { return "https://safar.com/help"; }
+    public String getHelpUrl() { return "https://ysafar.com/help"; }
     public String getHostResponseRate() { return "95%"; }
     public int getHoursUntilCheckin() { return getDaysUntilCheckin() * 24; }
     public int getMinsUntilCheckin() { return getHoursUntilCheckin() * 60; }

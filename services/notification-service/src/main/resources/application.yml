@@ -58,7 +58,7 @@ spring:
 notification:
   from-email: ${NOTIFICATION_FROM_EMAIL:sawank.sit@gmail.com}
   from-name: Safar
-  # Production: use https://safar.com poll record 100
+  # Production: use https://ysafar.com poll record 100
   base-url: ${NOTIFICATION_BASE_URL:http://localhost:3000}
 
 services:

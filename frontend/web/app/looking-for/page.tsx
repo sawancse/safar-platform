@@ -2,14 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/lib/auth';
-
 const SHARING_TYPES = ['PRIVATE', 'TWO_SHARING', 'THREE_SHARING', 'FOUR_SHARING', 'DORMITORY'];
 const GENDER_OPTIONS = ['MALE_ONLY', 'FEMALE_ONLY', 'COED'];
 const CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Pune', 'Kolkata', 'Goa', 'Jaipur'];
 
 export default function LookingForPage() {
-  const { token, user } = useAuthStore();
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') ?? '' : '';
   const [tab, setTab] = useState<'create' | 'browse'>('browse');
   const [profiles, setProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +47,7 @@ export default function LookingForPage() {
     try {
       await api.createSeekerProfile({
         ...form,
-        name: user?.name || 'Seeker',
+        name: 'Seeker',
         seekerType: 'PG_SEEKER',
       }, token);
       alert('Profile created! Hosts can now find you.');

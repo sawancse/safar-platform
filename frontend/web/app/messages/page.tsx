@@ -32,6 +32,8 @@ function formatDateDivider(iso: string): string {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function MessagesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();

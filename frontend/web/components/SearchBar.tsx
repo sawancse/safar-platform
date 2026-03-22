@@ -613,14 +613,14 @@ export default function SearchBar() {
     // Type keyword suggestion — trigger search immediately
     if ((suggestion as any).type === 'type') {
       setCityFocused(false);
-      setCity(query); // keep the typed query
+      setCity(city); // keep the typed query
       setSelectedLocation(null);
       // Navigate to search with the type query
       const params = new URLSearchParams();
-      params.set('q', query.trim());
+      params.set('q', city.trim());
       if (checkIn) params.set('checkIn', checkIn);
       if (checkOut) params.set('checkOut', checkOut);
-      params.set('guests', String(guests.adults + guests.children));
+      params.set('guests', String(guestCounts.adults + guestCounts.children));
       router.push(`/search?${params.toString()}`);
       return;
     }

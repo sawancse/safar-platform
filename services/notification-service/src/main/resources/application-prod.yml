@@ -29,7 +29,7 @@ spring:
 
 notification:
   from-email: ${NOTIFICATION_FROM_EMAIL}
-  base-url: ${NOTIFICATION_BASE_URL:https://safar.com}
+  base-url: ${NOTIFICATION_BASE_URL:https://ysafar.com}
 
 services:
   booking:

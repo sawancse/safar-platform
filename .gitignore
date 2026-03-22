@@ -2,6 +2,13 @@
 .env
 *.env.local
 
+# Terraform secrets
+*.tfvars
+*.tfvarscp
+!*.tfvars.example
+.terraform/
+*.tfstate*
+
 # Maven
 target/
 *.class

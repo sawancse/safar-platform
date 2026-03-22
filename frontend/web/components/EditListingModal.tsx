@@ -166,7 +166,7 @@ export default function EditListingModal({ listing, onClose, onSaved, token }: P
                     { value: 'HOUR', label: 'Per Hour', hint: 'Hotels / Meeting rooms' },
                   ].map(opt => (
                     <button key={opt.value} type="button"
-                      onClick={() => setPricingUnit(opt.value)}
+                      onClick={() => setPricingUnit(opt.value as 'NIGHT' | 'HOUR' | 'MONTH')}
                       className={`flex-1 p-3 rounded-lg border text-sm text-left transition ${
                         pricingUnit === opt.value
                           ? 'border-orange-500 bg-orange-50 ring-1 ring-orange-500'

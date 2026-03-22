@@ -1,12 +1,17 @@
 FROM eclipse-temurin:17-jdk-alpine AS build
 WORKDIR /app
+
+# Copy parent pom (strip modules to avoid missing-child errors)
 COPY pom.xml ./pom.xml
+RUN apk add --no-cache maven sed     && sed -i '/<modules>/,/<\/modules>/d' pom.xml     && mvn -N install -q 2>/dev/null || true
+
+# Copy service pom and resolve dependencies
 COPY services/payment-service/pom.xml ./services/payment-service/pom.xml
-RUN apk add --no-cache maven \
-    && mvn -pl services/payment-service -am dependency:go-offline -B -q 2>/dev/null || true
+RUN mvn -f services/payment-service/pom.xml dependency:go-offline -B -q 2>/dev/null || true
+
+# Copy source and build
 COPY services/payment-service/src ./services/payment-service/src
-RUN mvn -pl services/payment-service -am clean package -DskipTests -q -o 2>/dev/null \
-    || mvn -pl services/payment-service -am clean package -DskipTests -q
+RUN mvn -f services/payment-service/pom.xml clean package -DskipTests -q
 
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app

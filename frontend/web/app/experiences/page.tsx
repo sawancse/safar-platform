@@ -16,6 +16,8 @@ const CATEGORY_ICONS: Record<string, string> = {
   CREATIVE:  '🎨',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function ExperiencesPage() {
   const searchParams = useSearchParams();
   const router = useRouter();

@@ -14,7 +14,7 @@ resource "aws_elasticache_replication_group" "main" {
   node_type      = "cache.t3.micro" # MVP sizing (saves ~$35/mo)
   port           = 6379
 
-  num_cache_clusters = 1 # Single node for MVP (saves ~$15/mo; set 2 for prod HA)
+  num_cache_clusters = 2 # Keep 2 for auto-failover (can't reduce while failover enabled)
 
   subnet_group_name  = aws_elasticache_subnet_group.main.name
   security_group_ids = [aws_security_group.redis.id]
@@ -22,7 +22,7 @@ resource "aws_elasticache_replication_group" "main" {
   at_rest_encryption_enabled = true
   transit_encryption_enabled = true
 
-  automatic_failover_enabled = false # Requires 2+ nodes; enable for prod
+  automatic_failover_enabled = true
 
   snapshot_retention_limit = 3
   snapshot_window          = "02:00-03:00"

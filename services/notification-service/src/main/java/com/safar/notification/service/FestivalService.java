@@ -16,7 +16,7 @@ public class FestivalService {
 
     private static final Logger log = LoggerFactory.getLogger(FestivalService.class);
 
-    // Production: set NOTIFICATION_BASE_URL=https://safar.com
+    // Production: set NOTIFICATION_BASE_URL=https://ysafar.com
     @Value("${notification.base-url}")
     private String baseUrl;
 

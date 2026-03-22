@@ -10,7 +10,7 @@ spring:
         corsConfigurations:
           '[/**]':
             allowedOrigins:
-              - ${CORS_ORIGIN:https://safar.com}
+              - ${CORS_ORIGIN:https://ysafar.com}
             allowedMethods: [ GET, POST, PUT, DELETE, OPTIONS ]
             allowedHeaders: "*"
             allowCredentials: true

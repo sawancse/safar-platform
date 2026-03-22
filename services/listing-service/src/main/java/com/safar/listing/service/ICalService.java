@@ -59,7 +59,7 @@ public class ICalService {
             sb.append("DTSTART;VALUE=DATE:").append(av.getDate().format(ICAL_DATE_FMT)).append("\r\n");
             sb.append("DTEND;VALUE=DATE:").append(av.getDate().plusDays(1).format(ICAL_DATE_FMT)).append("\r\n");
             sb.append("SUMMARY:Blocked - Safar\r\n");
-            sb.append("UID:").append(av.getId()).append("@safar.com\r\n");
+            sb.append("UID:").append(av.getId()).append("@ysafar.com\r\n");
             sb.append("DTSTAMP:").append(OffsetDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'"))).append("\r\n");
             sb.append("END:VEVENT\r\n");
         }

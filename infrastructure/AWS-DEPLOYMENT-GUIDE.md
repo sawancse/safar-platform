@@ -401,6 +401,14 @@ done
 
 # Web frontend → ECS (or S3 if using static export)
 docker build -t <ecr>/safar/web-frontend:v1 frontend/web
+ Get it with:
+
+  aws ecr describe-repositories --query 'repositories[0].repositoryUri' --output text | cut -d'/' -f1
+  
+docker build -t 624627192872.dkr.ecr.ap-south-1.amazonaws.com/safar/web-frontend:v1 frontend/web
+
+
+
 docker push <ecr>/safar/web-frontend:v1
 # Deploy via ECS
 
@@ -418,7 +426,7 @@ eas submit --platform all
 
 # Test API
 curl https://api.safar.in/actuator/health
-
+curl https://api.safar.com/actuator/health
 # Tail logs
 ./infrastructure/scripts/deploy.sh logs api-gateway
 ```

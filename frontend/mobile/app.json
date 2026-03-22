@@ -11,10 +11,15 @@
       "resizeMode": "contain",
       "backgroundColor": "#f97316"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.safar.app"
+      "bundleIdentifier": "com.safar.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -32,7 +37,13 @@
     ],
     "scheme": "safar",
     "extra": {
-      "apiUrl": "http://192.168.29.215:8080"
+      "apiUrl": "https://api.ysafar.com",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "5280ee28-a8b1-45c8-b64e-e2cba6666a17"
+      }
     }
   }
 }

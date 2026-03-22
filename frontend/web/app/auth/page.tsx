@@ -103,6 +103,8 @@ function saveAuthAndRedirect(auth: any, router: any, redirect: string) {
   router.push(redirect);
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function AuthPage() {
   const router = useRouter();
   const searchParams = useSearchParams();

@@ -50,7 +50,7 @@ function formatPayout(paise: number) {
 export default function HostScreen() {
   const router = useRouter();
 
-  const [tab, setTab] = useState<'bookings' | 'listings'>('bookings');
+  const [tab, setTab] = useState<'bookings' | 'listings' | 'manage'>('bookings');
   const [filter, setFilter] = useState('All');
   const [bookings, setBookings] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
@@ -206,7 +206,7 @@ export default function HostScreen() {
           onPress={() => setTab('bookings')}
         >
           <Text style={[styles.tabText, tab === 'bookings' && styles.tabTextActive]}>
-            Bookings ({bookings.length})
+            Bookings
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -214,7 +214,15 @@ export default function HostScreen() {
           onPress={() => setTab('listings')}
         >
           <Text style={[styles.tabText, tab === 'listings' && styles.tabTextActive]}>
-            My Listings ({listings.length})
+            Listings
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, tab === 'manage' && styles.tabActive]}
+          onPress={() => setTab('manage')}
+        >
+          <Text style={[styles.tabText, tab === 'manage' && styles.tabTextActive]}>
+            Manage
           </Text>
         </TouchableOpacity>
       </View>
@@ -224,7 +232,7 @@ export default function HostScreen() {
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#f97316']} />}
       >
-        {tab === 'bookings' ? renderBookings() : renderListings()}
+        {tab === 'bookings' ? renderBookings() : tab === 'listings' ? renderListings() : renderManage()}
       </ScrollView>
     </View>
   );
@@ -401,37 +409,90 @@ export default function HostScreen() {
   /* ── Listings tab ────────────────────────────────────────── */
 
   function renderListings() {
-    if (listings.length === 0) {
-      return (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>🏠</Text>
-          <Text style={styles.emptyTitle}>No listings yet</Text>
-          <Text style={styles.emptySubtitle}>Your properties will appear here.</Text>
-        </View>
-      );
-    }
+    return (
+      <>
+        <TouchableOpacity
+          style={styles.createBtn}
+          onPress={() => router.push('/host-new-listing')}
+        >
+          <Text style={styles.createBtnText}>+ Create New Listing</Text>
+        </TouchableOpacity>
 
-    return listings.map((listing) => {
-      const s = LISTING_STATUS[listing.status] ?? LISTING_STATUS.DRAFT;
-      const pricePaise = listing.pricePerNightPaise ?? listing.pricePerNight ?? 0;
-
-      return (
-        <View key={listing.id} style={styles.card}>
-          <View style={styles.cardTopRow}>
-            <Text style={styles.listingTitle} numberOfLines={1}>
-              {listing.title || 'Untitled Listing'}
-            </Text>
-            <Text style={[styles.statusBadge, { backgroundColor: s.bg, color: s.text }]}>
-              {s.label}
-            </Text>
+        {listings.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>🏠</Text>
+            <Text style={styles.emptyTitle}>No listings yet</Text>
+            <Text style={styles.emptySubtitle}>Create your first listing to start hosting.</Text>
           </View>
-          <Text style={styles.listingCity}>{listing.city || listing.address?.city || '—'}</Text>
-          <Text style={styles.listingPrice}>
-            {formatPayout(pricePaise)} <Text style={styles.listingPriceUnit}>/ night</Text>
-          </Text>
-        </View>
-      );
-    });
+        ) : (
+          listings.map((listing) => {
+            const s = LISTING_STATUS[listing.status] ?? LISTING_STATUS.DRAFT;
+            const pricePaise = listing.basePricePaise ?? listing.pricePerNightPaise ?? listing.pricePerNight ?? 0;
+            const unit = listing.pricingUnit === 'MONTH' ? '/ month' : listing.pricingUnit === 'HOUR' ? '/ hour' : '/ night';
+
+            return (
+              <TouchableOpacity
+                key={listing.id}
+                style={styles.card}
+                onPress={() => router.push(`/listing/${listing.id}`)}
+              >
+                <View style={styles.cardTopRow}>
+                  <Text style={styles.listingTitle} numberOfLines={1}>
+                    {listing.title || 'Untitled Listing'}
+                  </Text>
+                  <Text style={[styles.statusBadge, { backgroundColor: s.bg, color: s.text }]}>
+                    {s.label}
+                  </Text>
+                </View>
+                <Text style={styles.listingCity}>{listing.city || listing.address?.city || '—'}</Text>
+                <Text style={styles.listingPrice}>
+                  {formatPayout(pricePaise)} <Text style={styles.listingPriceUnit}>{unit}</Text>
+                </Text>
+              </TouchableOpacity>
+            );
+          })
+        )}
+      </>
+    );
+  }
+
+  /* ── Manage tab ─────────────────────────────────────────── */
+
+  function renderManage() {
+    const items = [
+      { icon: '📅', label: 'Calendar', desc: 'Manage availability', route: '/host-calendar' },
+      { icon: '💰', label: 'Earnings', desc: 'Revenue & invoices', route: '/host-earnings' },
+      { icon: '📊', label: 'Analytics', desc: 'Occupancy & metrics', route: '/host-analytics' },
+      { icon: '💳', label: 'Transactions', desc: 'Payment history', route: '/host-transactions' },
+      { icon: '⭐', label: 'Reviews', desc: 'Guest reviews & replies', route: '/host-reviews' },
+      { icon: '💬', label: 'Messages', desc: 'Guest conversations', route: '/host-messages' },
+      { icon: '🛏️', label: 'Room Types', desc: 'Rooms & inclusions', route: '/host-rooms' },
+      { icon: '💲', label: 'Pricing Rules', desc: 'Seasonal & dynamic', route: '/host-pricing' },
+      { icon: '📦', label: 'PG Packages', desc: 'Monthly packages', route: '/host-packages' },
+      { icon: '🔗', label: 'Channel Manager', desc: 'iCal sync', route: '/host-channels' },
+      { icon: '👥', label: 'Tenants', desc: 'PG tenant management', route: '/host-tenants' },
+      { icon: '📋', label: 'KYC', desc: 'Identity verification', route: '/host-kyc' },
+      { icon: '💎', label: 'Subscription', desc: 'Plan & billing', route: '/subscription' },
+    ];
+
+    return (
+      <>
+        {items.map((item) => (
+          <TouchableOpacity
+            key={item.label}
+            style={styles.manageItem}
+            onPress={() => router.push(item.route as any)}
+          >
+            <Text style={styles.manageIcon}>{item.icon}</Text>
+            <View style={styles.manageContent}>
+              <Text style={styles.manageLabel}>{item.label}</Text>
+              <Text style={styles.manageDesc}>{item.desc}</Text>
+            </View>
+            <Text style={styles.manageArrow}>›</Text>
+          </TouchableOpacity>
+        ))}
+      </>
+    );
   }
 }
 
@@ -501,6 +562,18 @@ const styles = StyleSheet.create({
   emptyIcon:      { fontSize: 48, marginBottom: 12 },
   emptyTitle:     { fontSize: 18, fontWeight: '600', color: '#374151', marginBottom: 8 },
   emptySubtitle:  { fontSize: 14, color: '#9ca3af', textAlign: 'center' },
+
+  /* Create listing */
+  createBtn:     { backgroundColor: '#f97316', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginBottom: 16 },
+  createBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
+  /* Manage tab */
+  manageItem:    { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1 },
+  manageIcon:    { fontSize: 24, marginRight: 14, width: 32, textAlign: 'center' },
+  manageContent: { flex: 1 },
+  manageLabel:   { fontSize: 15, fontWeight: '600', color: '#111827' },
+  manageDesc:    { fontSize: 12, color: '#9ca3af', marginTop: 2 },
+  manageArrow:   { fontSize: 22, color: '#d1d5db', marginLeft: 8 },
 
   /* Shared buttons */
   primaryBtn:     { backgroundColor: '#f97316', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12, marginTop: 16 },

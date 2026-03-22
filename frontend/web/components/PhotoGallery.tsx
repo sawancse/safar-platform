@@ -350,7 +350,7 @@ export default function PhotoGallery({ media, listingName, panoramaUrl, videoTou
       if (catGroups.has(cat)) groups.push({ category: cat, label: labelMap[cat] || cat.charAt(0).toUpperCase() + cat.slice(1), items: catGroups.get(cat)! });
     }
     // Add any remaining categories not in the order
-    for (const [cat, items] of catGroups) {
+    for (const [cat, items] of Array.from(catGroups.entries())) {
       if (!catOrder.includes(cat)) groups.push({ category: cat, label: labelMap[cat] || cat.charAt(0).toUpperCase() + cat.slice(1), items });
     }
     return groups;

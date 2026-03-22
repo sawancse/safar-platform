@@ -15,6 +15,8 @@ const CATEGORY_STYLE: Record<string, { bg: string; text: string; icon: string }>
   QUESTION:       { bg: 'bg-red-100',    text: 'text-red-700',    icon: '❓' },
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function NomadPage() {
   const searchParams = useSearchParams();
   const router = useRouter();

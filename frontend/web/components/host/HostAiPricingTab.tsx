@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/lib/auth';
 
 interface PricingDay {
   date: string;

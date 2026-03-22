@@ -4,11 +4,13 @@ const nextConfig = {
   images: {
     domains: [
       'localhost',
-      'd1234abcdef.cloudfront.net',
+      'd1pei2hufbgxoj.cloudfront.net',
+      'media.ysafar.com',
       process.env.NEXT_PUBLIC_CDN_DOMAIN ?? '',
     ].filter(Boolean),
   },
   experimental: {
+    missingSuspenseWithCSRBailout: false,
     serverActions: {
       allowedOrigins: ['localhost:3000'],
     },

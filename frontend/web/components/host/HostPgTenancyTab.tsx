@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/lib/auth';
-
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-800',
   NOTICE_PERIOD: 'bg-yellow-100 text-yellow-800',
@@ -20,7 +18,7 @@ const INVOICE_COLORS: Record<string, string> = {
 };
 
 export default function HostPgTenancyTab({ listingId }: { listingId: string }) {
-  const { token } = useAuthStore();
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') ?? '' : '';
   const [tenancies, setTenancies] = useState<any[]>([]);
   const [overdue, setOverdue] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

@@ -28,7 +28,7 @@ export interface Listing {
   totalRooms?: number;
   amenities?: string[];
   basePricePaise: number;
-  pricingUnit: 'NIGHT' | 'HOUR';
+  pricingUnit: 'NIGHT' | 'HOUR' | 'MONTH';
   minBookingHours?: number;
   instantBook: boolean;
   status: string;
@@ -88,6 +88,8 @@ export interface Listing {
   cleaningFeePaise?: number;
   visibilityBoostPercent?: number;
   preferredPartner?: boolean;
+  panoramaUrl?: string;
+  videoTourUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -126,7 +128,7 @@ export interface RoomType {
   amenities?: string[];
   sortOrder: number;
   availableCount?: number;
-  stayMode?: 'NIGHTLY' | 'HOURLY';
+  stayMode?: 'NIGHTLY' | 'HOURLY' | 'MONTHLY';
   sharingType?: 'PRIVATE' | 'TWO_SHARING' | 'THREE_SHARING' | 'FOUR_SHARING' | 'DORMITORY';
   roomVariant?: 'AC' | 'NON_AC' | 'FURNISHED' | 'SEMI_FURNISHED';
   totalBeds?: number;

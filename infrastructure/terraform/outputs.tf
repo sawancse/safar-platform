@@ -15,7 +15,7 @@ output "route53_nameservers" {
 }
 
 output "alb_dns_name" {
-  description = "ALB DNS name — point api.safar.com CNAME here"
+  description = "ALB DNS name — point api.ysafar.com CNAME here"
   value       = aws_lb.main.dns_name
 }
 

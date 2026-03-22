@@ -1,12 +1,17 @@
 FROM eclipse-temurin:17-jdk-alpine AS build
 WORKDIR /app
+
+# Copy parent pom (strip modules to avoid missing-child errors)
 COPY pom.xml ./pom.xml
+RUN apk add --no-cache maven sed     && sed -i '/<modules>/,/<\/modules>/d' pom.xml     && mvn -N install -q 2>/dev/null || true
+
+# Copy service pom and resolve dependencies
 COPY services/media-service/pom.xml ./services/media-service/pom.xml
-RUN apk add --no-cache maven \
-    && mvn -pl services/media-service -am dependency:go-offline -B -q 2>/dev/null || true
+RUN mvn -f services/media-service/pom.xml dependency:go-offline -B -q 2>/dev/null || true
+
+# Copy source and build
 COPY services/media-service/src ./services/media-service/src
-RUN mvn -pl services/media-service -am clean package -DskipTests -q -o 2>/dev/null \
-    || mvn -pl services/media-service -am clean package -DskipTests -q
+RUN mvn -f services/media-service/pom.xml clean package -DskipTests -q
 
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
