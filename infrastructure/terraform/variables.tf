@@ -84,66 +84,66 @@ variable "services" {
     max_count     = number
     health_path   = string
   }))
-  # MVP sizing — all services single instance, minimal resources
-  # Scale up for prod: increase desired_count, cpu, memory
+  # MVP sizing — all services single instance
+  # 512MB minimum for Spring Boot; scale up for prod
   default = {
     api-gateway = {
-      port = 8080, cpu = 256, memory = 512,
+      port = 8080, cpu = 512, memory = 1024,
       desired_count = 1, min_count = 1, max_count = 4,
       health_path = "/actuator/health"
     }
     auth-service = {
-      port = 8888, cpu = 256, memory = 512,
+      port = 8888, cpu = 512, memory = 1024,
       desired_count = 1, min_count = 1, max_count = 3,
       health_path = "/actuator/health"
     }
     user-service = {
-      port = 8092, cpu = 256, memory = 512,
+      port = 8092, cpu = 512, memory = 1024,
       desired_count = 1, min_count = 1, max_count = 2,
       health_path = "/actuator/health"
     }
     listing-service = {
-      port = 8083, cpu = 256, memory = 512,
+      port = 8083, cpu = 512, memory = 1024,
       desired_count = 1, min_count = 1, max_count = 3,
       health_path = "/actuator/health"
     }
     search-service = {
-      port = 8084, cpu = 256, memory = 512,
+      port = 8084, cpu = 512, memory = 1024,
       desired_count = 1, min_count = 1, max_count = 4,
       health_path = "/actuator/health"
     }
     booking-service = {
-      port = 8095, cpu = 256, memory = 512,
+      port = 8095, cpu = 512, memory = 1024,
       desired_count = 1, min_count = 1, max_count = 3,
       health_path = "/actuator/health"
     }
     payment-service = {
-      port = 8086, cpu = 256, memory = 512,
+      port = 8086, cpu = 512, memory = 1024,
       desired_count = 1, min_count = 1, max_count = 2,
       health_path = "/actuator/health"
     }
     review-service = {
-      port = 8087, cpu = 256, memory = 512,
+      port = 8087, cpu = 512, memory = 1024,
       desired_count = 1, min_count = 1, max_count = 2,
       health_path = "/actuator/health"
     }
     media-service = {
-      port = 8088, cpu = 256, memory = 512,
+      port = 8088, cpu = 512, memory = 1024,
       desired_count = 1, min_count = 1, max_count = 2,
       health_path = "/actuator/health"
     }
     notification-service = {
-      port = 8089, cpu = 256, memory = 512,
+      port = 8089, cpu = 512, memory = 1024,
       desired_count = 1, min_count = 1, max_count = 2,
       health_path = "/actuator/health"
     }
     messaging-service = {
-      port = 8091, cpu = 256, memory = 512,
+      port = 8091, cpu = 512, memory = 1024,
       desired_count = 1, min_count = 1, max_count = 2,
       health_path = "/actuator/health"
     }
     ai-service = {
-      port = 8090, cpu = 256, memory = 512,
+      port = 8090, cpu = 512, memory = 1024,
       desired_count = 1, min_count = 1, max_count = 2,
       health_path = "/health"
     }

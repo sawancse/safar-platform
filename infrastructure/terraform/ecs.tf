@@ -90,7 +90,7 @@ resource "aws_ecs_task_definition" "services" {
       [
         { name = "SPRING_PROFILES_ACTIVE", value = "prod" },
         { name = "SERVER_PORT", value = tostring(each.value.port) },
-        # Service discovery hostnames
+        # Service discovery hostnames (used in application-prod.yml)
         { name = "AUTH_SERVICE_HOST", value = "auth-service.safar.local" },
         { name = "USER_SERVICE_HOST", value = "user-service.safar.local" },
         { name = "LISTING_SERVICE_HOST", value = "listing-service.safar.local" },
@@ -103,29 +103,35 @@ resource "aws_ecs_task_definition" "services" {
         { name = "MESSAGING_SERVICE_HOST", value = "messaging-service.safar.local" },
         { name = "AI_SERVICE_HOST", value = "ai-service.safar.local" },
       ],
-      # Database config for DB-backed services
+      # Database config (application-prod.yml uses DB_URL, DB_USERNAME)
       contains(keys(local.db_schemas), each.key) ? [
-        { name = "SPRING_DATASOURCE_URL", value = "jdbc:postgresql://${aws_db_instance.main.address}:5432/safar?currentSchema=${local.db_schemas[each.key]}" },
-        { name = "SPRING_DATASOURCE_USERNAME", value = "safar_admin" },
+        { name = "DB_URL", value = "jdbc:postgresql://${aws_db_instance.main.address}:5432/safar?currentSchema=${local.db_schemas[each.key]}" },
+        { name = "DB_USERNAME", value = "safar_admin" },
       ] : [],
-      # Redis config for gateway, auth, booking
+      # Redis config (application-prod.yml uses REDIS_HOST)
       contains(["api-gateway", "auth-service", "booking-service"], each.key) ? [
-        { name = "SPRING_DATA_REDIS_HOST", value = aws_elasticache_replication_group.main.primary_endpoint_address },
-        { name = "SPRING_DATA_REDIS_PORT", value = "6379" },
-        { name = "SPRING_DATA_REDIS_SSL_ENABLED", value = "true" },
+        { name = "REDIS_HOST", value = aws_elasticache_replication_group.main.primary_endpoint_address },
+        { name = "REDIS_PORT", value = "6379" },
       ] : [],
-      # Kafka config
+      # Kafka config (application-prod.yml uses KAFKA_BOOTSTRAP_SERVERS)
       contains(local.kafka_services, each.key) ? [
-        { name = "SPRING_KAFKA_BOOTSTRAP_SERVERS", value = aws_msk_serverless_cluster.main.arn },
+        { name = "KAFKA_BOOTSTRAP_SERVERS", value = aws_msk_serverless_cluster.main.arn },
       ] : [],
-      # OpenSearch for search-service (disabled — enable after OpenSearch subscription)
-      # each.key == "search-service" ? [
-      #   { name = "SPRING_ELASTICSEARCH_URIS", value = "https://${aws_opensearch_domain.main.endpoint}" },
-      # ] : [],
-      # S3 for media-service
-      each.key == "media-service" ? [
-        { name = "AWS_S3_BUCKET", value = aws_s3_bucket.media.id },
+      # Mail config for auth-service and notification-service
+      contains(["auth-service", "notification-service"], each.key) ? [
+        { name = "SPRING_MAIL_HOST", value = "smtp.gmail.com" },
+        { name = "SPRING_MAIL_PORT", value = "587" },
+        { name = "NOTIFICATION_FROM_EMAIL", value = "noreply@ysafar.com" },
+      ] : [],
+      # S3/CDN for media-service and listing-service
+      contains(["media-service", "listing-service"], each.key) ? [
+        { name = "S3_BUCKET", value = aws_s3_bucket.media.id },
         { name = "AWS_REGION", value = var.aws_region },
+        { name = "CDN_DOMAIN", value = aws_cloudfront_distribution.media.domain_name },
+      ] : [],
+      # Elasticsearch for search-service
+      each.key == "search-service" ? [
+        { name = "ELASTICSEARCH_URI", value = "https://search-service.safar.local:9200" },
       ] : [],
     )
 
@@ -133,18 +139,21 @@ resource "aws_ecs_task_definition" "services" {
       [
         { name = "JWT_SECRET", valueFrom = aws_secretsmanager_secret.jwt_secret.arn },
       ],
+      # DB password (application-prod.yml uses DB_PASSWORD)
       contains(keys(local.db_schemas), each.key) ? [
-        { name = "SPRING_DATASOURCE_PASSWORD", valueFrom = aws_secretsmanager_secret.db_password.arn },
+        { name = "DB_PASSWORD", valueFrom = aws_secretsmanager_secret.db_password.arn },
       ] : [],
       each.key == "user-service" ? [
         { name = "ENCRYPTION_AES_KEY", valueFrom = aws_secretsmanager_secret.aes_key.arn },
       ] : [],
-      each.key == "payment-service" ? [
+      # Razorpay for payment-service AND user-service (both use it)
+      contains(["payment-service", "user-service"], each.key) ? [
         { name = "RAZORPAY_KEY_ID", valueFrom = "${aws_secretsmanager_secret.razorpay.arn}:key_id::" },
         { name = "RAZORPAY_KEY_SECRET", valueFrom = "${aws_secretsmanager_secret.razorpay.arn}:key_secret::" },
         { name = "RAZORPAY_WEBHOOK_SECRET", valueFrom = "${aws_secretsmanager_secret.razorpay.arn}:webhook_secret::" },
       ] : [],
-      each.key == "notification-service" ? [
+      # Mail creds for auth-service and notification-service
+      contains(["auth-service", "notification-service"], each.key) ? [
         { name = "SPRING_MAIL_USERNAME", valueFrom = "${aws_secretsmanager_secret.mail.arn}:username::" },
         { name = "SPRING_MAIL_PASSWORD", valueFrom = "${aws_secretsmanager_secret.mail.arn}:password::" },
       ] : [],

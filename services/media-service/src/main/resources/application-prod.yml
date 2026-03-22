@@ -11,8 +11,6 @@ aws:
   s3:
     bucket: ${S3_BUCKET}
     region: ${AWS_REGION:ap-south-1}
-    access-key: ${AWS_ACCESS_KEY_ID}
-    secret-key: ${AWS_SECRET_ACCESS_KEY}
   cloudfront:
     domain: ${CDN_DOMAIN}
 
