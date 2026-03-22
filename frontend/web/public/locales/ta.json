@@ -1,0 +1,98 @@
+{
+  "nav": {
+    "home": "முகப்பு",
+    "search": "ஆராய்க",
+    "listProperty": "புரவலன்",
+    "dashboard": "டாஷ்போர்டு",
+    "login": "உள்நுழைக",
+    "signup": "பதிவு செய்க",
+    "logout": "வெளியேறு",
+    "becomeHost": "புரவலனாக மாறுங்கள்"
+  },
+  "hero": {
+    "title": "இந்தியாவில் உங்கள் சிறந்த தங்குமிடத்தைக் கண்டறியுங்கள்",
+    "subtitle": "வீடுகள், அறைகள், வணிக இடங்கள் — புரவலர்களுக்கு பூஜ்ய கமிஷன்",
+    "badges": {
+      "zeroDeposit": "பூஜ்ய வைப்பு",
+      "verified": "சரிபார்க்கப்பட்ட பட்டியல்கள்",
+      "upi": "உடனடி UPI",
+      "ai": "AI தேர்வு"
+    }
+  },
+  "search": {
+    "placeholder": "எங்கே? (நகரம்)",
+    "button": "தேடு",
+    "guests": "{count} விருந்தினர்",
+    "guestsPlural": "{count} விருந்தினர்கள்",
+    "checkIn": "செக்-இன்",
+    "checkOut": "செக்-அவுட்",
+    "filters": "வடிகட்டிகள்",
+    "sortBy": "வரிசைப்படுத்து",
+    "sortRelevance": "பொருத்தம்",
+    "sortPriceLow": "விலை: குறைவிலிருந்து அதிகம்",
+    "sortPriceHigh": "விலை: அதிகத்திலிருந்து குறைவு",
+    "sortRating": "உயர் மதிப்பீடு",
+    "results": "{count} தங்குமிடங்கள் கண்டறியப்பட்டன",
+    "noResults": "தங்குமிடங்கள் கிடைக்கவில்லை",
+    "tryDifferent": "வேறு நகரத்தை முயற்சிக்கவும்"
+  },
+  "booking": {
+    "dates": "தேதிகள்",
+    "guests": "விருந்தினர்கள்",
+    "price": "விலை",
+    "perNight": "ஒரு இரவுக்கு",
+    "bookNow": "இப்போது புக் செய்யுங்கள்",
+    "confirmBooking": "புக்கிங் உறுதிப்படுத்தவும்",
+    "totalAmount": "மொத்தம் {amount}",
+    "gstIncluded": "18% GST உள்ளடக்கியது",
+    "bookingConfirmed": "புக்கிங் உறுதிப்படுத்தப்பட்டது!",
+    "ref": "குறிப்பு: {ref}",
+    "checkIn": "செக்-இன்",
+    "checkOut": "செக்-அவுட்",
+    "nights": "{count} இரவு",
+    "nightsPlural": "{count} இரவுகள்"
+  },
+  "listing": {
+    "verified": "சரிபார்க்கப்பட்டது",
+    "instantBook": "உடனடி",
+    "wifiSpeed": "WiFi {speed} Mbps",
+    "safetyScore": "பாதுகாப்பு: {score}/100",
+    "remoteWork": "தொலைநிலை பணி சான்றிதழ்",
+    "womensPick": "பெண்கள் பாதுகாப்பு தேர்வு"
+  },
+  "aashray": {
+    "title": "ஆஸ்ரய் — அவசர வீட்டுவசதி",
+    "createCase": "வழக்கை உருவாக்கவும்",
+    "familySize": "குடும்ப அளவு",
+    "children": "குழந்தைகள்",
+    "elderly": "முதியவர்கள்",
+    "budget": "பட்ஜெட்",
+    "specialNeeds": "சிறப்புத் தேவைகள்",
+    "matchFound": "பொருத்தம் கண்டறியப்பட்டது",
+    "caseStatus": "வழக்கு நிலை",
+    "open": "திறந்தது",
+    "matched": "பொருத்தப்பட்டது",
+    "housed": "வீடு அளிக்கப்பட்டது"
+  },
+  "common": {
+    "loading": "ஏற்றுகிறது...",
+    "error": "ஏதோ தவறு நடந்தது. மீண்டும் முயற்சிக்கவும்.",
+    "success": "வெற்றி!",
+    "cancel": "ரத்துசெய்",
+    "save": "சேமி",
+    "back": "பின்னால்",
+    "continue": "தொடர்",
+    "close": "மூடு",
+    "yes": "ஆம்",
+    "no": "இல்லை"
+  },
+  "language": {
+    "label": "மொழி",
+    "en": "English",
+    "hi": "हिन्दी",
+    "ta": "தமிழ்"
+  },
+  "footer": {
+    "copyright": "Safar India Pvt. Ltd. · பூஜ்ய கமிஷன், 100% உங்களுடையது."
+  }
+}

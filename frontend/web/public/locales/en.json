@@ -1,0 +1,103 @@
+{
+  "nav": {
+    "home": "Home",
+    "search": "Explore",
+    "listProperty": "Host",
+    "dashboard": "Dashboard",
+    "login": "Sign in",
+    "signup": "Sign up",
+    "logout": "Log out",
+    "becomeHost": "Become a host"
+  },
+  "hero": {
+    "title": "Find your perfect stay in India",
+    "subtitle": "Homes, rooms, commercial spaces — zero commission for hosts",
+    "badges": {
+      "zeroDeposit": "Zero deposit",
+      "verified": "Verified listings",
+      "upi": "Instant UPI",
+      "ai": "AI-curated"
+    }
+  },
+  "search": {
+    "placeholder": "Where to? (city)",
+    "button": "Search",
+    "guests": "{count} guest",
+    "guestsPlural": "{count} guests",
+    "checkIn": "Check-in",
+    "checkOut": "Check-out",
+    "filters": "Filters",
+    "sortBy": "Sort by",
+    "sortRelevance": "Relevance",
+    "sortPriceLow": "Price: Low to High",
+    "sortPriceHigh": "Price: High to Low",
+    "sortRating": "Highest Rated",
+    "results": "{count} stays found",
+    "noResults": "No stays found",
+    "tryDifferent": "Try a different city"
+  },
+  "home": {
+    "trendingIn": "Trending in {city}",
+    "beFirst": "Be the first to list your property on Safar!",
+    "listSpace": "List your space",
+    "whyHosts": "Why hosts choose Safar",
+    "zeroCommission": "0% commission",
+    "zeroCommissionDesc": "Keep 100% of every booking. Pay a flat monthly subscription.",
+    "aiAutopilot": "AI autopilot",
+    "aiAutopilotDesc": "AI handles pricing, guest messages, and calendar — so you don't have to.",
+    "verifiedInsured": "Verified & insured",
+    "verifiedInsuredDesc": "Every listing is verified. Zero deposit micro-insurance on every booking.",
+    "startTrial": "Start your 90-day free trial",
+    "propertyTypes": {
+      "all": "All",
+      "homes": "Homes",
+      "rooms": "Rooms",
+      "commercial": "Commercial",
+      "uniqueStays": "Unique Stays"
+    }
+  },
+  "booking": {
+    "dates": "Dates",
+    "guests": "Guests",
+    "price": "Price",
+    "perNight": "per night",
+    "bookNow": "Book Now",
+    "confirmBooking": "Confirm Booking",
+    "totalAmount": "Total {amount}",
+    "gstIncluded": "Includes 18% GST",
+    "bookingConfirmed": "Booking Confirmed!",
+    "ref": "Ref: {ref}",
+    "checkIn": "Check-in",
+    "checkOut": "Check-out",
+    "nights": "{count} night",
+    "nightsPlural": "{count} nights"
+  },
+  "listing": {
+    "verified": "Verified",
+    "instantBook": "Instant",
+    "wifiSpeed": "WiFi {speed} Mbps",
+    "safetyScore": "Safety: {score}/100",
+    "remoteWork": "Remote Work Certified",
+    "womensPick": "Women's Safety Pick"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong. Please try again.",
+    "success": "Success!",
+    "cancel": "Cancel",
+    "save": "Save",
+    "back": "Back",
+    "continue": "Continue",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "hi": "हिन्दी"
+  },
+  "footer": {
+    "copyright": "Safar India Pvt. Ltd. · Zero commission, 100% yours."
+  }
+}
