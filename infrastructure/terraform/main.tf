@@ -43,7 +43,7 @@ locals {
   db_services = toset([
     "auth-service", "user-service", "listing-service",
     "booking-service", "payment-service", "review-service",
-    "messaging-service"
+    "notification-service", "messaging-service"
   ])
 
   # Services that need Kafka
@@ -61,6 +61,7 @@ locals {
     "booking-service"      = "bookings"
     "payment-service"      = "payments"
     "review-service"       = "reviews"
+    "notification-service" = "notifications"
     "messaging-service"    = "messages"
   }
 }

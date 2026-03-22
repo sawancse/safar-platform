@@ -115,7 +115,7 @@ resource "aws_ecs_task_definition" "services" {
       ] : [],
       # Kafka config (application-prod.yml uses KAFKA_BOOTSTRAP_SERVERS)
       contains(local.kafka_services, each.key) ? [
-        { name = "KAFKA_BOOTSTRAP_SERVERS", value = aws_msk_serverless_cluster.main.arn },
+        { name = "KAFKA_BOOTSTRAP_SERVERS", value = "boot-2ege0pbm.c3.kafka-serverless.ap-south-1.amazonaws.com:9098" },
       ] : [],
       # Mail config for auth-service and notification-service
       contains(["auth-service", "notification-service"], each.key) ? [
