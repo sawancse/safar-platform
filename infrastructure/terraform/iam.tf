@@ -85,11 +85,21 @@ resource "aws_iam_role_policy" "ecs_task_msk" {
         "kafka-cluster:Connect",
         "kafka-cluster:AlterCluster",
         "kafka-cluster:DescribeCluster",
-        "kafka-cluster:*Topic*",
+        "kafka-cluster:CreateTopic",
+        "kafka-cluster:DescribeTopic",
+        "kafka-cluster:AlterTopic",
+        "kafka-cluster:DeleteTopic",
+        "kafka-cluster:DescribeTopicDynamicConfiguration",
+        "kafka-cluster:AlterTopicDynamicConfiguration",
         "kafka-cluster:WriteData",
+        "kafka-cluster:WriteDataIdempotently",
         "kafka-cluster:ReadData",
         "kafka-cluster:AlterGroup",
-        "kafka-cluster:DescribeGroup"
+        "kafka-cluster:DescribeGroup",
+        "kafka-cluster:DescribeClusterDynamicConfiguration",
+        "kafka-cluster:AlterClusterDynamicConfiguration",
+        "kafka-cluster:DescribeTransactionalId",
+        "kafka-cluster:AlterTransactionalId"
       ]
       Resource = [
         aws_msk_serverless_cluster.main.arn,

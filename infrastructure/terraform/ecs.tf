@@ -133,6 +133,10 @@ resource "aws_ecs_task_definition" "services" {
       each.key == "search-service" ? [
         { name = "ELASTICSEARCH_URI", value = "https://search-service.safar.local:9200" },
       ] : [],
+      # Google Sign-In for auth-service
+      each.key == "auth-service" ? [
+        { name = "GOOGLE_CLIENT_ID", value = "819322140862-2oh93lat0gh6lhaehc7j6af25uk7hhkc.apps.googleusercontent.com" },
+      ] : [],
     )
 
     secrets = concat(
