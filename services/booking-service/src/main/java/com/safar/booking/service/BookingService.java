@@ -136,9 +136,13 @@ public class BookingService {
         }
 
         // Hold dates in Redis with per-date keys for the full range
-        for (LocalDate d = checkInDate; !d.isAfter(checkOutDate.minusDays(1)); d = d.plusDays(1)) {
-            String holdKey = "booking:hold:" + req.listingId() + ":" + d;
-            redis.opsForValue().set(holdKey, guestId.toString(), Duration.ofMinutes(15));
+        try {
+            for (LocalDate d = checkInDate; !d.isAfter(checkOutDate.minusDays(1)); d = d.plusDays(1)) {
+                String holdKey = "booking:hold:" + req.listingId() + ":" + d;
+                redis.opsForValue().set(holdKey, guestId.toString(), Duration.ofMinutes(15));
+            }
+        } catch (Exception e) {
+            log.warn("Failed to set Redis hold for listing {}: {}", req.listingId(), e.getMessage());
         }
 
         // Determine listing type and pricing unit
@@ -149,7 +153,8 @@ public class BookingService {
                 || "HOSTEL_DORM".equals(listingType);
 
         // Infer pricing unit from listing type if not explicitly set
-        if ("NIGHT".equals(pricingUnit) && isPgColiving) pricingUnit = "MONTH";
+        if ((pricingUnit == null || "NIGHT".equals(pricingUnit)) && isPgColiving) pricingUnit = "MONTH";
+        if (pricingUnit == null) pricingUnit = "NIGHT";
 
         // Calculate duration
         long nights = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
@@ -294,7 +299,11 @@ public class BookingService {
             }
         }
 
-        long gstPaise = Math.round(basePaise * GST_RATE);
+        // GST: exempt for residential monthly rent (Indian tax law)
+        boolean isCommercialType = "COMMERCIAL".equals(listingType);
+        long gstPaise = (isCommercialType || !"MONTH".equals(pricingUnit))
+                ? Math.round(basePaise * GST_RATE) : 0L;
+        long depositPaise = securityDepositPaise != null ? securityDepositPaise : 0L;
         long totalPaise = basePaise + cleaningFee + insurancePaise + gstPaise + inclusionsTotalPaise;
 
         // Feature 2: Pay at Property
@@ -386,6 +395,7 @@ public class BookingService {
                 .prepaidAmountPaise(prepaidAmountPaise)
                 .dueAtPropertyPaise(dueAtPropertyPaise)
                 .inclusionsTotalPaise(inclusionsTotalPaise)
+                .pricingUnit(pricingUnit)
                 .build();
 
         Booking saved = bookingRepo.save(booking);
@@ -421,7 +431,23 @@ public class BookingService {
                 long rtPrice = listingClient.getRoomTypePrice(req.listingId(), sel.roomTypeId());
                 String rtName = listingClient.getRoomTypeName(req.listingId(), sel.roomTypeId());
                 if (rtPrice <= 0) rtPrice = baseRate;
-                long selTotal = rtPrice * sel.count() * (long) nights;
+                long selTotal;
+                switch (pricingUnit) {
+                    case "MONTH" -> {
+                        long fm = nights / 30;
+                        long rd = nights % 30;
+                        long mt = rtPrice * fm;
+                        long pd = rd > 0 ? Math.round((double) rtPrice * rd / 30) : 0;
+                        selTotal = (mt + pd) * sel.count();
+                    }
+                    case "HOUR" -> {
+                        long hrs = req.hours() != null ? req.hours()
+                                : ChronoUnit.HOURS.between(req.checkIn(), req.checkOut());
+                        if (hrs <= 0) hrs = 1;
+                        selTotal = rtPrice * hrs * sel.count();
+                    }
+                    default -> selTotal = rtPrice * sel.count() * nights;
+                }
                 roomSelectionRepo.save(BookingRoomSelection.builder()
                         .bookingId(saved.getId())
                         .roomTypeId(sel.roomTypeId())
@@ -473,20 +499,28 @@ public class BookingService {
             listingClient.blockDates(req.listingId(), checkInDate, checkOutDate);
         }
 
-        kafka.send("booking.created", saved.getId() != null ? saved.getId().toString() : "");
+        try {
+            kafka.send("booking.created", saved.getId() != null ? saved.getId().toString() : "");
+        } catch (Exception e) {
+            log.warn("Failed to send Kafka event for created booking {}: {}", saved.getBookingRef(), e.getMessage());
+        }
 
         // Publish medical-specific Kafka event
         if ("MEDICAL".equals(req.bookingType())) {
-            String medicalEvent = String.format(
-                    "{\"bookingId\":\"%s\",\"hospitalId\":\"%s\",\"procedureName\":\"%s\",\"specialty\":\"%s\",\"procedureDate\":\"%s\"}",
-                    saved.getId(),
-                    req.hospitalId() != null ? req.hospitalId() : "",
-                    req.procedureName() != null ? req.procedureName() : "",
-                    req.specialty() != null ? req.specialty() : "",
-                    req.procedureDate() != null ? req.procedureDate() : ""
-            );
-            kafka.send("medical.booking.created", saved.getId().toString(), medicalEvent);
-            log.info("Medical booking event published for booking {}", saved.getBookingRef());
+            try {
+                String medicalEvent = String.format(
+                        "{\"bookingId\":\"%s\",\"hospitalId\":\"%s\",\"procedureName\":\"%s\",\"specialty\":\"%s\",\"procedureDate\":\"%s\"}",
+                        saved.getId(),
+                        req.hospitalId() != null ? req.hospitalId() : "",
+                        req.procedureName() != null ? req.procedureName() : "",
+                        req.specialty() != null ? req.specialty() : "",
+                        req.procedureDate() != null ? req.procedureDate() : ""
+                );
+                kafka.send("medical.booking.created", saved.getId().toString(), medicalEvent);
+                log.info("Medical booking event published for booking {}", saved.getBookingRef());
+            } catch (Exception e) {
+                log.warn("Failed to send medical Kafka event for booking {}: {}", saved.getBookingRef(), e.getMessage());
+            }
         }
 
         log.info("Booking {} created for listing {}", saved.getBookingRef(), req.listingId());
@@ -501,7 +535,11 @@ public class BookingService {
         }
         booking.setStatus(BookingStatus.CONFIRMED);
         Booking confirmed = bookingRepo.save(booking);
-        kafka.send("booking.confirmed", bookingId.toString());
+        try {
+            kafka.send("booking.confirmed", bookingId.toString());
+        } catch (Exception e) {
+            log.warn("Failed to send Kafka event for confirmed booking {}: {}", booking.getBookingRef(), e.getMessage());
+        }
         return toResponse(confirmed);
     }
 
@@ -561,11 +599,19 @@ public class BookingService {
         }
 
         // Release Redis hold
-        String holdKey = "booking:hold:" + booking.getListingId()
-                + ":" + booking.getCheckIn().toLocalDate();
-        redis.delete(holdKey);
+        try {
+            String holdKey = "booking:hold:" + booking.getListingId()
+                    + ":" + booking.getCheckIn().toLocalDate();
+            redis.delete(holdKey);
+        } catch (Exception e) {
+            log.warn("Failed to release Redis hold for cancelled booking {}: {}", booking.getBookingRef(), e.getMessage());
+        }
 
-        kafka.send("booking.cancelled", bookingId.toString());
+        try {
+            kafka.send("booking.cancelled", bookingId.toString());
+        } catch (Exception e) {
+            log.warn("Failed to send Kafka event for cancelled booking {}: {}", booking.getBookingRef(), e.getMessage());
+        }
         log.info("Booking {} cancelled by user {}", booking.getBookingRef(), userId);
         return toResponse(cancelled);
     }
@@ -615,7 +661,11 @@ public class BookingService {
         booking.setStatus(BookingStatus.CHECKED_IN);
         booking.setCheckedInAt(OffsetDateTime.now());
         Booking saved = bookingRepo.save(booking);
-        kafka.send("booking.checked-in", bookingId.toString());
+        try {
+            kafka.send("booking.checked-in", bookingId.toString());
+        } catch (Exception e) {
+            log.warn("Failed to send Kafka event for checked-in booking {}: {}", booking.getBookingRef(), e.getMessage());
+        }
         log.info("Booking {} checked in by host {}", booking.getBookingRef(), hostId);
         return toResponse(saved);
     }
@@ -632,8 +682,43 @@ public class BookingService {
         booking.setStatus(BookingStatus.COMPLETED);
         booking.setCompletedAt(OffsetDateTime.now());
         Booking saved = bookingRepo.save(booking);
-        kafka.send("booking.completed", bookingId.toString());
+        try {
+            kafka.send("booking.completed", bookingId.toString());
+        } catch (Exception e) {
+            log.warn("Failed to send Kafka event for completed booking {}: {}", booking.getBookingRef(), e.getMessage());
+        }
         log.info("Booking {} completed by host {}", booking.getBookingRef(), hostId);
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public BookingResponse refundDeposit(UUID bookingId, UUID hostId, String refundType,
+                                          Long deductionPaise, String deductionReason) {
+        Booking booking = getBookingById(bookingId);
+        if (!booking.getHostId().equals(hostId)) {
+            throw new IllegalArgumentException("Not authorized");
+        }
+        if (booking.getSecurityDepositPaise() == null || booking.getSecurityDepositPaise() <= 0) {
+            throw new IllegalStateException("No deposit to refund");
+        }
+        if ("REFUNDED".equals(booking.getSecurityDepositStatus())) {
+            throw new IllegalStateException("Deposit already refunded");
+        }
+
+        long depositAmount = booking.getSecurityDepositPaise();
+        long refundAmount;
+        if ("PARTIAL".equals(refundType) && deductionPaise != null && deductionPaise > 0) {
+            refundAmount = Math.max(0, depositAmount - deductionPaise);
+            booking.setSecurityDepositStatus("PARTIAL_REFUND");
+        } else {
+            refundAmount = depositAmount;
+            booking.setSecurityDepositStatus("REFUNDED");
+        }
+
+        Booking saved = bookingRepo.save(booking);
+        log.info("Deposit refund for booking {}: {} of {} (deduction: {} - {})",
+                booking.getBookingRef(), refundAmount, depositAmount,
+                deductionPaise != null ? deductionPaise : 0, deductionReason != null ? deductionReason : "none");
         return toResponse(saved);
     }
 
@@ -814,7 +899,9 @@ public class BookingService {
                 // Inclusions
                 b.getInclusionsTotalPaise(), inclusions,
                 // Room selections + guests
-                roomSelections, guests
+                roomSelections, guests,
+                // Pricing unit
+                b.getPricingUnit()
         );
     }
 
@@ -861,6 +948,104 @@ public class BookingService {
 
     private static Specification<Booking> hasHostId(UUID hostId) {
         return (root, query, cb) -> cb.equal(root.get("hostId"), hostId);
+    }
+
+    // ── Admin: search all bookings (no mandatory hostId) ────────────────────
+
+    public Page<BookingResponse> searchAllBookings(
+            String status, UUID hostId, UUID guestId, UUID listingId,
+            LocalDate dateFrom, LocalDate dateTo, String search,
+            String sortBy, String sortDir, int page, int size) {
+
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        String sortField = switch (sortBy) {
+            case "checkIn" -> "checkIn";
+            case "amount" -> "totalAmountPaise";
+            default -> "createdAt";
+        };
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
+
+        Specification<Booking> spec = Specification.where(null);
+
+        if (hostId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("hostId"), hostId));
+        }
+        if (guestId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("guestId"), guestId));
+        }
+        if (status != null && !status.isBlank()) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), BookingStatus.valueOf(status)));
+        }
+        if (listingId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("listingId"), listingId));
+        }
+        if (dateFrom != null) {
+            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("checkIn"), dateFrom.atStartOfDay()));
+        }
+        if (dateTo != null) {
+            spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("checkIn"), dateTo.plusDays(1).atStartOfDay()));
+        }
+        if (search != null && !search.isBlank()) {
+            String q = "%" + search.toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("guestFirstName")), q),
+                    cb.like(cb.lower(root.get("guestLastName")), q),
+                    cb.like(cb.lower(root.get("bookingRef")), q),
+                    cb.like(cb.lower(root.get("listingTitle")), q)
+            ));
+        }
+
+        return bookingRepo.findAll(spec, pageable).map(this::toResponse);
+    }
+
+    // ── Admin: bookings by host/guest ────────────────────────────────────────
+
+    public List<BookingResponse> getBookingsByHostForAdmin(UUID hostId) {
+        return bookingRepo.findByHostId(hostId).stream().map(this::toResponse).toList();
+    }
+
+    public List<BookingResponse> getBookingsByGuestForAdmin(UUID guestId) {
+        return bookingRepo.findByGuestId(guestId).stream().map(this::toResponse).toList();
+    }
+
+    // ── Admin: cancel booking (bypasses ownership check) ─────────────────────
+
+    @Transactional
+    public BookingResponse adminCancelBooking(UUID bookingId, String reason) {
+        Booking booking = getBookingById(bookingId);
+        if (booking.getStatus() == BookingStatus.CANCELLED
+                || booking.getStatus() == BookingStatus.COMPLETED) {
+            throw new IllegalStateException("Booking cannot be cancelled in status: " + booking.getStatus());
+        }
+
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.setCancellationReason("Admin: " + (reason != null ? reason : "Cancelled by admin"));
+        booking.setCancelledAt(OffsetDateTime.now());
+        Booking cancelled = bookingRepo.save(booking);
+
+        try {
+            listingClient.unblockDates(booking.getListingId(),
+                    booking.getCheckIn().toLocalDate(), booking.getCheckOut().toLocalDate());
+        } catch (Exception e) {
+            log.warn("Failed to unblock dates for admin-cancelled booking {}: {}", booking.getBookingRef(), e.getMessage());
+        }
+
+        try {
+            String holdKey = "booking:hold:" + booking.getListingId()
+                    + ":" + booking.getCheckIn().toLocalDate();
+            redis.delete(holdKey);
+        } catch (Exception e) {
+            log.warn("Failed to release Redis hold for admin-cancelled booking {}: {}", booking.getBookingRef(), e.getMessage());
+        }
+
+        try {
+            kafka.send("booking.cancelled", bookingId.toString());
+        } catch (Exception e) {
+            log.warn("Failed to send Kafka event for admin-cancelled booking {}: {}", booking.getBookingRef(), e.getMessage());
+        }
+
+        log.info("Admin cancelled booking {} (ref: {})", bookingId, booking.getBookingRef());
+        return toResponse(cancelled);
     }
 
     // ── Host calendar ───────────────────────────────────────────────────────
