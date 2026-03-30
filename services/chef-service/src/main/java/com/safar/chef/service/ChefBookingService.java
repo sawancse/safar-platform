@@ -1,0 +1,258 @@
+package com.safar.chef.service;
+
+import com.safar.chef.dto.CreateChefBookingRequest;
+import com.safar.chef.entity.ChefBooking;
+import com.safar.chef.entity.ChefMenu;
+import com.safar.chef.entity.ChefProfile;
+import com.safar.chef.entity.enums.ChefBookingStatus;
+import com.safar.chef.entity.enums.MealType;
+import com.safar.chef.entity.enums.ServiceType;
+import com.safar.chef.entity.enums.VerificationStatus;
+import com.safar.chef.repository.ChefBookingRepository;
+import com.safar.chef.repository.ChefMenuRepository;
+import com.safar.chef.repository.ChefProfileRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.security.SecureRandom;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class ChefBookingService {
+
+    private final ChefBookingRepository bookingRepo;
+    private final ChefProfileRepository chefProfileRepo;
+    private final ChefMenuRepository menuRepo;
+    private final KafkaTemplate<String, String> kafka;
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+    private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+    private String generateBookingRef() {
+        StringBuilder sb = new StringBuilder("SC-");
+        for (int i = 0; i < 8; i++) {
+            sb.append(ALPHANUMERIC.charAt(RANDOM.nextInt(ALPHANUMERIC.length())));
+        }
+        return sb.toString();
+    }
+
+    @Transactional
+    public ChefBooking createBooking(UUID customerId, CreateChefBookingRequest req) {
+        ChefProfile chef = chefProfileRepo.findById(req.chefId())
+                .orElseThrow(() -> new IllegalArgumentException("Chef not found"));
+
+        if (!chef.getAvailable()) {
+            throw new IllegalArgumentException("Chef is currently not available");
+        }
+        if (chef.getVerificationStatus() != VerificationStatus.VERIFIED) {
+            throw new IllegalArgumentException("Chef is not verified yet");
+        }
+
+        int guests = req.guestsCount() != null ? req.guestsCount() : 1;
+        int meals = req.numberOfMeals() != null ? req.numberOfMeals() : 1;
+
+        // Calculate total: use menu price if menuId provided, otherwise chef's daily rate
+        long totalAmountPaise;
+        String menuName = null;
+        if (req.menuId() != null) {
+            ChefMenu menu = menuRepo.findById(req.menuId())
+                    .orElseThrow(() -> new IllegalArgumentException("Menu not found"));
+            totalAmountPaise = menu.getPricePerPlatePaise() * guests * meals;
+            menuName = menu.getName();
+        } else {
+            if (chef.getDailyRatePaise() == null) {
+                throw new IllegalArgumentException("Chef has no daily rate configured");
+            }
+            totalAmountPaise = chef.getDailyRatePaise() * guests * meals;
+        }
+
+        long platformFeePaise = totalAmountPaise * 15 / 100;
+        long chefEarningsPaise = totalAmountPaise - platformFeePaise;
+
+        ChefBooking booking = ChefBooking.builder()
+                .bookingRef(generateBookingRef())
+                .chefId(chef.getId())
+                .customerId(customerId)
+                .chefName(chef.getName())
+                .customerName(req.customerName())
+                .serviceType(req.serviceType() != null ? ServiceType.valueOf(req.serviceType()) : ServiceType.DAILY)
+                .mealType(req.mealType() != null ? MealType.valueOf(req.mealType()) : null)
+                .serviceDate(req.serviceDate())
+                .serviceTime(req.serviceTime())
+                .guestsCount(guests)
+                .numberOfMeals(meals)
+                .menuId(req.menuId())
+                .menuName(menuName)
+                .specialRequests(req.specialRequests())
+                .address(req.address())
+                .city(req.city())
+                .locality(req.locality())
+                .pincode(req.pincode())
+                .totalAmountPaise(totalAmountPaise)
+                .platformFeePaise(platformFeePaise)
+                .chefEarningsPaise(chefEarningsPaise)
+                .status(ChefBookingStatus.PENDING)
+                .build();
+
+        ChefBooking saved = bookingRepo.save(booking);
+        log.info("Chef booking created: {} ref={} chef={} customer={}", saved.getId(), saved.getBookingRef(), chef.getId(), customerId);
+
+        try {
+            kafka.send("chef.booking.created", saved.getId().toString(),
+                    buildEventJson(saved, chef));
+        } catch (Exception e) {
+            log.warn("Failed to send chef.booking.created Kafka event: {}", e.getMessage());
+        }
+
+        return saved;
+    }
+
+    @Transactional
+    public ChefBooking confirmBooking(UUID chefId, UUID bookingId) {
+        ChefBooking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+
+        ChefProfile chef = chefProfileRepo.findByUserId(chefId)
+                .orElseThrow(() -> new IllegalArgumentException("Chef profile not found"));
+
+        if (!booking.getChefId().equals(chef.getId())) {
+            throw new IllegalArgumentException("Not authorized to confirm this booking");
+        }
+        if (booking.getStatus() != ChefBookingStatus.PENDING) {
+            throw new IllegalArgumentException("Booking is not in PENDING status");
+        }
+
+        booking.setStatus(ChefBookingStatus.CONFIRMED);
+        ChefBooking saved = bookingRepo.save(booking);
+        log.info("Chef booking confirmed: {}", bookingId);
+        try { kafka.send("chef.booking.confirmed", saved.getId().toString(), buildEventJson(saved, chef)); }
+        catch (Exception e) { log.warn("Kafka chef.booking.confirmed failed: {}", e.getMessage()); }
+        return saved;
+    }
+
+    @Transactional
+    public ChefBooking cancelBooking(UUID userId, UUID bookingId, String reason) {
+        ChefBooking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+
+        // Either the customer or the chef (by userId) can cancel
+        ChefProfile chefProfile = chefProfileRepo.findByUserId(userId).orElse(null);
+        boolean isChef = chefProfile != null && booking.getChefId().equals(chefProfile.getId());
+        boolean isCustomer = booking.getCustomerId().equals(userId);
+
+        if (!isChef && !isCustomer) {
+            throw new IllegalArgumentException("Not authorized to cancel this booking");
+        }
+        if (booking.getStatus() == ChefBookingStatus.CANCELLED || booking.getStatus() == ChefBookingStatus.COMPLETED) {
+            throw new IllegalArgumentException("Booking cannot be cancelled in current status");
+        }
+
+        booking.setStatus(ChefBookingStatus.CANCELLED);
+        booking.setCancellationReason(reason);
+        booking.setCancelledAt(OffsetDateTime.now());
+        ChefBooking saved = bookingRepo.save(booking);
+        log.info("Chef booking cancelled: {} by userId={}", bookingId, userId);
+        try { kafka.send("chef.booking.cancelled", saved.getId().toString(), buildEventJson(saved, null)); }
+        catch (Exception e) { log.warn("Kafka chef.booking.cancelled failed: {}", e.getMessage()); }
+        return saved;
+    }
+
+    @Transactional
+    public ChefBooking completeBooking(UUID chefId, UUID bookingId) {
+        ChefBooking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+
+        ChefProfile chef = chefProfileRepo.findByUserId(chefId)
+                .orElseThrow(() -> new IllegalArgumentException("Chef profile not found"));
+
+        if (!booking.getChefId().equals(chef.getId())) {
+            throw new IllegalArgumentException("Not authorized to complete this booking");
+        }
+        if (booking.getStatus() != ChefBookingStatus.CONFIRMED && booking.getStatus() != ChefBookingStatus.IN_PROGRESS) {
+            throw new IllegalArgumentException("Booking must be CONFIRMED or IN_PROGRESS to complete");
+        }
+
+        booking.setStatus(ChefBookingStatus.COMPLETED);
+        booking.setCompletedAt(OffsetDateTime.now());
+
+        // Update chef total bookings
+        chef.setTotalBookings(chef.getTotalBookings() + 1);
+        chefProfileRepo.save(chef);
+
+        ChefBooking saved = bookingRepo.save(booking);
+        log.info("Chef booking completed: {}", bookingId);
+        try { kafka.send("chef.booking.completed", saved.getId().toString(), buildEventJson(saved, chef)); }
+        catch (Exception e) { log.warn("Kafka chef.booking.completed failed: {}", e.getMessage()); }
+        return saved;
+    }
+
+    @Transactional
+    public ChefBooking rateBooking(UUID customerId, UUID bookingId, int rating, String comment) {
+        ChefBooking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+
+        if (!booking.getCustomerId().equals(customerId)) {
+            throw new IllegalArgumentException("Not authorized to rate this booking");
+        }
+        if (booking.getStatus() != ChefBookingStatus.COMPLETED) {
+            throw new IllegalArgumentException("Can only rate completed bookings");
+        }
+        if (booking.getRatingGiven() != null) {
+            throw new IllegalArgumentException("Booking already rated");
+        }
+
+        booking.setRatingGiven(rating);
+        booking.setReviewComment(comment);
+
+        // Update chef's running average rating
+        ChefProfile chef = chefProfileRepo.findById(booking.getChefId())
+                .orElseThrow(() -> new IllegalArgumentException("Chef not found"));
+        double currentTotal = chef.getRating() * chef.getReviewCount();
+        int newCount = chef.getReviewCount() + 1;
+        double newRating = (currentTotal + rating) / newCount;
+        chef.setRating(Math.round(newRating * 10.0) / 10.0);
+        chef.setReviewCount(newCount);
+        chefProfileRepo.save(chef);
+
+        log.info("Chef booking rated: {} rating={} chef={}", bookingId, rating, booking.getChefId());
+        return bookingRepo.save(booking);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChefBooking> getMyBookings(UUID customerId) {
+        return bookingRepo.findByCustomerId(customerId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChefBooking> getChefBookings(UUID chefId) {
+        ChefProfile chef = chefProfileRepo.findByUserId(chefId)
+                .orElseThrow(() -> new IllegalArgumentException("Chef profile not found"));
+        return bookingRepo.findByChefId(chef.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public ChefBooking getBooking(UUID bookingId) {
+        return bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+    }
+
+    private String buildEventJson(ChefBooking b, ChefProfile chef) {
+        return String.format(
+                "{\"bookingId\":\"%s\",\"bookingRef\":\"%s\",\"chefId\":\"%s\",\"customerId\":\"%s\","
+                + "\"chefName\":\"%s\",\"customerName\":\"%s\",\"serviceDate\":\"%s\",\"mealType\":\"%s\","
+                + "\"status\":\"%s\",\"totalAmountPaise\":%d,\"city\":\"%s\"}",
+                b.getId(), b.getBookingRef(), b.getChefId(), b.getCustomerId(),
+                b.getChefName() != null ? b.getChefName() : (chef != null ? chef.getName() : ""),
+                b.getCustomerName() != null ? b.getCustomerName() : "",
+                b.getServiceDate(), b.getMealType() != null ? b.getMealType() : "",
+                b.getStatus(), b.getTotalAmountPaise() != null ? b.getTotalAmountPaise() : 0,
+                b.getCity() != null ? b.getCity() : "");
+    }
+}
