@@ -26,18 +26,7 @@ spring:
       httpclient:
         connect-timeout: 5000
         response-timeout: 15s
-      # Global CORS — one place for all services
-      globalcors:
-        corsConfigurations:
-          '[/**]':
-            allowedOrigins:
-              - "http://localhost:3000"   # Next.js web
-              - "http://localhost:3001"   # Admin dashboard
-              - "http://localhost:19006"  # Expo dev server
-            allowedMethods: [ GET, POST, PUT, DELETE, OPTIONS ]
-            allowedHeaders: "*"
-            allowCredentials: true
-            maxAge: 3600
+      # CORS handled by CorsConfig.java bean (highest precedence)
 
       routes:
         # ── OTP send: rate-limited to 3 req/hour per IP ──────────────────────
@@ -99,6 +88,12 @@ spring:
           uri: http://${PAYMENT_SERVICE_HOST:localhost}:8086
           predicates:
             - Path=/api/v1/payments/**
+
+        # ── Donations (Aashray) ───────────────────────────────────────────────
+        - id: donation-service
+          uri: http://${PAYMENT_SERVICE_HOST:localhost}:8086
+          predicates:
+            - Path=/api/v1/donations/**
 
         # ── Media uploads ─────────────────────────────────────────────────────
         - id: media-service
@@ -319,6 +314,89 @@ spring:
           uri: http://${PAYMENT_SERVICE_HOST:localhost}:8086
           predicates:
             - Path=/api/v1/admin/payouts/**,/api/v1/admin/settlements/**,/api/v1/admin/reconciliation/**,/api/v1/admin/commission/**
+
+        # ── Admin: bookings & guests (booking-service) ───────────────────────
+        - id: admin-booking-service
+          uri: http://${BOOKING_SERVICE_HOST:localhost}:8095
+          predicates:
+            - Path=/api/v1/admin/bookings/**,/api/v1/admin/guests/**
+
+        # ── Referral System (user-service) ─────────────────────────────────────
+        - id: referrals
+          uri: http://${USER_SERVICE_HOST:localhost}:8092
+          predicates:
+            - Path=/api/v1/referrals/**
+
+        # ── Loyalty Tiers (user-service) ──────────────────────────────────────
+        - id: loyalty
+          uri: http://${USER_SERVICE_HOST:localhost}:8092
+          predicates:
+            - Path=/api/v1/loyalty/**
+
+        # ── Safar Cooks (chef-service) ──────────────────────────────────────
+        - id: chef-profiles
+          uri: http://${CHEF_SERVICE_HOST:localhost}:8093
+          predicates:
+            - Path=/api/v1/chefs/**
+
+        - id: chef-bookings
+          uri: http://${CHEF_SERVICE_HOST:localhost}:8093
+          predicates:
+            - Path=/api/v1/chef-bookings/**
+
+        - id: chef-subscriptions
+          uri: http://${CHEF_SERVICE_HOST:localhost}:8093
+          predicates:
+            - Path=/api/v1/chef-subscriptions/**
+
+        - id: chef-events
+          uri: http://${CHEF_SERVICE_HOST:localhost}:8093
+          predicates:
+            - Path=/api/v1/chef-events/**
+
+        # ── Sale Properties (buy/sell marketplace) ────────────────────────────
+        - id: sale-properties
+          uri: http://${LISTING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/v1/sale-properties/**
+
+        - id: property-inquiries
+          uri: http://${LISTING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/v1/inquiries/**
+
+        - id: site-visits
+          uri: http://${LISTING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/v1/site-visits/**
+
+        - id: buyer-profile
+          uri: http://${LISTING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/v1/buyer-profile/**
+
+        - id: locality-trends
+          uri: http://${LISTING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/v1/locality-trends/**
+
+        # ── Sale property search (search-service) ───────────────────────────
+        - id: sale-property-search
+          uri: http://${SEARCH_SERVICE_HOST:localhost}:8084
+          predicates:
+            - Path=/api/v1/search/sale-properties/**
+
+        # ── Builder Projects (listing-service) ──────────────────────────────
+        - id: builder-projects
+          uri: http://${LISTING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/v1/builder-projects/**
+
+        # ── Builder project search (search-service) ─────────────────────────
+        - id: builder-project-search
+          uri: http://${SEARCH_SERVICE_HOST:localhost}:8084
+          predicates:
+            - Path=/api/v1/search/builder-projects/**
 
         # ── Admin: listing verification & catch-all (listing-service) ────────
         - id: admin-listing-service

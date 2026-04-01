@@ -23,12 +23,17 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
+                .cors(AbstractHttpConfigurer::disable)
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api/v1/payments/webhook/**").permitAll()
+                        .requestMatchers("/api/v1/payments/tenancy/webhook/**").permitAll()
                         .requestMatchers("/api/v1/payments/fx/currencies").permitAll()
+                        .requestMatchers("POST", "/api/v1/donations").permitAll()
+                        .requestMatchers("POST", "/api/v1/donations/verify").permitAll()
+                        .requestMatchers("GET", "/api/v1/donations/stats").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(e -> e

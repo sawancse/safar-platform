@@ -42,6 +42,11 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         String path = request.getPath().value();
         HttpMethod method = request.getMethod();
 
+        // Allow CORS preflight requests through without auth
+        if (HttpMethod.OPTIONS.equals(method)) {
+            return chain.filter(exchange);
+        }
+
         if (isPublic(path, method)) {
             return chain.filter(exchange);
         }
@@ -81,8 +86,15 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
                 && !path.contains("/investment-signal")) return true;
         // All search endpoints are public (no login required to search)
         if (path.startsWith("/api/v1/search")) return true;
+        // Agreement view/download — public so tenant can share with family
+        if (HttpMethod.GET.equals(method) && path.matches(".*/agreement/(view|pdf|pdf/inline|text)$")) return true;
         // Razorpay webhook — signed by Razorpay, no user JWT
         if (path.startsWith("/api/v1/payments/webhook")) return true;
+        if (path.startsWith("/api/v1/payments/tenancy/webhook")) return true;
+        // Donations — create and verify are public (anonymous donations allowed), stats are public GET
+        if (path.equals("/api/v1/donations") && HttpMethod.POST.equals(method)) return true;
+        if (path.equals("/api/v1/donations/verify") && HttpMethod.POST.equals(method)) return true;
+        if (path.equals("/api/v1/donations/stats") && HttpMethod.GET.equals(method)) return true;
         // Public listing reviews (GET only)
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/reviews/listing")) return true;
         // Medical tourism, experiences, aashray — public read access
@@ -96,6 +108,20 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/users/avatars")) return true;
         // Public host profiles — public read
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/users/hosts/")) return true;
+        // Sale properties — public read (browse, detail, similar)
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/sale-properties")
+                && !path.contains("/seller") && !path.contains("/admin")) return true;
+        // Locality price trends — public
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/locality-trends")) return true;
+        // Builder projects — public read (browse, detail, unit types, construction updates)
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/builder-projects")
+                && !path.contains("/my-projects") && !path.contains("/admin")) return true;
+        // Safar Cooks — public browse and chef profiles (exclude admin)
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/chefs")
+                && !path.contains("/admin")) return true;
+        // Chef event inquiry — allow guests to request a quote without login
+        if (HttpMethod.POST.equals(method) && path.equals("/api/v1/chef-events")) return true;
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/chef-events/")) return true;
         return false;
     }
 
