@@ -217,6 +217,63 @@ public class ReviewService {
     }
 
     // ────────────────────────────────────────────────────────────
+    // Experience Reviews
+    // ────────────────────────────────────────────────────────────
+
+    @Transactional
+    public ReviewResponse createExperienceReview(UUID guestId, com.safar.review.dto.CreateExperienceReviewRequest req) {
+        if (reviewRepo.existsByBookingId(req.experienceBookingId())) {
+            throw new IllegalStateException("A review already exists for this experience booking");
+        }
+
+        String photoUrls = req.guestPhotoUrls() != null && !req.guestPhotoUrls().isEmpty()
+                ? String.join(",", req.guestPhotoUrls()) : null;
+
+        Review review = Review.builder()
+                .bookingId(req.experienceBookingId())
+                .targetType("EXPERIENCE")
+                .experienceId(req.experienceId())
+                .hostId(req.hostId())
+                .guestId(guestId)
+                .rating(req.rating())
+                .comment(req.comment())
+                .guestPhotoUrls(photoUrls)
+                .ratingValue(req.ratingValue())
+                .ratingCommunication(req.ratingCommunication())
+                .ratingAccuracy(req.ratingAccuracy())
+                .reviewDeadline(OffsetDateTime.now().plusDays(14))
+                .guestReviewVisible(true)
+                .hostReviewVisible(false)
+                .build();
+
+        review = reviewRepo.save(review);
+
+        String event = String.format(
+                "{\"reviewId\":\"%s\",\"experienceId\":\"%s\",\"targetType\":\"EXPERIENCE\",\"rating\":%d}",
+                review.getId(), req.experienceId(), req.rating());
+        kafka.send("review.created", review.getId().toString(), event);
+        log.info("Experience review {} created for experience {}", review.getId(), req.experienceId());
+
+        return ReviewResponse.from(review);
+    }
+
+    public Page<ReviewResponse> getReviewsForExperience(UUID experienceId, Short ratingFilter, Pageable pageable) {
+        Page<Review> reviews = ratingFilter != null
+                ? reviewRepo.findByExperienceIdAndRatingAndGuestReviewVisibleTrue(experienceId, ratingFilter, pageable)
+                : reviewRepo.findByExperienceIdAndGuestReviewVisibleTrue(experienceId, pageable);
+        return reviews.map(ReviewResponse::from);
+    }
+
+    public ReviewStatsResponse getExperienceReviewStats(UUID experienceId) {
+        long count = reviewRepo.countByExperienceIdAndGuestReviewVisibleTrue(experienceId);
+        if (count == 0) {
+            return new ReviewStatsResponse(experienceId, 0, 0.0);
+        }
+        double avg = Math.round(reviewRepo.avgRatingByExperienceId(experienceId) * 10) / 10.0;
+        return new ReviewStatsResponse(experienceId, count, avg);
+    }
+
+    // ────────────────────────────────────────────────────────────
     // Feature 5: Double-Blind Reviews (Airbnb model)
     // ────────────────────────────────────────────────────────────
 

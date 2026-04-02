@@ -17,4 +17,6 @@ public interface ExperienceRepository extends JpaRepository<Experience, UUID> {
     Page<Experience> findByCategoryAndStatus(ExperienceCategory category, ExperienceStatus status, Pageable pageable);
     Page<Experience> findByStatus(ExperienceStatus status, Pageable pageable);
     List<Experience> findByHostId(UUID hostId);
+    long countByStatus(ExperienceStatus status);
+    List<Experience> findAllByStatus(ExperienceStatus status);
 }

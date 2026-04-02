@@ -74,4 +74,12 @@ public interface ReviewRepository extends JpaRepository<Review, UUID> {
 
     @Query("SELECT COALESCE(AVG(r.ratingFreeWifi), 0) FROM Review r WHERE r.listingId = :listingId AND r.ratingFreeWifi IS NOT NULL AND r.guestReviewVisible = true")
     double avgFreeWifiRatingByListingId(UUID listingId);
+
+    // ── Experience reviews ──
+    Page<Review> findByExperienceIdAndGuestReviewVisibleTrue(UUID experienceId, Pageable pageable);
+    Page<Review> findByExperienceIdAndRatingAndGuestReviewVisibleTrue(UUID experienceId, Short rating, Pageable pageable);
+    long countByExperienceIdAndGuestReviewVisibleTrue(UUID experienceId);
+
+    @Query("SELECT COALESCE(AVG(r.rating), 0) FROM Review r WHERE r.experienceId = :experienceId AND r.guestReviewVisible = true")
+    double avgRatingByExperienceId(UUID experienceId);
 }

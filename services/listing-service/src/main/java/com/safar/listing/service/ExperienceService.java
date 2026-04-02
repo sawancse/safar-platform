@@ -1,10 +1,7 @@
 package com.safar.listing.service;
 
 import com.safar.listing.client.UserNameClient;
-import com.safar.listing.dto.ExperienceBookingRequest;
-import com.safar.listing.dto.ExperienceRequest;
-import com.safar.listing.dto.ExperienceResponse;
-import com.safar.listing.dto.SessionRequest;
+import com.safar.listing.dto.*;
 import com.safar.listing.entity.Experience;
 import com.safar.listing.entity.ExperienceBooking;
 import com.safar.listing.entity.ExperienceSession;
@@ -24,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.security.SecureRandom;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -56,6 +55,17 @@ public class ExperienceService {
                 .pricePaise(req.pricePaise())
                 .languagesSpoken(req.languagesSpoken() != null ? req.languagesSpoken() : "en")
                 .mediaUrls(req.mediaUrls() != null ? req.mediaUrls() : "")
+                .whatsIncluded(req.whatsIncluded())
+                .whatsNotIncluded(req.whatsNotIncluded())
+                .itinerary(req.itinerary())
+                .meetingPoint(req.meetingPoint())
+                .meetingPointLat(req.meetingPointLat())
+                .meetingPointLng(req.meetingPointLng())
+                .accessibility(req.accessibility())
+                .cancellationPolicy(req.cancellationPolicy() != null ? req.cancellationPolicy() : "FLEXIBLE")
+                .minAge(req.minAge())
+                .isPrivate(req.isPrivate() != null ? req.isPrivate() : false)
+                .groupDiscountPct(req.groupDiscountPct())
                 .status(ExperienceStatus.DRAFT)
                 .reviewCount(0)
                 .build();
@@ -88,7 +98,13 @@ public class ExperienceService {
         }
 
         experience.setStatus(newStatus);
+        experience.setUpdatedAt(OffsetDateTime.now());
         Experience saved = experienceRepository.save(experience);
+
+        if (newStatus == ExperienceStatus.ACTIVE) {
+            publishEvent("experience.activated", saved);
+        }
+
         log.info("Experience {} status changed {} → {} by host {}", experienceId, current, newStatus, hostId);
         return toResponse(saved, userNameClient.getUserName(hostId));
     }
@@ -112,6 +128,18 @@ public class ExperienceService {
         experience.setPricePaise(req.pricePaise());
         if (req.languagesSpoken() != null) experience.setLanguagesSpoken(req.languagesSpoken());
         if (req.mediaUrls() != null) experience.setMediaUrls(req.mediaUrls());
+        experience.setWhatsIncluded(req.whatsIncluded());
+        experience.setWhatsNotIncluded(req.whatsNotIncluded());
+        experience.setItinerary(req.itinerary());
+        experience.setMeetingPoint(req.meetingPoint());
+        experience.setMeetingPointLat(req.meetingPointLat());
+        experience.setMeetingPointLng(req.meetingPointLng());
+        experience.setAccessibility(req.accessibility());
+        if (req.cancellationPolicy() != null) experience.setCancellationPolicy(req.cancellationPolicy());
+        experience.setMinAge(req.minAge());
+        if (req.isPrivate() != null) experience.setIsPrivate(req.isPrivate());
+        experience.setGroupDiscountPct(req.groupDiscountPct());
+        experience.setUpdatedAt(OffsetDateTime.now());
 
         Experience saved = experienceRepository.save(experience);
         log.info("Experience {} updated by host {}", experienceId, hostId);
@@ -166,6 +194,12 @@ public class ExperienceService {
                         "Experience not found: " + session.getExperienceId()));
 
         long totalPaise = experience.getPricePaise() * req.numGuests();
+
+        // Apply group discount if applicable
+        if (experience.getGroupDiscountPct() != null && experience.getGroupDiscountPct() > 0 && req.numGuests() >= 3) {
+            totalPaise = totalPaise * (100 - experience.getGroupDiscountPct()) / 100;
+        }
+
         long platformFee = totalPaise * PLATFORM_COMMISSION_PCT / 100;
         long hostPayout = totalPaise - platformFee;
 
@@ -193,8 +227,8 @@ public class ExperienceService {
         sessionRepository.save(session);
 
         String payload = String.format(
-                "{\"bookingId\":\"%s\",\"experienceId\":\"%s\",\"guestId\":\"%s\",\"ref\":\"%s\",\"totalPaise\":%d}",
-                saved.getId(), experience.getId(), guestId, ref, totalPaise);
+                "{\"bookingId\":\"%s\",\"experienceId\":\"%s\",\"guestId\":\"%s\",\"hostId\":\"%s\",\"ref\":\"%s\",\"totalPaise\":%d}",
+                saved.getId(), experience.getId(), guestId, experience.getHostId(), ref, totalPaise);
         kafkaTemplate.send("experience.booked", saved.getId().toString(), payload);
         log.info("Experience booking {} created: ref={}, totalPaise={}", saved.getId(), ref, totalPaise);
 
@@ -235,10 +269,102 @@ public class ExperienceService {
         return bookingRepository.findByGuestId(guestId);
     }
 
+    public List<ExperienceSession> getSessions(UUID experienceId) {
+        return sessionRepository.findByExperienceIdAndSessionDateGreaterThanEqualAndStatusOrderBySessionDateAscStartTimeAsc(
+                experienceId, LocalDate.now(), SessionStatus.OPEN);
+    }
+
+    // ── Admin methods ──
+
+    public Page<ExperienceResponse> adminList(ExperienceStatus status, Pageable pageable) {
+        Page<Experience> page = status != null
+                ? experienceRepository.findByStatus(status, pageable)
+                : experienceRepository.findAll(pageable);
+        Map<UUID, String> hostNames = resolveHostNames(page.getContent());
+        return page.map(e -> toResponse(e, hostNames.getOrDefault(e.getHostId(), "Host")));
+    }
+
+    @Transactional
+    public ExperienceResponse adminUpdateStatus(UUID experienceId, ExperienceStatus newStatus) {
+        Experience experience = experienceRepository.findById(experienceId)
+                .orElseThrow(() -> new NoSuchElementException("Experience not found: " + experienceId));
+
+        ExperienceStatus old = experience.getStatus();
+        experience.setStatus(newStatus);
+        experience.setUpdatedAt(OffsetDateTime.now());
+        Experience saved = experienceRepository.save(experience);
+
+        if (newStatus == ExperienceStatus.ACTIVE) {
+            publishEvent("experience.activated", saved);
+        } else if (newStatus == ExperienceStatus.REJECTED) {
+            publishEvent("experience.rejected", saved);
+        }
+
+        log.info("Admin changed experience {} status {} → {}", experienceId, old, newStatus);
+        return toResponse(saved, userNameClient.getUserName(saved.getHostId()));
+    }
+
+    public Map<String, Long> adminStats() {
+        Map<String, Long> stats = new LinkedHashMap<>();
+        for (ExperienceStatus s : ExperienceStatus.values()) {
+            stats.put(s.name(), experienceRepository.countByStatus(s));
+        }
+        stats.put("TOTAL", experienceRepository.count());
+        return stats;
+    }
+
+    @Transactional
+    public void reindexAll() {
+        List<Experience> active = experienceRepository.findAllByStatus(ExperienceStatus.ACTIVE);
+        for (Experience e : active) {
+            publishEvent("experience.activated", e);
+        }
+        log.info("Reindex triggered for {} active experiences", active.size());
+    }
+
+    // ── Private helpers ──
+
+    private void publishEvent(String topic, Experience e) {
+        String payload = String.format(
+                "{\"id\":\"%s\",\"hostId\":\"%s\",\"title\":\"%s\",\"description\":\"%s\"," +
+                "\"category\":\"%s\",\"city\":\"%s\",\"locationName\":\"%s\"," +
+                "\"durationHours\":%s,\"maxGuests\":%d,\"pricePaise\":%d," +
+                "\"languagesSpoken\":\"%s\",\"mediaUrls\":\"%s\"," +
+                "\"meetingPointLat\":%s,\"meetingPointLng\":%s," +
+                "\"rating\":%s,\"reviewCount\":%d,\"cancellationPolicy\":\"%s\"," +
+                "\"isPrivate\":%s,\"minAge\":%s}",
+                e.getId(), e.getHostId(),
+                escapeJson(e.getTitle()), escapeJson(e.getDescription()),
+                e.getCategory(), e.getCity(), escapeJson(e.getLocationName() != null ? e.getLocationName() : ""),
+                e.getDurationHours(), e.getMaxGuests(), e.getPricePaise(),
+                escapeJson(e.getLanguagesSpoken()), escapeJson(e.getMediaUrls()),
+                e.getMeetingPointLat() != null ? e.getMeetingPointLat() : "null",
+                e.getMeetingPointLng() != null ? e.getMeetingPointLng() : "null",
+                e.getRating() != null ? e.getRating() : "null",
+                e.getReviewCount() != null ? e.getReviewCount() : 0,
+                e.getCancellationPolicy() != null ? e.getCancellationPolicy() : "FLEXIBLE",
+                e.getIsPrivate() != null ? e.getIsPrivate() : false,
+                e.getMinAge() != null ? e.getMinAge() : "null");
+        kafkaTemplate.send(topic, e.getId().toString(), payload);
+    }
+
+    private String escapeJson(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
+    }
+
     private ExperienceResponse toResponse(Experience e, String hostName) {
         int durationMinutes = e.getDurationHours() != null
                 ? e.getDurationHours().multiply(BigDecimal.valueOf(60)).intValue()
                 : 0;
+
+        List<SessionResponse> sessions = sessionRepository
+                .findByExperienceIdAndSessionDateGreaterThanEqualAndStatusOrderBySessionDateAscStartTimeAsc(
+                        e.getId(), LocalDate.now(), SessionStatus.OPEN)
+                .stream()
+                .map(s -> new SessionResponse(s.getId(), s.getSessionDate(), s.getStartTime(),
+                        s.getEndTime(), s.getAvailableSpots(), s.getBookedSpots(), s.getStatus()))
+                .toList();
 
         return new ExperienceResponse(
                 e.getId(),
@@ -253,10 +379,22 @@ public class ExperienceService {
                 e.getPricePaise(),
                 e.getLanguagesSpoken(),
                 e.getMediaUrls(),
+                e.getWhatsIncluded(),
+                e.getWhatsNotIncluded(),
+                e.getItinerary(),
+                e.getMeetingPoint(),
+                e.getMeetingPointLat(),
+                e.getMeetingPointLng(),
+                e.getAccessibility(),
+                e.getCancellationPolicy(),
+                e.getMinAge(),
+                e.getIsPrivate(),
+                e.getGroupDiscountPct(),
                 e.getStatus(),
                 e.getRating(),
                 e.getReviewCount() != null ? e.getReviewCount() : 0,
                 hostName,
+                sessions,
                 e.getCreatedAt()
         );
     }

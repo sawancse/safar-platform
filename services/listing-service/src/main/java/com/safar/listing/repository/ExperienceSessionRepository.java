@@ -8,4 +8,6 @@ import java.util.UUID;
 
 public interface ExperienceSessionRepository extends JpaRepository<ExperienceSession, UUID> {
     List<ExperienceSession> findByExperienceId(UUID experienceId);
+    List<ExperienceSession> findByExperienceIdAndSessionDateGreaterThanEqualAndStatusOrderBySessionDateAscStartTimeAsc(
+            UUID experienceId, java.time.LocalDate fromDate, com.safar.listing.entity.enums.SessionStatus status);
 }

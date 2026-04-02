@@ -72,6 +72,11 @@ public class ExperienceController {
         return ResponseEntity.ok(experienceService.getHostExperiences(hostId));
     }
 
+    @GetMapping("/api/v1/experiences/{id}/sessions")
+    public ResponseEntity<List<ExperienceSession>> sessions(@PathVariable UUID id) {
+        return ResponseEntity.ok(experienceService.getSessions(id));
+    }
+
     @PostMapping("/api/v1/experiences/{id}/sessions")
     public ResponseEntity<ExperienceSession> addSession(Authentication auth,
                                                          @PathVariable UUID id,
@@ -93,5 +98,34 @@ public class ExperienceController {
     public ResponseEntity<List<ExperienceBooking>> myBookings(Authentication auth) {
         UUID guestId = UUID.fromString(auth.getName());
         return ResponseEntity.ok(experienceService.getMyBookings(guestId));
+    }
+
+    // ── Admin endpoints ──
+
+    @GetMapping("/api/v1/admin/experiences")
+    public ResponseEntity<Page<ExperienceResponse>> adminList(
+            @RequestParam(required = false) String status,
+            @PageableDefault(size = 20) Pageable pageable) {
+        ExperienceStatus s = status != null ? ExperienceStatus.valueOf(status.toUpperCase()) : null;
+        return ResponseEntity.ok(experienceService.adminList(s, pageable));
+    }
+
+    @PatchMapping("/api/v1/admin/experiences/{id}/status")
+    public ResponseEntity<ExperienceResponse> adminUpdateStatus(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> body) {
+        ExperienceStatus newStatus = ExperienceStatus.valueOf(body.get("status").toUpperCase());
+        return ResponseEntity.ok(experienceService.adminUpdateStatus(id, newStatus));
+    }
+
+    @GetMapping("/api/v1/admin/experiences/stats")
+    public ResponseEntity<Map<String, Long>> adminStats() {
+        return ResponseEntity.ok(experienceService.adminStats());
+    }
+
+    @PostMapping("/api/v1/experiences/admin/reindex")
+    public ResponseEntity<String> reindex() {
+        experienceService.reindexAll();
+        return ResponseEntity.ok("Experience reindex triggered");
     }
 }

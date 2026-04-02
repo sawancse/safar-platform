@@ -24,8 +24,15 @@ public class Review {
     @Column(name = "booking_id", unique = true, nullable = false)
     private UUID bookingId;
 
-    @Column(name = "listing_id", nullable = false)
+    @Column(name = "target_type", length = 20)
+    @Builder.Default
+    private String targetType = "LISTING";
+
+    @Column(name = "listing_id")
     private UUID listingId;
+
+    @Column(name = "experience_id")
+    private UUID experienceId;
 
     @Column(name = "guest_id", nullable = false)
     private UUID guestId;

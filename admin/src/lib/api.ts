@@ -290,4 +290,18 @@ export const adminApi = {
   getChefSubscriptions(token: string) {
     return axios.get(`${BASE}/chef-subscriptions/chef`, { headers: authHeaders(token) }).then(r => r.data).catch(() => []);
   },
+
+  // ── Experiences (Admin) ────────────────────────────────────────────────
+  getExperiences(token: string, status?: string) {
+    const qs = status ? `?status=${status}&size=200` : '?size=200';
+    return axios.get(`${BASE}/admin/experiences${qs}`, { headers: authHeaders(token) }).then(r => r.data).catch(() => ({ content: [] }));
+  },
+
+  getExperienceStats(token: string) {
+    return axios.get(`${BASE}/admin/experiences/stats`, { headers: authHeaders(token) }).then(r => r.data).catch(() => ({}));
+  },
+
+  updateExperienceStatus(id: string, status: string, token: string) {
+    return axios.patch(`${BASE}/admin/experiences/${id}/status`, { status }, { headers: authHeaders(token) }).then(r => r.data);
+  },
 };

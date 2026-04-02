@@ -59,6 +59,41 @@ public class Experience {
     @Builder.Default
     private String mediaUrls = "";
 
+    @Column(name = "whats_included", columnDefinition = "TEXT")
+    private String whatsIncluded;
+
+    @Column(name = "whats_not_included", columnDefinition = "TEXT")
+    private String whatsNotIncluded;
+
+    @Column(columnDefinition = "TEXT")
+    private String itinerary;
+
+    @Column(name = "meeting_point", columnDefinition = "TEXT")
+    private String meetingPoint;
+
+    @Column(name = "meeting_point_lat", precision = 9, scale = 6)
+    private BigDecimal meetingPointLat;
+
+    @Column(name = "meeting_point_lng", precision = 9, scale = 6)
+    private BigDecimal meetingPointLng;
+
+    @Column(columnDefinition = "TEXT")
+    private String accessibility;
+
+    @Column(name = "cancellation_policy", length = 20)
+    @Builder.Default
+    private String cancellationPolicy = "FLEXIBLE";
+
+    @Column(name = "min_age")
+    private Integer minAge;
+
+    @Column(name = "is_private")
+    @Builder.Default
+    private Boolean isPrivate = false;
+
+    @Column(name = "group_discount_pct")
+    private Integer groupDiscountPct;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
@@ -74,4 +109,7 @@ public class Experience {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private OffsetDateTime updatedAt;
 }

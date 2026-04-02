@@ -1,9 +1,16 @@
 package com.safar.search.controller;
 
 import com.safar.search.document.ListingDocument;
+import com.safar.search.document.SalePropertyDocument;
+import com.safar.search.dto.SalePropertySearchRequest;
+import com.safar.search.dto.SaleSearchResponse;
 import com.safar.search.dto.SearchHitsResponse;
 import com.safar.search.dto.SearchRequest;
+import com.safar.search.document.ExperienceDocument;
+import com.safar.search.service.BuilderProjectSearchService;
+import com.safar.search.service.ExperienceSearchService;
 import com.safar.search.service.ListingServiceClient;
+import com.safar.search.service.SalePropertySearchService;
 import com.safar.search.service.SearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +19,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -21,7 +29,13 @@ import java.util.UUID;
 public class SearchController {
 
     private final SearchService searchService;
+    private final SalePropertySearchService saleSearchService;
+    private final ExperienceSearchService experienceSearchService;
+    private final BuilderProjectSearchService builderSearchService;
     private final ListingServiceClient listingClient;
+
+    @org.springframework.beans.factory.annotation.Value("${services.listing-service.url}")
+    private String listingServiceUrl;
 
     @org.springframework.beans.factory.annotation.Value("${elasticsearch.index.shards:1}")
     private int shards;
@@ -126,7 +140,7 @@ public class SearchController {
         int pageNum = 0;
         try {
             while (true) {
-                String url = "http://localhost:8083/api/v1/listings?size=100&page=" + pageNum;
+                String url = listingServiceUrl + "/api/v1/listings?size=100&page=" + pageNum;
                 @SuppressWarnings("unchecked")
                 java.util.Map<String, Object> page = rt.getForObject(url, java.util.Map.class);
                 if (page == null) break;
@@ -170,5 +184,117 @@ public class SearchController {
             @RequestParam(required = false, defaultValue = "20") Integer limit,
             @RequestParam(required = false) String type) {
         return ResponseEntity.ok(searchService.getNearby(lat, lng, radiusKm, limit, type));
+    }
+
+    // ── Sale Property Search ─────────────────────────────────────
+
+    @GetMapping("/sale-properties")
+    public ResponseEntity<SaleSearchResponse> searchSaleProperties(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String locality,
+            @RequestParam(required = false) List<String> salePropertyType,
+            @RequestParam(required = false) List<String> transactionType,
+            @RequestParam(required = false) List<String> sellerType,
+            @RequestParam(required = false) Long priceMin,
+            @RequestParam(required = false) Long priceMax,
+            @RequestParam(required = false) List<Integer> bedrooms,
+            @RequestParam(required = false) Integer minArea,
+            @RequestParam(required = false) Integer maxArea,
+            @RequestParam(required = false) String possessionStatus,
+            @RequestParam(required = false) String furnishing,
+            @RequestParam(required = false) List<String> facing,
+            @RequestParam(required = false) Integer minFloor,
+            @RequestParam(required = false) Integer maxFloor,
+            @RequestParam(required = false) Integer maxAge,
+            @RequestParam(required = false) Boolean reraVerified,
+            @RequestParam(required = false) Boolean vastuCompliant,
+            @RequestParam(required = false) Boolean gatedCommunity,
+            @RequestParam(required = false) Boolean petAllowed,
+            @RequestParam(required = false) Boolean cornerProperty,
+            @RequestParam(required = false) Boolean verified,
+            @RequestParam(required = false) List<String> amenities,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng,
+            @RequestParam(required = false) Double radiusKm,
+            @RequestParam(required = false, defaultValue = "relevance") String sort,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "20") Integer size) {
+
+        var req = new SalePropertySearchRequest(query, city, locality, salePropertyType,
+                transactionType, sellerType, priceMin, priceMax, bedrooms,
+                minArea, maxArea, possessionStatus, furnishing, facing,
+                minFloor, maxFloor, maxAge, reraVerified, vastuCompliant,
+                gatedCommunity, petAllowed, cornerProperty, verified, amenities,
+                lat, lng, radiusKm, sort, page, size);
+
+        return ResponseEntity.ok(saleSearchService.search(req));
+    }
+
+    @GetMapping("/sale-properties/autocomplete")
+    public ResponseEntity<List<SalePropertyDocument>> saleAutocomplete(@RequestParam String q) {
+        return ResponseEntity.ok(saleSearchService.autocomplete(q));
+    }
+
+    @GetMapping("/sale-properties/recent")
+    public ResponseEntity<List<SalePropertyDocument>> saleRecent(
+            @RequestParam String city,
+            @RequestParam(required = false, defaultValue = "10") Integer limit) {
+        return ResponseEntity.ok(saleSearchService.getRecentByCity(city, limit));
+    }
+
+    // ── Builder Projects Search ──────────────────────────────
+
+    @GetMapping("/builder-projects")
+    public ResponseEntity<Map<String, Object>> searchBuilderProjects(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String locality,
+            @RequestParam(required = false) String projectStatus,
+            @RequestParam(required = false) Long priceMin,
+            @RequestParam(required = false) Long priceMax,
+            @RequestParam(required = false) List<Integer> bhk,
+            @RequestParam(required = false) Boolean reraVerified,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng,
+            @RequestParam(required = false) Double radiusKm,
+            @RequestParam(required = false, defaultValue = "relevance") String sort,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "20") Integer size) {
+        return ResponseEntity.ok(builderSearchService.search(query, city, locality,
+                projectStatus, priceMin, priceMax, bhk, reraVerified,
+                lat, lng, radiusKm, sort, page, size));
+    }
+
+    // ── Experience Search ──
+
+    @GetMapping("/experiences")
+    public ResponseEntity<Map<String, Object>> searchExperiences(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) List<String> category,
+            @RequestParam(required = false) Long priceMin,
+            @RequestParam(required = false) Long priceMax,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng,
+            @RequestParam(required = false) Double radiusKm,
+            @RequestParam(required = false, defaultValue = "relevance") String sort,
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "20") int size) {
+        return ResponseEntity.ok(experienceSearchService.search(query, city, category,
+                priceMin, priceMax, lat, lng, radiusKm, sort, page, size));
+    }
+
+    @GetMapping("/experiences/autocomplete")
+    public ResponseEntity<List<ExperienceDocument>> experienceAutocomplete(
+            @RequestParam String q) {
+        return ResponseEntity.ok(experienceSearchService.autocomplete(q));
+    }
+
+    @GetMapping("/experiences/trending")
+    public ResponseEntity<List<ExperienceDocument>> experienceTrending(
+            @RequestParam(required = false) String city,
+            @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(experienceSearchService.trending(city, limit));
     }
 }

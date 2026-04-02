@@ -92,6 +92,30 @@ public class ReviewController {
         return reviewService.getMyReviews(guestId);
     }
 
+    // ── Experience Reviews ──
+
+    @PostMapping("/experience")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ReviewResponse createExperienceReview(
+            @Valid @RequestBody com.safar.review.dto.CreateExperienceReviewRequest req,
+            Authentication auth) {
+        UUID guestId = UUID.fromString(auth.getName());
+        return reviewService.createExperienceReview(guestId, req);
+    }
+
+    @GetMapping("/experience/{experienceId}")
+    public Page<ReviewResponse> getReviewsForExperience(
+            @PathVariable UUID experienceId,
+            @RequestParam(required = false) Short rating,
+            @PageableDefault(size = 10, sort = "createdAt") Pageable pageable) {
+        return reviewService.getReviewsForExperience(experienceId, rating, pageable);
+    }
+
+    @GetMapping("/experience/{experienceId}/stats")
+    public ReviewStatsResponse getExperienceReviewStats(@PathVariable UUID experienceId) {
+        return reviewService.getExperienceReviewStats(experienceId);
+    }
+
     /**
      * Host submits their review of the guest (double-blind).
      * Both reviews revealed simultaneously when both submitted or after 14-day deadline.

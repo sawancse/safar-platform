@@ -15,6 +15,7 @@ import {
   AppstoreOutlined,
   FireOutlined,
   HeartOutlined,
+  ExperimentOutlined,
 } from '@ant-design/icons';
 
 const { Header, Sider, Content } = Layout;
@@ -33,6 +34,7 @@ const menuItems = [
   { key: '/room-occupancy', icon: <AppstoreOutlined />,  label: 'Room Occupancy' },
   { key: '/cooks',          icon: <FireOutlined />,       label: 'Safar Cooks' },
   { key: '/donors',         icon: <HeartOutlined />,      label: 'Donors' },
+  { key: '/experiences',    icon: <ExperimentOutlined />, label: 'Experiences' },
 ];
 
 export default function AdminLayout() {

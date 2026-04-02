@@ -17,5 +17,16 @@ public record ExperienceRequest(
         Integer maxGuests,
         @Positive long pricePaise,
         String languagesSpoken,
-        String mediaUrls
+        String mediaUrls,
+        String whatsIncluded,
+        String whatsNotIncluded,
+        String itinerary,
+        String meetingPoint,
+        BigDecimal meetingPointLat,
+        BigDecimal meetingPointLng,
+        String accessibility,
+        String cancellationPolicy,
+        Integer minAge,
+        Boolean isPrivate,
+        Integer groupDiscountPct
 ) {}

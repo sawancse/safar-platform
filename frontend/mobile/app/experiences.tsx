@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { api } from '@/lib/api';
 import { formatPaise } from '@/lib/utils';
 
@@ -33,6 +34,7 @@ interface Experience {
 }
 
 export default function ExperiencesScreen() {
+  const router = useRouter();
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -65,6 +67,7 @@ export default function ExperiencesScreen() {
   function renderItem({ item }: { item: Experience }) {
     const icon = CATEGORY_ICONS[item.category] ?? '🎯';
     return (
+      <TouchableOpacity onPress={() => router.push(`/experience/${item.id}`)} activeOpacity={0.7}>
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardIcon}>{icon}</Text>
@@ -89,6 +92,7 @@ export default function ExperiencesScreen() {
           <Text style={styles.cardPrice}>{formatPaise(item.pricePaise)}</Text>
         </View>
       </View>
+      </TouchableOpacity>
     );
   }
 

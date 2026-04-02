@@ -73,6 +73,16 @@ public class KafkaTopicConfig {
     }
 
     @Bean
+    public NewTopic experienceActivatedTopic() {
+        return new NewTopic("experience.activated", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic experienceRejectedTopic() {
+        return new NewTopic("experience.rejected", 1, (short) 1);
+    }
+
+    @Bean
     public NewTopic notificationHostDemandAlertTopic() {
         return new NewTopic("notification.host.demand_alert", 1, (short) 1);
     }
@@ -85,5 +95,49 @@ public class KafkaTopicConfig {
     @Bean
     public NewTopic channelBookingCancelledTopic() {
         return new NewTopic("channel.booking.cancelled", 1, (short) 1);
+    }
+
+    // --- Sale Property topics ---
+
+    @Bean
+    public NewTopic salePropertyIndexedTopic() {
+        return new NewTopic("sale.property.indexed", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic salePropertyDeletedTopic() {
+        return new NewTopic("sale.property.deleted", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic salePropertyPriceDropTopic() {
+        return new NewTopic("sale.property.price-drop", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic saleVisitScheduledTopic() {
+        return new NewTopic("sale.visit.scheduled", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic saleVisitCancelledTopic() {
+        return new NewTopic("sale.visit.cancelled", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic saleInquiryNewTopic() {
+        return new NewTopic("sale.inquiry.new", 1, (short) 1);
+    }
+
+    // --- Builder topics ---
+
+    @Bean
+    public NewTopic builderProjectIndexedTopic() {
+        return new NewTopic("builder.project.indexed", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic builderConstructionUpdateTopic() {
+        return new NewTopic("builder.construction.update", 1, (short) 1);
     }
 }

@@ -15,6 +15,7 @@ import SalePropertiesPage from './pages/SalePropertiesPage';
 import RoomOccupancyPage from './pages/RoomOccupancyPage';
 import CooksPage from './pages/CooksPage';
 import DonorsPage from './pages/DonorsPage';
+import ExperiencesPage from './pages/ExperiencesPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('admin_token');
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="room-occupancy" element={<RoomOccupancyPage />} />
         <Route path="cooks" element={<CooksPage />} />
         <Route path="donors" element={<DonorsPage />} />
+        <Route path="experiences" element={<ExperiencesPage />} />
       </Route>
     </Routes>
   );
