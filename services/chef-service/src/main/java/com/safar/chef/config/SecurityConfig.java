@@ -30,8 +30,12 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/v1/chefs/admin/**").authenticated()
+                        .requestMatchers("/api/v1/chef-events/pricing/admin/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/chef-events/pricing").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/chefs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/chefs/menus/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/chef-events").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/chef-events/{id}").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(e -> e
