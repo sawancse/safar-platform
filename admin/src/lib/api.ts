@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE = '/api/v1';
+const BASE = (import.meta.env.VITE_API_URL || '') + '/api/v1';
 
 function authHeaders(token: string) {
   return { Authorization: `Bearer ${token}` };
@@ -51,6 +51,16 @@ export const adminApi = {
     }>(`${BASE}/auth/otp/verify`, { phone, otp });
   },
 
+  // Admin impersonation — login as a user for support
+  impersonateUser(targetUserId: string, token: string) {
+    return axios.post<{
+      accessToken: string;
+      refreshToken: string;
+      accessTokenExpiresIn: number;
+      user: { id: string; role: string; name: string; phone?: string; email?: string };
+    }>(`${BASE}/auth/admin/impersonate`, { targetUserId }, { headers: authHeaders(token) });
+  },
+
   // Dashboard analytics
   getAnalytics(token: string) {
     return axios.get<{
@@ -73,8 +83,12 @@ export const adminApi = {
     return axios.get<any[]>(`${BASE}/admin/listings${params}`, { headers: authHeaders(token) });
   },
 
-  verifyListing(id: string, token: string) {
-    return axios.put(`${BASE}/admin/listings/${id}/verify`, {}, { headers: authHeaders(token) });
+  verifyListing(id: string, token: string, skipKycCheck = false) {
+    return axios.put(`${BASE}/admin/listings/${id}/verify?skipKycCheck=${skipKycCheck}`, {}, { headers: authHeaders(token) });
+  },
+
+  getHostKyc(listingId: string, token: string) {
+    return axios.get<any>(`${BASE}/admin/listings/${listingId}/host-kyc`, { headers: authHeaders(token) });
   },
 
   rejectListing(id: string, notes: string, token: string) {
@@ -94,6 +108,10 @@ export const adminApi = {
   },
 
   // Listing media
+  deleteListingMedia(listingId: string, mediaId: string, token: string) {
+    return axios.delete(`${BASE}/listings/${listingId}/media/${mediaId}`, { headers: authHeaders(token) });
+  },
+
   getListingMedia(id: string, token: string) {
     return axios.get<{ id: string; url: string; type: string; isPrimary: boolean }[]>(
       `${BASE}/listings/${id}/media`,
@@ -104,6 +122,15 @@ export const adminApi = {
   // Hosts
   getHosts(token: string) {
     return axios.get<any[]>(`${BASE}/admin/hosts`, { headers: authHeaders(token) });
+  },
+  suspendHost(hostId: string, reason: string, token: string) {
+    return axios.post(`${BASE}/admin/hosts/${hostId}/suspend`, { reason }, { headers: authHeaders(token) });
+  },
+  unsuspendHost(hostId: string, token: string) {
+    return axios.post(`${BASE}/admin/hosts/${hostId}/unsuspend`, {}, { headers: authHeaders(token) });
+  },
+  banHost(hostId: string, reason: string, token: string) {
+    return axios.post(`${BASE}/admin/hosts/${hostId}/ban`, { reason }, { headers: authHeaders(token) });
   },
 
   // KYC Admin
@@ -157,5 +184,110 @@ export const adminApi = {
 
   getCommissionByHost(token: string) {
     return axios.get(`${BASE}/admin/commission/by-host`, { headers: authHeaders(token) }).then(r => r.data).catch(() => []);
+  },
+
+  // ── Admin Bookings ────────────────────────────────────────────────────────
+
+  getBookings(token: string, params: {
+    status?: string; hostId?: string; guestId?: string; listingId?: string;
+    dateFrom?: string; dateTo?: string; search?: string;
+    sortBy?: string; sortDir?: string; page?: number; size?: number;
+  } = {}) {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)); });
+    return axios.get(`${BASE}/admin/bookings?${qs}`, { headers: authHeaders(token) });
+  },
+
+  getBooking(id: string, token: string) {
+    return axios.get(`${BASE}/admin/bookings/${id}`, { headers: authHeaders(token) });
+  },
+
+  getBookingsByHost(hostId: string, token: string) {
+    return axios.get(`${BASE}/admin/bookings/by-host/${hostId}`, { headers: authHeaders(token) });
+  },
+
+  getBookingsByGuest(guestId: string, token: string) {
+    return axios.get(`${BASE}/admin/bookings/by-guest/${guestId}`, { headers: authHeaders(token) });
+  },
+
+  adminCancelBooking(id: string, reason: string, token: string) {
+    return axios.post(`${BASE}/admin/bookings/${id}/cancel?reason=${encodeURIComponent(reason)}`, {}, { headers: authHeaders(token) });
+  },
+
+  getBookingStats(token: string, days = 30) {
+    return axios.get(`${BASE}/admin/bookings/stats?days=${days}`, { headers: authHeaders(token) }).then(r => r.data).catch(() => null);
+  },
+
+  // ── Admin Guests ──────────────────────────────────────────────────────────
+
+  getGuests(token: string) {
+    return axios.get(`${BASE}/admin/guests`, { headers: authHeaders(token) }).then(r => r.data).catch(() => []);
+  },
+
+  // ── Manual Settlement & Payout ────────────────────────────────────────────
+
+  processSettlement(planId: string, token: string) {
+    return axios.post(`${BASE}/admin/settlements/${planId}/process`, {}, { headers: authHeaders(token) });
+  },
+
+  processSettlementByBooking(bookingId: string, token: string) {
+    return axios.post(`${BASE}/admin/settlements/by-booking/${bookingId}/process`, {}, { headers: authHeaders(token) });
+  },
+
+  retryPayout(payoutId: string, token: string) {
+    return axios.post(`${BASE}/admin/payouts/${payoutId}/retry`, {}, { headers: authHeaders(token) });
+  },
+
+  getPayoutsByHost(hostId: string, token: string) {
+    return axios.get(`${BASE}/admin/payouts/by-host/${hostId}`, { headers: authHeaders(token) }).then(r => r.data).catch(() => []);
+  },
+
+  // ── Room Occupancy ─────────────────────────────────────────────────────
+  getRoomTypes(listingId: string, token: string) {
+    return axios.get(`${BASE}/listings/${listingId}/room-types`, { headers: authHeaders(token) });
+  },
+
+  getPgTenancies(params: string, token: string) {
+    return axios.get(`${BASE}/pg-tenancies?${params}`, { headers: authHeaders(token) });
+  },
+
+  // ── Donations (Aashray) ────────────────────────────────────────────────
+  getDonations: (token: string, status?: string) =>
+    axios.get(`${BASE}/donations/admin${status ? '?status=' + status : ''}`, { headers: authHeaders(token) }).then(r => r.data?.content || r.data || []),
+
+  getDonationStats: (token: string) =>
+    axios.get(`${BASE}/donations/stats`, { headers: authHeaders(token) }).then(r => r.data),
+
+  // ── Safar Cooks (Admin) ─────────────────────────────────────────────────
+  getChefs(token: string) {
+    return axios.get(`${BASE}/chefs/admin/all?size=200`, { headers: authHeaders(token) }).then(r => r.data).catch(() => ({ content: [] }));
+  },
+
+  getPendingChefs(token: string) {
+    return axios.get(`${BASE}/chefs/admin/pending?size=200`, { headers: authHeaders(token) }).then(r => r.data).catch(() => ({ content: [] }));
+  },
+
+  verifyChef(chefId: string, token: string) {
+    return axios.post(`${BASE}/chefs/admin/${chefId}/verify`, null, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  rejectChef(chefId: string, reason: string, token: string) {
+    return axios.post(`${BASE}/chefs/admin/${chefId}/reject?reason=${encodeURIComponent(reason)}`, null, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  suspendChef(chefId: string, token: string) {
+    return axios.post(`${BASE}/chefs/admin/${chefId}/suspend`, null, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  getChefBookings(token: string) {
+    return axios.get(`${BASE}/chef-bookings/chef`, { headers: authHeaders(token) }).then(r => r.data).catch(() => []);
+  },
+
+  getChefEvents(token: string) {
+    return axios.get(`${BASE}/chef-events/chef`, { headers: authHeaders(token) }).then(r => r.data).catch(() => []);
+  },
+
+  getChefSubscriptions(token: string) {
+    return axios.get(`${BASE}/chef-subscriptions/chef`, { headers: authHeaders(token) }).then(r => r.data).catch(() => []);
   },
 };

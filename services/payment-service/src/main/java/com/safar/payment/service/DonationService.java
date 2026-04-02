@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -111,8 +112,19 @@ public class DonationService {
         // Update materialized stats
         updateStats(donation);
 
-        // Publish Kafka event for notification service (80G receipt email)
-        kafka.send("donation.captured", donation.getId().toString());
+        // Publish rich Kafka event for notification service (80G receipt email)
+        String donationEvent = String.format(
+            "{\"donationRef\":\"%s\",\"donorName\":\"%s\",\"donorEmail\":\"%s\",\"amountPaise\":%d,\"frequency\":\"%s\",\"receiptNumber\":\"%s\",\"donorPan\":\"%s\",\"dedicatedTo\":\"%s\"}",
+            donation.getDonationRef(),
+            donation.getDonorName() != null ? donation.getDonorName().replace("\"", "\\\"") : "",
+            donation.getDonorEmail() != null ? donation.getDonorEmail() : "",
+            donation.getAmountPaise(),
+            donation.getFrequency().name(),
+            donation.getReceiptNumber() != null ? donation.getReceiptNumber() : "",
+            donation.getDonorPan() != null ? donation.getDonorPan() : "",
+            donation.getDedicatedTo() != null ? donation.getDedicatedTo().replace("\"", "\\\"") : ""
+        );
+        kafka.send("donation.captured", donationEvent);
         log.info("Donation captured: {} — ₹{} from {}",
                 donation.getDonationRef(),
                 donation.getAmountPaise() / 100,
@@ -176,6 +188,39 @@ public class DonationService {
         return donationRepo.findByDonationRef(donationRef)
                 .map(this::toResponse)
                 .orElseThrow(() -> new IllegalArgumentException("Donation not found: " + donationRef));
+    }
+
+    public DonorLeaderboardResponse getLeaderboard() {
+        // Top donors (anonymized, opt-in would be Phase 3)
+        List<Donation> captured = donationRepo.findRecentDonations(PageRequest.of(0, 100));
+
+        // Aggregate by donor name
+        Map<String, Long> donorTotals = new java.util.LinkedHashMap<>();
+        Map<String, Integer> donorCounts = new java.util.LinkedHashMap<>();
+        for (Donation d : captured) {
+            String name = d.getDonorName() != null ? maskName(d.getDonorName()) : "Anonymous";
+            donorTotals.merge(name, d.getAmountPaise(), Long::sum);
+            donorCounts.merge(name, 1, Integer::sum);
+        }
+
+        List<DonorLeaderboardResponse.LeaderboardEntry> topDonors = donorTotals.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .limit(10)
+                .map(e -> new DonorLeaderboardResponse.LeaderboardEntry(
+                        e.getKey(), e.getValue(), donorCounts.getOrDefault(e.getKey(), 1),
+                        determineTier(e.getValue())))
+                .toList();
+
+        return new DonorLeaderboardResponse(topDonors, List.of(), "all-time");
+    }
+
+    private String determineTier(long totalPaise) {
+        long rupees = totalPaise / 100;
+        if (rupees >= 15000) return "Patron";
+        if (rupees >= 5000) return "Champion";
+        if (rupees >= 2000) return "Builder";
+        if (rupees >= 500) return "Friend";
+        return "Supporter";
     }
 
     // ── Private helpers ──────────────────────────────────────────

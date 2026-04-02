@@ -95,6 +95,7 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         if (path.equals("/api/v1/donations") && HttpMethod.POST.equals(method)) return true;
         if (path.equals("/api/v1/donations/verify") && HttpMethod.POST.equals(method)) return true;
         if (path.equals("/api/v1/donations/stats") && HttpMethod.GET.equals(method)) return true;
+        if (path.equals("/api/v1/donations/leaderboard") && HttpMethod.GET.equals(method)) return true;
         // Public listing reviews (GET only)
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/reviews/listing")) return true;
         // Medical tourism, experiences, aashray — public read access

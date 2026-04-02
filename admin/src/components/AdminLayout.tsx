@@ -8,23 +8,40 @@ import {
   FundOutlined,
   BankOutlined,
   LogoutOutlined,
+  CalendarOutlined,
+  UserOutlined,
+  ApiOutlined,
+  ShopOutlined,
+  AppstoreOutlined,
+  FireOutlined,
+  HeartOutlined,
 } from '@ant-design/icons';
 
 const { Header, Sider, Content } = Layout;
 
 const menuItems = [
-  { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-  { key: '/listings',  icon: <HomeOutlined />,      label: 'Listings' },
-  { key: '/hosts',     icon: <TeamOutlined />,       label: 'Hosts' },
-  { key: '/kyc',       icon: <SafetyOutlined />,     label: 'KYC Verification' },
-  { key: '/revenue',  icon: <FundOutlined />,       label: 'Revenue' },
-  { key: '/payouts',  icon: <BankOutlined />,       label: 'Payouts' },
+  { key: '/dashboard',       icon: <DashboardOutlined />, label: 'Dashboard' },
+  { key: '/bookings',        icon: <CalendarOutlined />,  label: 'Bookings' },
+  { key: '/listings',        icon: <HomeOutlined />,      label: 'Listings' },
+  { key: '/hosts',           icon: <TeamOutlined />,      label: 'Hosts' },
+  { key: '/guests',          icon: <UserOutlined />,      label: 'Guests' },
+  { key: '/kyc',             icon: <SafetyOutlined />,    label: 'KYC Verification' },
+  { key: '/revenue',         icon: <FundOutlined />,      label: 'Revenue' },
+  { key: '/payouts',         icon: <BankOutlined />,      label: 'Payouts' },
+  { key: '/channel-manager', icon: <ApiOutlined />,       label: 'Channel Manager' },
+  { key: '/sale-properties', icon: <ShopOutlined />,     label: 'Sale Properties' },
+  { key: '/room-occupancy', icon: <AppstoreOutlined />,  label: 'Room Occupancy' },
+  { key: '/cooks',          icon: <FireOutlined />,       label: 'Safar Cooks' },
+  { key: '/donors',         icon: <HeartOutlined />,      label: 'Donors' },
 ];
 
 export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { token } = theme.useToken();
+
+  // Highlight parent menu item for sub-routes (e.g. /hosts/123 → /hosts)
+  const selectedKey = menuItems.find(m => location.pathname.startsWith(m.key))?.key || location.pathname;
 
   function handleLogout() {
     localStorage.removeItem('admin_token');
@@ -40,11 +57,11 @@ export default function AdminLayout() {
         style={{ borderRight: `1px solid ${token.colorBorderSecondary}` }}
       >
         <div style={{ padding: '20px 16px', fontWeight: 700, fontSize: 18, color: '#f97316' }}>
-          🧳 Safar Admin
+          Safar Admin
         </div>
         <Menu
           mode="inline"
-          selectedKeys={[location.pathname]}
+          selectedKeys={[selectedKey]}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
         />

@@ -4,9 +4,17 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ListingsPage from './pages/ListingsPage';
 import HostsPage from './pages/HostsPage';
+import HostDetailPage from './pages/HostDetailPage';
 import KycPage from './pages/KycPage';
 import RevenuePage from './pages/RevenuePage';
 import PayoutsPage from './pages/PayoutsPage';
+import BookingsPage from './pages/BookingsPage';
+import GuestsPage from './pages/GuestsPage';
+import ChannelManagerPage from './pages/ChannelManagerPage';
+import SalePropertiesPage from './pages/SalePropertiesPage';
+import RoomOccupancyPage from './pages/RoomOccupancyPage';
+import CooksPage from './pages/CooksPage';
+import DonorsPage from './pages/DonorsPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('admin_token');
@@ -28,11 +36,19 @@ export default function App() {
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="bookings" element={<BookingsPage />} />
         <Route path="listings" element={<ListingsPage />} />
         <Route path="hosts" element={<HostsPage />} />
+        <Route path="hosts/:hostId" element={<HostDetailPage />} />
+        <Route path="guests" element={<GuestsPage />} />
         <Route path="kyc" element={<KycPage />} />
         <Route path="revenue" element={<RevenuePage />} />
         <Route path="payouts" element={<PayoutsPage />} />
+        <Route path="channel-manager" element={<ChannelManagerPage />} />
+        <Route path="sale-properties" element={<SalePropertiesPage />} />
+        <Route path="room-occupancy" element={<RoomOccupancyPage />} />
+        <Route path="cooks" element={<CooksPage />} />
+        <Route path="donors" element={<DonorsPage />} />
       </Route>
     </Routes>
   );

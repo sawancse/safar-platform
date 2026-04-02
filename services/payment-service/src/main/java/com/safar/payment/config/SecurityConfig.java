@@ -34,6 +34,7 @@ public class SecurityConfig {
                         .requestMatchers("POST", "/api/v1/donations").permitAll()
                         .requestMatchers("POST", "/api/v1/donations/verify").permitAll()
                         .requestMatchers("GET", "/api/v1/donations/stats").permitAll()
+                        .requestMatchers("GET", "/api/v1/donations/leaderboard").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(e -> e

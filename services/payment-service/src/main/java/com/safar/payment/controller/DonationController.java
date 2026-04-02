@@ -70,6 +70,14 @@ public class DonationController {
     }
 
     /**
+     * Public leaderboard — top donors (anonymized) and cities.
+     */
+    @GetMapping("/leaderboard")
+    public ResponseEntity<DonorLeaderboardResponse> getLeaderboard() {
+        return ResponseEntity.ok(donationService.getLeaderboard());
+    }
+
+    /**
      * Admin: list all donations with optional status filter.
      */
     @GetMapping("/admin")

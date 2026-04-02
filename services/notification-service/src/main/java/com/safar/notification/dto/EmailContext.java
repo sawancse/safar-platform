@@ -122,8 +122,51 @@ public class EmailContext {
     private String unsubscribeUrl;
     private String preferencesUrl;
 
+    // Safar Cooks fields
+    private String chefName;
+    private String chefRating;
+    private String customerName;
+    private String customerPhone;
+    private String customerEmail;
+    private String serviceDate;
+    private String serviceTime;
+    private String mealType;
+    private int guestsCount;
+    private String cuisineType;
+    private String address;
+    private String city;
+    private String locality;
+    private String chefEarnings;
+    private String eventType;
+    private String eventTime;
+    private int eventGuestCount;
+    private String menuDescription;
+    private String decorationAmount;
+    private String cakeAmount;
+    private String staffAmount;
+    private String advanceAmount;
+    private String balanceAmount;
+    private String subscriptionPlan;
+    private String monthlyAmount;
+    private String startDate;
+    private String endDate;
+    private String schedule;
+    private String repeatBookUrl;
+
     // Extra dynamic data
     private Map<String, Object> extras;
+
+    // Donation fields
+    private String donationRef;
+    private String donorName;
+    private String donorEmail;
+    private String donationAmount;
+    private String donationFrequency;
+    private String receiptNumber;
+    private String donorPan;
+    private String dedicatedTo;
+    private String donationTier;
+    private String taxSaving;
 
     // Getters and setters
     public String getGuestName() { return guestName; }
@@ -316,9 +359,9 @@ public class EmailContext {
     public String getSupportUrl() { return "https://ysafar.com/support"; }
     public String getSupportPhone() { return "+91-1800-SAFAR"; }
     public String getCompanyAddress() { return "Safar Technologies, India"; }
-    public String getExploreUrl() { return dashboardUrl != null ? dashboardUrl : "http://localhost:3000"; }
-    public String getRebookUrl() { return dashboardUrl != null ? dashboardUrl : "http://localhost:3000"; }
-    public String getEmailPreferencesUrl() { return preferencesUrl != null ? preferencesUrl : "http://localhost:3000/dashboard/account"; }
+    public String getExploreUrl() { return dashboardUrl != null ? dashboardUrl : "https://ysafar.com"; }
+    public String getRebookUrl() { return dashboardUrl != null ? dashboardUrl : "https://ysafar.com"; }
+    public String getEmailPreferencesUrl() { return preferencesUrl != null ? preferencesUrl : "https://ysafar.com/dashboard/account"; }
     public String getPriceLabel() {
         if ("MONTH".equals(pricingUnit)) return "per month";
         if ("HOUR".equals(pricingUnit)) return "per hour";
@@ -340,7 +383,7 @@ public class EmailContext {
     }
     public String getStarHostProgressText() { return starHostProgress != null ? starHostProgress + "%" : "0%"; }
     public String getTierUpgradeSaving() { return nextTierSavings; }
-    public String getUpgradeTierUrl() { return "http://localhost:3000/host?tab=subscription"; }
+    public String getUpgradeTierUrl() { return "https://ysafar.com/host?tab=subscription"; }
     public String getReceiptDownloadUrl() { return bookingUrl; }
     public String getRefundMethod() { return "Original payment method"; }
     public String getBadgeName() { return milestoneBadge; }
@@ -379,4 +422,93 @@ public class EmailContext {
     public int getHoursUntilCheckin() { return getDaysUntilCheckin() * 24; }
     public int getMinsUntilCheckin() { return getHoursUntilCheckin() * 60; }
     public boolean getIsStarHost() { return starHost; }
+
+    // ── Safar Cooks getters/setters ──
+    public String getChefName() { return chefName; }
+    public void setChefName(String chefName) { this.chefName = chefName; }
+    public String getChefRating() { return chefRating; }
+    public void setChefRating(String chefRating) { this.chefRating = chefRating; }
+    public String getCustomerName() { return customerName; }
+    public void setCustomerName(String customerName) { this.customerName = customerName; }
+    public String getCustomerPhone() { return customerPhone; }
+    public void setCustomerPhone(String customerPhone) { this.customerPhone = customerPhone; }
+    public String getCustomerEmailAddr() { return customerEmail; }
+    public void setCustomerEmail(String customerEmail) { this.customerEmail = customerEmail; }
+    public String getServiceDate() { return serviceDate; }
+    public void setServiceDate(String serviceDate) { this.serviceDate = serviceDate; }
+    public String getServiceTime() { return serviceTime; }
+    public void setServiceTime(String serviceTime) { this.serviceTime = serviceTime; }
+    public String getMealType() { return mealType; }
+    public void setMealType(String mealType) { this.mealType = mealType; }
+    public int getGuestsCount() { return guestsCount; }
+    public void setGuestsCount(int guestsCount) { this.guestsCount = guestsCount; }
+    public String getCuisineType() { return cuisineType; }
+    public void setCuisineType(String cuisineType) { this.cuisineType = cuisineType; }
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+    public String getChefCity() { return city; }
+    public void setCity(String city) { this.city = city; }
+    public String getLocality() { return locality; }
+    public void setLocality(String locality) { this.locality = locality; }
+    public String getChefEarnings() { return chefEarnings; }
+    public void setChefEarnings(String chefEarnings) { this.chefEarnings = chefEarnings; }
+    public String getEventType() { return eventType; }
+    public void setEventType(String eventType) { this.eventType = eventType; }
+    public String getEventTime() { return eventTime; }
+    public void setEventTime(String eventTime) { this.eventTime = eventTime; }
+    public int getEventGuestCount() { return eventGuestCount; }
+    public void setEventGuestCount(int eventGuestCount) { this.eventGuestCount = eventGuestCount; }
+    public String getMenuDescription() { return menuDescription; }
+    public void setMenuDescription(String menuDescription) { this.menuDescription = menuDescription; }
+    public String getDecorationAmount() { return decorationAmount; }
+    public void setDecorationAmount(String decorationAmount) { this.decorationAmount = decorationAmount; }
+    public String getCakeAmount() { return cakeAmount; }
+    public void setCakeAmount(String cakeAmount) { this.cakeAmount = cakeAmount; }
+    public String getStaffAmount() { return staffAmount; }
+    public void setStaffAmount(String staffAmount) { this.staffAmount = staffAmount; }
+    public String getAdvanceAmount() { return advanceAmount; }
+    public void setAdvanceAmount(String advanceAmount) { this.advanceAmount = advanceAmount; }
+    public String getBalanceAmount() { return balanceAmount; }
+    public void setBalanceAmount(String balanceAmount) { this.balanceAmount = balanceAmount; }
+    public String getSubscriptionPlan() { return subscriptionPlan; }
+    public void setSubscriptionPlan(String subscriptionPlan) { this.subscriptionPlan = subscriptionPlan; }
+    public String getMonthlyAmount() { return monthlyAmount; }
+    public void setMonthlyAmount(String monthlyAmount) { this.monthlyAmount = monthlyAmount; }
+    public String getStartDate() { return startDate; }
+    public void setStartDate(String startDate) { this.startDate = startDate; }
+    public String getEndDate() { return endDate; }
+    public void setEndDate(String endDate) { this.endDate = endDate; }
+    public String getSchedule() { return schedule; }
+    public void setSchedule(String schedule) { this.schedule = schedule; }
+    public String getRepeatBookUrl() { return repeatBookUrl != null ? repeatBookUrl : "https://ysafar.com/cooks"; }
+    public void setRepeatBookUrl(String repeatBookUrl) { this.repeatBookUrl = repeatBookUrl; }
+    public String getCooksUrl() { return "https://ysafar.com/cooks"; }
+    public String getCooksBookingsUrl() { return "https://ysafar.com/cooks/my-bookings"; }
+
+    // ── Donation getters/setters ──
+    public String getDonationRef() { return donationRef; }
+    public void setDonationRef(String donationRef) { this.donationRef = donationRef; }
+    public String getDonorName() { return donorName; }
+    public void setDonorName(String donorName) { this.donorName = donorName; }
+    public String getDonorEmail() { return donorEmail; }
+    public void setDonorEmail(String donorEmail) { this.donorEmail = donorEmail; }
+    public String getDonationAmount() { return donationAmount; }
+    public void setDonationAmount(String donationAmount) { this.donationAmount = donationAmount; }
+    public String getDonationFrequency() { return donationFrequency; }
+    public void setDonationFrequency(String donationFrequency) { this.donationFrequency = donationFrequency; }
+    public String getReceiptNumber() { return receiptNumber; }
+    public void setReceiptNumber(String receiptNumber) { this.receiptNumber = receiptNumber; }
+    public String getDonorPan() { return donorPan; }
+    public void setDonorPan(String donorPan) { this.donorPan = donorPan; }
+    public String getDedicatedTo() { return dedicatedTo; }
+    public void setDedicatedTo(String dedicatedTo) { this.dedicatedTo = dedicatedTo; }
+    public String getDonationTier() { return donationTier; }
+    public void setDonationTier(String donationTier) { this.donationTier = donationTier; }
+    public String getTaxSaving() { return taxSaving; }
+    public void setTaxSaving(String taxSaving) { this.taxSaving = taxSaving; }
+    public String getMaskedPan() {
+        if (donorPan == null || donorPan.length() < 4) return donorPan;
+        return "XXXXX" + donorPan.substring(donorPan.length() - 4) + "X";
+    }
+    public String getDonationImpactUrl() { return "https://ysafar.com/aashray/impact"; }
 }

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aashray Donation Receipt</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f7fa;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f7fa;">
+        <tr>
+            <td align="center" style="padding:24px 16px;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+
+                    <!-- Header with teal gradient -->
+                    <tr>
+                        <td style="background:linear-gradient(135deg,#0D9488,#2563EB);padding:40px 32px;text-align:center;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center">
+                                        <span style="font-size:48px;line-height:1;">&#x1F64F;</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="center" style="padding-top:16px;">
+                                        <h1 style="margin:0;font-size:28px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;">Safar Aashray</h1>
+                                        <p style="margin:8px 0 0;font-size:16px;color:rgba(255,255,255,0.9);font-weight:400;">Shelter for every family</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Hero section -->
+                    <tr>
+                        <td style="padding:32px 32px 0;">
+                            <h2 style="margin:0;font-size:24px;font-weight:700;color:#111827;">Thank you for your generosity, <span th:text="${ctx.donorName}">Donor</span>!</h2>
+                            <p style="margin:12px 0 0;font-size:15px;color:#4B5563;line-height:1.6;">Your donation to Safar Aashray helps provide safe, dignified housing for families in need across India. Every rupee makes a difference.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Donation summary card -->
+                    <tr>
+                        <td style="padding:24px 32px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#F0FDFA,#EFF6FF);border-radius:12px;border:1px solid #CCFBF1;">
+                                <tr>
+                                    <td style="padding:24px;">
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td align="center" style="padding-bottom:16px;">
+                                                    <span style="font-size:40px;font-weight:800;color:#0D9488;" th:text="${ctx.donationAmount}">&#8377;5,000</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                                        <tr>
+                                                            <td style="padding:8px 0;border-bottom:1px solid #E5E7EB;">
+                                                                <span style="font-size:13px;color:#6B7280;">Reference</span>
+                                                            </td>
+                                                            <td style="padding:8px 0;border-bottom:1px solid #E5E7EB;text-align:right;">
+                                                                <span style="font-size:14px;font-weight:600;color:#111827;" th:text="${ctx.donationRef}">DON-2026-001</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="padding:8px 0;border-bottom:1px solid #E5E7EB;">
+                                                                <span style="font-size:13px;color:#6B7280;">Receipt No.</span>
+                                                            </td>
+                                                            <td style="padding:8px 0;border-bottom:1px solid #E5E7EB;text-align:right;">
+                                                                <span style="font-size:14px;font-weight:600;color:#111827;" th:text="${ctx.receiptNumber}">80G-2026-001</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="padding:8px 0;border-bottom:1px solid #E5E7EB;">
+                                                                <span style="font-size:13px;color:#6B7280;">Frequency</span>
+                                                            </td>
+                                                            <td style="padding:8px 0;border-bottom:1px solid #E5E7EB;text-align:right;">
+                                                                <span style="font-size:14px;font-weight:600;color:#111827;"
+                                                                      th:text="${ctx.donationFrequency == 'MONTHLY'} ? 'Monthly SIP' : 'One-time'">One-time</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="padding:8px 0;">
+                                                                <span style="font-size:13px;color:#6B7280;">Donor Tier</span>
+                                                            </td>
+                                                            <td style="padding:8px 0;text-align:right;">
+                                                                <span style="font-size:14px;font-weight:700;color:#0D9488;" th:text="${ctx.donationTier}">Shelter Friend</span>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Dedicated to section (conditional) -->
+                    <tr th:if="${ctx.dedicatedTo != null and !ctx.dedicatedTo.isEmpty()}">
+                        <td style="padding:0 32px 24px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FEF3C7;border-radius:10px;border:1px solid #FDE68A;">
+                                <tr>
+                                    <td style="padding:16px 20px;">
+                                        <p style="margin:0;font-size:14px;color:#92400E;">
+                                            <span style="font-size:18px;">&#x1F496;</span> <strong>Dedicated to:</strong>
+                                            <span th:text="${ctx.dedicatedTo}">Someone special</span>
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- 80G Tax Certificate section -->
+                    <tr>
+                        <td style="padding:0 32px 24px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F9FAFB;border-radius:12px;border:1px solid #E5E7EB;">
+                                <tr>
+                                    <td style="padding:24px;">
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td>
+                                                    <h3 style="margin:0 0 4px;font-size:16px;font-weight:700;color:#111827;">
+                                                        &#x1F4DC; Section 80G Tax Certificate
+                                                    </h3>
+                                                    <p style="margin:0 0 16px;font-size:13px;color:#6B7280;">This receipt is valid for income tax deduction under Section 80G of the Income Tax Act, 1961.</p>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                                        <tr>
+                                                            <td style="padding:6px 0;">
+                                                                <span style="font-size:13px;color:#6B7280;">Receipt Number:</span>
+                                                                <span style="font-size:14px;font-weight:600;color:#111827;padding-left:8px;" th:text="${ctx.receiptNumber}">80G-2026-001</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="padding:6px 0;">
+                                                                <span style="font-size:13px;color:#6B7280;">PAN:</span>
+                                                                <span style="font-size:14px;font-weight:600;color:#111827;padding-left:8px;" th:text="${ctx.maskedPan}">XXXXX1234X</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="padding:6px 0;">
+                                                                <span style="font-size:13px;color:#6B7280;">Donation Amount:</span>
+                                                                <span style="font-size:14px;font-weight:600;color:#111827;padding-left:8px;" th:text="${ctx.donationAmount}">&#8377;5,000</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="padding:12px 0 0;">
+                                                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#ECFDF5,#D1FAE5);border-radius:8px;">
+                                                                    <tr>
+                                                                        <td style="padding:12px 16px;">
+                                                                            <span style="font-size:13px;color:#065F46;">Estimated tax saving (50% deduction):</span>
+                                                                            <span style="font-size:16px;font-weight:700;color:#047857;padding-left:8px;" th:text="${ctx.taxSaving}">&#8377;2,500</span>
+                                                                        </td>
+                                                                    </tr>
+                                                                </table>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Fund allocation -->
+                    <tr>
+                        <td style="padding:0 32px 24px;">
+                            <h3 style="margin:0 0 16px;font-size:16px;font-weight:700;color:#111827;">How your donation is used</h3>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <!-- Progress bar -->
+                                <tr>
+                                    <td style="padding-bottom:16px;">
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-radius:8px;overflow:hidden;height:12px;">
+                                            <tr>
+                                                <td style="width:70%;background-color:#0D9488;height:12px;"></td>
+                                                <td style="width:15%;background-color:#2563EB;height:12px;"></td>
+                                                <td style="width:10%;background-color:#7C3AED;height:12px;"></td>
+                                                <td style="width:5%;background-color:#F59E0B;height:12px;"></td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <!-- Labels -->
+                                <tr>
+                                    <td>
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td style="padding:6px 0;">
+                                                    <table role="presentation" cellpadding="0" cellspacing="0">
+                                                        <tr>
+                                                            <td style="width:12px;height:12px;background-color:#0D9488;border-radius:3px;"></td>
+                                                            <td style="padding-left:10px;font-size:13px;color:#374151;"><strong>70%</strong> Rent subsidies for families</td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:6px 0;">
+                                                    <table role="presentation" cellpadding="0" cellspacing="0">
+                                                        <tr>
+                                                            <td style="width:12px;height:12px;background-color:#2563EB;border-radius:3px;"></td>
+                                                            <td style="padding-left:10px;font-size:13px;color:#374151;"><strong>15%</strong> Essential supplies &amp; furnishing</td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:6px 0;">
+                                                    <table role="presentation" cellpadding="0" cellspacing="0">
+                                                        <tr>
+                                                            <td style="width:12px;height:12px;background-color:#7C3AED;border-radius:3px;"></td>
+                                                            <td style="padding-left:10px;font-size:13px;color:#374151;"><strong>10%</strong> Case worker support</td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:6px 0;">
+                                                    <table role="presentation" cellpadding="0" cellspacing="0">
+                                                        <tr>
+                                                            <td style="width:12px;height:12px;background-color:#F59E0B;border-radius:3px;"></td>
+                                                            <td style="padding-left:10px;font-size:13px;color:#374151;"><strong>5%</strong> Platform &amp; operations</td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- CTA Button -->
+                    <tr>
+                        <td style="padding:8px 32px 32px;" align="center">
+                            <table role="presentation" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="border-radius:10px;background:linear-gradient(135deg,#0D9488,#2563EB);">
+                                        <a th:href="${ctx.donationImpactUrl}"
+                                           style="display:inline-block;padding:14px 36px;font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;letter-spacing:0.3px;">
+                                            View your impact
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Monthly SIP note (conditional) -->
+                    <tr th:if="${ctx.donationFrequency == 'MONTHLY'}">
+                        <td style="padding:0 32px 24px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#EFF6FF;border-radius:10px;border:1px solid #BFDBFE;">
+                                <tr>
+                                    <td style="padding:16px 20px;">
+                                        <p style="margin:0;font-size:14px;color:#1E40AF;">
+                                            <strong>Monthly SIP active:</strong> Your donation of <span th:text="${ctx.donationAmount}">amount</span> will be automatically deducted each month. You can manage your subscription from your dashboard.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Divider -->
+                    <tr>
+                        <td style="padding:0 32px;">
+                            <hr style="border:none;border-top:1px solid #E5E7EB;margin:0;" />
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding:24px 32px 32px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center">
+                                        <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#111827;">Safar Technologies</p>
+                                        <p style="margin:0 0 4px;font-size:12px;color:#9CA3AF;">Aashray is Safar's initiative to provide housing for underserved families across India.</p>
+                                        <p style="margin:0 0 4px;font-size:12px;color:#9CA3AF;">80G Registration: AABCS1234F | PAN: AABCS1234F</p>
+                                        <p style="margin:12px 0 0;font-size:12px;color:#9CA3AF;">
+                                            <a href="https://ysafar.com/aashray" style="color:#0D9488;text-decoration:none;">About Aashray</a>
+                                            &nbsp;&middot;&nbsp;
+                                            <a href="https://ysafar.com/support" style="color:#0D9488;text-decoration:none;">Support</a>
+                                            &nbsp;&middot;&nbsp;
+                                            <a href="https://ysafar.com/privacy" style="color:#0D9488;text-decoration:none;">Privacy</a>
+                                        </p>
+                                        <p style="margin:12px 0 0;font-size:11px;color:#D1D5DB;">This is an automatically generated receipt. Please retain for your tax records.</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
