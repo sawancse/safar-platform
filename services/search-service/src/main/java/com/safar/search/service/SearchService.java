@@ -107,9 +107,9 @@ public class SearchService {
 
         if (StringUtils.hasText(textQuery)) {
             SmartQueryParser.ParsedQuery parsed = SmartQueryParser.parse(textQuery);
-            log.debug("Smart parse '{}' → type={}, city={}, locality={}, remaining='{}'",
+            log.debug("Smart parse '{}' → type={}, city={}, locality={}, nearMe={}, remaining='{}'",
                     textQuery, parsed.extractedType(), parsed.extractedCity(),
-                    parsed.extractedLocality(), parsed.cleanedQuery());
+                    parsed.extractedLocality(), parsed.nearMe(), parsed.cleanedQuery());
 
             if (parsed.extractedType() != null && typeFilter.isEmpty()) {
                 typeFilter.add(parsed.extractedType());
@@ -146,15 +146,15 @@ public class SearchService {
             }));
         } else if (typeFilter.isEmpty() && !StringUtils.hasText(cityFilter) && !StringUtils.hasText(localityFilter)
                 && StringUtils.hasText(req.query())) {
-            // Nothing was extracted — use original query as full-text search
+            // Nothing was extracted — use original query as full-text search against address+city+title
             String origQuery = req.query();
             bool.must(q -> q.multiMatch(m -> m
                     .query(origQuery)
                     .fields("title^3", "description", "city^2", "address^2", "amenities")
                     .fuzziness("AUTO")
                     .operator(co.elastic.clients.elasticsearch._types.query_dsl.Operator.Or)));
-        } else if (!typeFilter.isEmpty() || StringUtils.hasText(cityFilter)) {
-            // Type-only or city-only query (e.g., "pg", "hotel") — match all, let filters do the work
+        } else if (!typeFilter.isEmpty() || StringUtils.hasText(cityFilter) || StringUtils.hasText(localityFilter)) {
+            // Type/city/locality query — match all, let filters do the work
             bool.must(q -> q.matchAll(m -> m));
         }
 
@@ -167,17 +167,21 @@ public class SearchService {
                     .minimumShouldMatch("1")));
         }
 
-        // Locality/area filter (e.g., "Gachibowli" — search in address field)
+        // Locality/area filter (e.g., "Gachibowli", "Madhapur" — search in address + city + title)
         if (StringUtils.hasText(localityFilter)) {
             String lf = localityFilter;
-            bool.filter(q -> q.match(m -> m.field("address").query(lf)));
+            bool.filter(q -> q.bool(b -> b
+                    .should(s -> s.match(m -> m.field("address").query(lf).fuzziness("AUTO")))
+                    .should(s -> s.match(m -> m.field("city").query(lf).fuzziness("AUTO")))
+                    .should(s -> s.match(m -> m.field("title").query(lf).fuzziness("AUTO")))
+                    .minimumShouldMatch("1")));
         }
 
         // Type filter
         if (!typeFilter.isEmpty()) {
             List<FieldValue> typeValues = typeFilter.stream()
                     .map(FieldValue::of).collect(Collectors.toList());
-            bool.filter(q -> q.terms(t -> t.field("type.keyword").terms(v -> v.value(typeValues))));
+            bool.filter(q -> q.terms(t -> t.field("type").terms(v -> v.value(typeValues))));
         }
 
         if (req.priceMin() != null || req.priceMax() != null) {
@@ -238,7 +242,7 @@ public class SearchService {
 
         if (req.amenities() != null && !req.amenities().isEmpty()) {
             for (String amenity : req.amenities()) {
-                bool.filter(q -> q.term(t -> t.field("amenities.keyword").value(amenity)));
+                bool.filter(q -> q.term(t -> t.field("amenities").value(amenity)));
             }
         }
 
@@ -260,22 +264,22 @@ public class SearchService {
         }
 
         if (StringUtils.hasText(req.cancellationPolicy())) {
-            bool.filter(q -> q.term(t -> t.field("cancellationPolicy.keyword").value(req.cancellationPolicy())));
+            bool.filter(q -> q.term(t -> t.field("cancellationPolicy").value(req.cancellationPolicy())));
         }
 
         if (StringUtils.hasText(req.mealPlan())) {
-            bool.filter(q -> q.term(t -> t.field("mealPlan.keyword").value(req.mealPlan())));
+            bool.filter(q -> q.term(t -> t.field("mealPlan").value(req.mealPlan())));
         }
 
         if (req.bedTypes() != null && !req.bedTypes().isEmpty()) {
             for (String bedType : req.bedTypes()) {
-                bool.filter(q -> q.term(t -> t.field("bedTypes.keyword").value(bedType)));
+                bool.filter(q -> q.term(t -> t.field("bedTypes").value(bedType)));
             }
         }
 
         if (req.accessibilityFeatures() != null && !req.accessibilityFeatures().isEmpty()) {
             for (String feature : req.accessibilityFeatures()) {
-                bool.filter(q -> q.term(t -> t.field("accessibilityFeatures.keyword").value(feature)));
+                bool.filter(q -> q.term(t -> t.field("accessibilityFeatures").value(feature)));
             }
         }
 
@@ -288,20 +292,20 @@ public class SearchService {
         }
 
         if (StringUtils.hasText(req.specialty())) {
-            bool.filter(q -> q.term(t -> t.field("medicalSpecialties.keyword").value(req.specialty())));
+            bool.filter(q -> q.term(t -> t.field("medicalSpecialties").value(req.specialty())));
         }
 
         if (StringUtils.hasText(req.procedure())) {
-            bool.filter(q -> q.term(t -> t.field("procedureNames.keyword").value(req.procedure())));
+            bool.filter(q -> q.term(t -> t.field("procedureNames").value(req.procedure())));
         }
 
         // PG/Hotel filters
         if (StringUtils.hasText(req.occupancyType())) {
-            bool.filter(q -> q.term(t -> t.field("occupancyType.keyword").value(req.occupancyType())));
+            bool.filter(q -> q.term(t -> t.field("occupancyType").value(req.occupancyType())));
         }
 
         if (StringUtils.hasText(req.foodType())) {
-            bool.filter(q -> q.term(t -> t.field("foodType.keyword").value(req.foodType())));
+            bool.filter(q -> q.term(t -> t.field("foodType").value(req.foodType())));
         }
 
         if (Boolean.TRUE.equals(req.frontDesk24h())) {
@@ -316,19 +320,19 @@ public class SearchService {
 
     private void addAggregations(NativeQueryBuilder nqBuilder) {
         nqBuilder.withAggregation("types",
-                Aggregation.of(a -> a.terms(t -> t.field("type.keyword").size(20))));
+                Aggregation.of(a -> a.terms(t -> t.field("type").size(20))));
         nqBuilder.withAggregation("amenities",
-                Aggregation.of(a -> a.terms(t -> t.field("amenities.keyword").size(50))));
+                Aggregation.of(a -> a.terms(t -> t.field("amenities").size(50))));
         nqBuilder.withAggregation("starRatings",
                 Aggregation.of(a -> a.terms(t -> t.field("starRating").size(5))));
         nqBuilder.withAggregation("mealPlans",
-                Aggregation.of(a -> a.terms(t -> t.field("mealPlan.keyword").size(10))));
+                Aggregation.of(a -> a.terms(t -> t.field("mealPlan").size(10))));
         nqBuilder.withAggregation("cancellationPolicies",
-                Aggregation.of(a -> a.terms(t -> t.field("cancellationPolicy.keyword").size(5))));
+                Aggregation.of(a -> a.terms(t -> t.field("cancellationPolicy").size(5))));
         nqBuilder.withAggregation("bedTypes",
-                Aggregation.of(a -> a.terms(t -> t.field("bedTypes.keyword").size(10))));
+                Aggregation.of(a -> a.terms(t -> t.field("bedTypes").size(10))));
         nqBuilder.withAggregation("accessibilityFeatures",
-                Aggregation.of(a -> a.terms(t -> t.field("accessibilityFeatures.keyword").size(30))));
+                Aggregation.of(a -> a.terms(t -> t.field("accessibilityFeatures").size(30))));
 
         nqBuilder.withAggregation("petFriendly",
                 Aggregation.of(a -> a.filter(f -> f.term(t -> t.field("petFriendly").value(true)))));
@@ -367,13 +371,13 @@ public class SearchService {
         nqBuilder.withAggregation("medicalStay",
                 Aggregation.of(a -> a.filter(f -> f.term(t -> t.field("medicalStay").value(true)))));
         nqBuilder.withAggregation("medicalSpecialties",
-                Aggregation.of(a -> a.terms(t -> t.field("medicalSpecialties.keyword").size(30))));
+                Aggregation.of(a -> a.terms(t -> t.field("medicalSpecialties").size(30))));
 
         // PG/Hotel aggregations
         nqBuilder.withAggregation("occupancyTypes",
-                Aggregation.of(a -> a.terms(t -> t.field("occupancyType.keyword").size(5))));
+                Aggregation.of(a -> a.terms(t -> t.field("occupancyType").size(5))));
         nqBuilder.withAggregation("foodTypes",
-                Aggregation.of(a -> a.terms(t -> t.field("foodType.keyword").size(5))));
+                Aggregation.of(a -> a.terms(t -> t.field("foodType").size(5))));
         nqBuilder.withAggregation("frontDesk24h",
                 Aggregation.of(a -> a.filter(f -> f.term(t -> t.field("frontDesk24h").value(true)))));
     }
@@ -498,7 +502,7 @@ public class SearchService {
         // If type was extracted, filter by type
         if (parsed.extractedType() != null) {
             String extractedType = parsed.extractedType();
-            bool.filter(fq -> fq.term(t -> t.field("type.keyword").value(extractedType)));
+            bool.filter(fq -> fq.term(t -> t.field("type").value(extractedType)));
         }
 
         NativeQuery query = NativeQuery.builder()
@@ -547,7 +551,7 @@ public class SearchService {
         bool.filter(q -> q.term(t -> t.field("isVerified").value(true)));
 
         if (type != null && !type.isBlank()) {
-            bool.filter(q -> q.term(t -> t.field("type.keyword").value(type)));
+            bool.filter(q -> q.term(t -> t.field("type").value(type)));
         }
 
         NativeQuery query = NativeQuery.builder()

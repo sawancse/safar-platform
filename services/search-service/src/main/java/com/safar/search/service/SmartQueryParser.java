@@ -1,17 +1,18 @@
 package com.safar.search.service;
 
 import java.util.*;
-import java.util.regex.Pattern;
 
 /**
  * Parses natural-language search queries into structured filters.
  * Examples:
  *   "Home in Hyderabad"         → type=HOME, city=Hyderabad
- *   "PG near Gachibowli"       → type=PG, city=Gachibowli
+ *   "PG near Gachibowli"       → type=PG, locality=Gachibowli
  *   "Villa, Goa"               → type=VILLA, city=Goa
  *   "2BHK apartment Mumbai"    → type=APARTMENT, city=Mumbai, query=2BHK
  *   "budget hotel Jaipur"      → type=BUDGET_HOTEL, city=Jaipur
- *   "Hyderabad, Telangana"     → city=Hyderabad
+ *   "flat in madhapur"         → type=APARTMENT, locality=Madhapur
+ *   "resort near me"           → type=RESORT, nearMe=true
+ *   "Madhapur"                 → locality=Madhapur
  */
 public class SmartQueryParser {
 
@@ -68,7 +69,12 @@ public class SmartQueryParser {
             "Dehradun", "Mussoorie", "Nainital", "Lonavala", "Mahabaleshwar",
             "Alibaug", "Kodaikanal", "Wayanad", "Alleppey", "Coorg",
             "Leh", "Srinagar", "Guwahati", "Shillong", "Visakhapatnam",
-            "Thiruvananthapuram", "Noida", "Gurgaon", "Gurugram", "Faridabad"
+            "Thiruvananthapuram", "Noida", "Gurgaon", "Gurugram", "Faridabad",
+            "Cherrapunji", "Kasol", "Mcleodganj", "Dharamshala", "Pushkar",
+            "Ranthambore", "Khajuraho", "Kovalam", "Thekkady", "Varkala",
+            "Lakshadweep", "Andaman", "Daman", "Diu", "Ganpatipule",
+            "Bhubaneswar", "Cuttack", "Ranchi", "Patna", "Trivandrum",
+            "Navi Mumbai", "Thane", "Secunderabad"
         ));
     }
 
@@ -84,6 +90,58 @@ public class SmartQueryParser {
         ));
     }
 
+    // Well-known Indian localities/areas (not cities)
+    private static final Set<String> KNOWN_LOCALITIES = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+    static {
+        KNOWN_LOCALITIES.addAll(List.of(
+            // Hyderabad
+            "Madhapur", "Gachibowli", "Hitech City", "Kondapur", "Kukatpally",
+            "Banjara Hills", "Jubilee Hills", "Ameerpet", "Begumpet", "Miyapur",
+            "Manikonda", "Tolichowki", "Uppal", "Dilsukhnagar", "LB Nagar",
+            "ECIL", "Secunderabad", "Kompally", "Shamshabad", "Nanakramguda",
+            "Financial District", "Raidurg",
+            // Bangalore
+            "Koramangala", "Indiranagar", "HSR Layout", "Whitefield", "Electronic City",
+            "BTM Layout", "Jayanagar", "JP Nagar", "Marathahalli", "Sarjapur",
+            "Hebbal", "Yelahanka", "Bannerghatta", "Banashankari", "Rajajinagar",
+            "MG Road", "Brigade Road", "Bellandur", "Kadugodi", "Domlur",
+            // Mumbai
+            "Andheri", "Bandra", "Juhu", "Powai", "Malad", "Goregaon",
+            "Borivali", "Dadar", "Lower Parel", "Worli", "Colaba",
+            "Marine Drive", "Churchgate", "Fort", "BKC", "Kurla",
+            "Thane", "Navi Mumbai", "Vashi", "Belapur", "Panvel", "Kharghar",
+            // Delhi NCR
+            "Connaught Place", "Karol Bagh", "Saket", "Hauz Khas", "Dwarka",
+            "Rohini", "Lajpat Nagar", "South Extension", "Defence Colony",
+            "Greater Kailash", "Vasant Kunj", "Janakpuri", "Pitampura",
+            "Sarita Vihar", "Jasola", "Nehru Place", "Rajouri Garden",
+            // Gurgaon
+            "Cyber City", "Golf Course Road", "Sohna Road", "MG Road Gurgaon",
+            "DLF Phase", "Sector 29", "Sector 14",
+            // Pune
+            "Koregaon Park", "Hinjewadi", "Viman Nagar", "Kharadi", "Wakad",
+            "Baner", "Aundh", "Shivajinagar", "Deccan", "Hadapsar", "Magarpatta",
+            "Kothrud", "Pimpri", "Chinchwad",
+            // Chennai
+            "Anna Nagar", "T Nagar", "Adyar", "Velachery", "Nungambakkam",
+            "Mylapore", "OMR", "ECR", "Porur", "Tambaram", "Sholinganallur",
+            "Guindy", "Greams Road",
+            // Kolkata
+            "Park Street", "Salt Lake", "New Town", "Rajarhat", "Ballygunge",
+            "Alipore", "Howrah", "Dum Dum", "Gariahat",
+            // Jaipur
+            "Malviya Nagar", "Vaishali Nagar", "Mansarovar", "C Scheme",
+            "MI Road", "Tonk Road", "Sanganer",
+            // Ahmedabad
+            "SG Highway", "Prahlad Nagar", "Satellite", "Navrangpura", "CG Road",
+            "Bodakdev", "Vastrapur", "Thaltej",
+            // Goa
+            "Calangute", "Baga", "Anjuna", "Vagator", "Palolem",
+            "Candolim", "Arambol", "Panaji", "Margao", "Dona Paula",
+            "Morjim", "Ashwem", "South Goa", "North Goa"
+        ));
+    }
+
     // Noise words to strip
     private static final Set<String> STOP_WORDS = Set.of(
         "in", "at", "near", "around", "close", "to", "the", "a", "an",
@@ -91,25 +149,40 @@ public class SmartQueryParser {
     );
 
     public record ParsedQuery(
-        String cleanedQuery,   // remaining text after extraction (null if fully parsed)
-        String extractedCity,  // city found in query (null if none)
-        String extractedType,  // listing type found (null if none)
-        String extractedLocality, // locality/area found (not a city, e.g. "Gachibowli")
-        boolean fullyParsed    // true if nothing left to text-search
-    ) {}
+        String cleanedQuery,      // remaining text after extraction (null if fully parsed)
+        String extractedCity,     // city found in query (null if none)
+        String extractedType,     // listing type found (null if none)
+        String extractedLocality, // locality/area found (e.g. "Madhapur", "Gachibowli")
+        boolean nearMe,           // true if user typed "near me"
+        boolean fullyParsed       // true if nothing left to text-search
+    ) {
+        // Backwards-compatible constructor without nearMe
+        public ParsedQuery(String cleanedQuery, String extractedCity, String extractedType,
+                           String extractedLocality, boolean fullyParsed) {
+            this(cleanedQuery, extractedCity, extractedType, extractedLocality, false, fullyParsed);
+        }
+    }
 
     public static ParsedQuery parse(String rawQuery) {
         if (rawQuery == null || rawQuery.isBlank()) {
-            return new ParsedQuery(null, null, null, null, true);
+            return new ParsedQuery(null, null, null, null, false, true);
         }
 
         String input = rawQuery.trim();
+
+        // Detect "near me" pattern
+        boolean nearMe = input.toLowerCase().matches(".*\\bnear\\s+me\\b.*");
 
         // Split by common delimiters: comma, "in", "near", "at"
         String normalized = input
             .replaceAll("[,;|]", " ")
             .replaceAll("\\s+", " ")
             .trim();
+
+        // Remove "near me" from text before further parsing
+        if (nearMe) {
+            normalized = normalized.replaceAll("(?i)\\bnear\\s+me\\b", "").trim();
+        }
 
         String extractedType = null;
         String extractedCity = null;
@@ -120,7 +193,6 @@ public class SmartQueryParser {
             String keyword = entry.getKey();
             if (lowerNorm.contains(keyword)) {
                 extractedType = entry.getValue();
-                // Remove the keyword from the normalized string
                 int idx = lowerNorm.indexOf(keyword);
                 normalized = (normalized.substring(0, idx) + normalized.substring(idx + keyword.length())).trim();
                 lowerNorm = normalized.toLowerCase();
@@ -128,50 +200,77 @@ public class SmartQueryParser {
             }
         }
 
-        // 2. Extract city (check each remaining word/phrase against known cities)
+        // 2. Extract city and locality from remaining words
         String[] parts = normalized.split("\\s+");
         List<String> remaining = new ArrayList<>();
-        for (String part : parts) {
-            String clean = part.replaceAll("[^a-zA-Z]", "");
+        String extractedLocality = null;
+
+        // First pass: check for two-word matches (cities and localities)
+        Set<Integer> consumed = new HashSet<>();
+        for (int i = 0; i < parts.length - 1; i++) {
+            String twoWord = parts[i].replaceAll("[^a-zA-Z]", "") + " " + parts[i + 1].replaceAll("[^a-zA-Z]", "");
+            if (KNOWN_CITIES.contains(twoWord)) {
+                extractedCity = twoWord;
+                consumed.add(i);
+                consumed.add(i + 1);
+                break;
+            } else if (KNOWN_LOCALITIES.contains(twoWord)) {
+                extractedLocality = twoWord;
+                consumed.add(i);
+                consumed.add(i + 1);
+                break;
+            }
+        }
+
+        // Second pass: single words
+        for (int i = 0; i < parts.length; i++) {
+            if (consumed.contains(i)) continue;
+            String clean = parts[i].replaceAll("[^a-zA-Z]", "");
             if (clean.isEmpty()) continue;
-            if (KNOWN_CITIES.contains(clean)) {
+
+            if (extractedCity == null && KNOWN_CITIES.contains(clean)) {
                 extractedCity = clean;
+            } else if (extractedLocality == null && KNOWN_LOCALITIES.contains(clean)) {
+                extractedLocality = clean;
             } else if (KNOWN_STATES.contains(clean)) {
-                // State name — skip it (city is more useful for filtering)
+                // Skip state names
             } else if (STOP_WORDS.contains(clean.toLowerCase())) {
                 // Skip noise
+            } else if ("me".equalsIgnoreCase(clean)) {
+                // Skip "me" (from "near me" partial removal)
             } else {
                 remaining.add(clean);
             }
         }
 
-        // Also check two-word city names
-        if (extractedCity == null) {
-            for (int i = 0; i < parts.length - 1; i++) {
-                String twoWord = parts[i].replaceAll("[^a-zA-Z]", "") + " " + parts[i + 1].replaceAll("[^a-zA-Z]", "");
-                if (KNOWN_CITIES.contains(twoWord)) {
-                    extractedCity = twoWord;
-                    remaining.remove(parts[i].replaceAll("[^a-zA-Z]", ""));
-                    remaining.remove(parts[i + 1].replaceAll("[^a-zA-Z]", ""));
-                }
-            }
+        // If we found a city but no locality, and there's remaining text that looks like a place name,
+        // treat it as locality
+        if (extractedCity != null && extractedLocality == null && !remaining.isEmpty()) {
+            extractedLocality = String.join(" ", remaining);
+            remaining.clear();
         }
 
-        // If we found a city and there's remaining text, treat it as locality/area
-        String extractedLocality = null;
-        if (extractedCity != null && !remaining.isEmpty()) {
-            extractedLocality = String.join(" ", remaining);
-            remaining.clear(); // locality absorbs remaining words
+        // If no city AND no locality found, but remaining has a single word that could be a locality,
+        // treat it as locality (search address field) — covers "madhapur" typed alone
+        if (extractedCity == null && extractedLocality == null && !remaining.isEmpty()) {
+            // If we have a type and remaining words, those words are likely a location
+            if (extractedType != null) {
+                extractedLocality = String.join(" ", remaining);
+                remaining.clear();
+            }
+            // If no type either, still treat single remaining word as potential locality
+            // (will be searched in address + city fields via text search)
         }
 
         String cleanedQuery = remaining.isEmpty() ? null : String.join(" ", remaining);
-        boolean fullyParsed = (cleanedQuery == null || cleanedQuery.isBlank()) && extractedLocality == null;
+        boolean fullyParsed = (cleanedQuery == null || cleanedQuery.isBlank());
 
         return new ParsedQuery(
             fullyParsed ? null : cleanedQuery,
             extractedCity,
             extractedType,
             extractedLocality,
+            nearMe,
             fullyParsed
         );
     }
