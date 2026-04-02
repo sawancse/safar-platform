@@ -1,5 +1,6 @@
 package com.safar.listing.service;
 
+import com.safar.listing.client.UserNameClient;
 import com.safar.listing.dto.ExperienceBookingRequest;
 import com.safar.listing.entity.Experience;
 import com.safar.listing.entity.ExperienceBooking;
@@ -34,6 +35,7 @@ class ExperienceServiceTest {
     @Mock ExperienceSessionRepository sessionRepository;
     @Mock ExperienceBookingRepository bookingRepository;
     @Mock KafkaTemplate<String, String> kafkaTemplate;
+    @Mock UserNameClient userNameClient;
 
     @InjectMocks ExperienceService experienceService;
 

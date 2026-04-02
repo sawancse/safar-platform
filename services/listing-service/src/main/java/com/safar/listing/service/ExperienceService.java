@@ -1,7 +1,9 @@
 package com.safar.listing.service;
 
+import com.safar.listing.client.UserNameClient;
 import com.safar.listing.dto.ExperienceBookingRequest;
 import com.safar.listing.dto.ExperienceRequest;
+import com.safar.listing.dto.ExperienceResponse;
 import com.safar.listing.dto.SessionRequest;
 import com.safar.listing.entity.Experience;
 import com.safar.listing.entity.ExperienceBooking;
@@ -20,10 +22,10 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.security.SecureRandom;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,9 +40,10 @@ public class ExperienceService {
     private final ExperienceSessionRepository sessionRepository;
     private final ExperienceBookingRepository bookingRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
+    private final UserNameClient userNameClient;
 
     @Transactional
-    public Experience createExperience(UUID hostId, ExperienceRequest req) {
+    public ExperienceResponse createExperience(UUID hostId, ExperienceRequest req) {
         Experience experience = Experience.builder()
                 .hostId(hostId)
                 .title(req.title())
@@ -59,7 +62,60 @@ public class ExperienceService {
 
         Experience saved = experienceRepository.save(experience);
         log.info("Experience {} created by host {}", saved.getId(), hostId);
-        return saved;
+        return toResponse(saved, userNameClient.getUserName(hostId));
+    }
+
+    @Transactional
+    public ExperienceResponse updateStatus(UUID hostId, UUID experienceId, ExperienceStatus newStatus) {
+        Experience experience = experienceRepository.findById(experienceId)
+                .orElseThrow(() -> new NoSuchElementException("Experience not found: " + experienceId));
+
+        if (!experience.getHostId().equals(hostId)) {
+            throw new IllegalStateException("Only the host can update this experience");
+        }
+
+        ExperienceStatus current = experience.getStatus();
+        boolean valid = switch (newStatus) {
+            case ACTIVE -> current == ExperienceStatus.DRAFT || current == ExperienceStatus.PAUSED;
+            case PAUSED -> current == ExperienceStatus.ACTIVE;
+            case DRAFT -> current == ExperienceStatus.PAUSED;
+            default -> false;
+        };
+
+        if (!valid) {
+            throw new IllegalStateException(
+                    String.format("Cannot transition from %s to %s", current, newStatus));
+        }
+
+        experience.setStatus(newStatus);
+        Experience saved = experienceRepository.save(experience);
+        log.info("Experience {} status changed {} → {} by host {}", experienceId, current, newStatus, hostId);
+        return toResponse(saved, userNameClient.getUserName(hostId));
+    }
+
+    @Transactional
+    public ExperienceResponse updateExperience(UUID hostId, UUID experienceId, ExperienceRequest req) {
+        Experience experience = experienceRepository.findById(experienceId)
+                .orElseThrow(() -> new NoSuchElementException("Experience not found: " + experienceId));
+
+        if (!experience.getHostId().equals(hostId)) {
+            throw new IllegalStateException("Only the host can update this experience");
+        }
+
+        experience.setTitle(req.title());
+        experience.setDescription(req.description());
+        experience.setCategory(req.category());
+        experience.setCity(req.city());
+        experience.setLocationName(req.locationName());
+        experience.setDurationHours(req.durationHours());
+        if (req.maxGuests() != null) experience.setMaxGuests(req.maxGuests());
+        experience.setPricePaise(req.pricePaise());
+        if (req.languagesSpoken() != null) experience.setLanguagesSpoken(req.languagesSpoken());
+        if (req.mediaUrls() != null) experience.setMediaUrls(req.mediaUrls());
+
+        Experience saved = experienceRepository.save(experience);
+        log.info("Experience {} updated by host {}", experienceId, hostId);
+        return toResponse(saved, userNameClient.getUserName(hostId));
     }
 
     @Transactional
@@ -145,25 +201,75 @@ public class ExperienceService {
         return saved;
     }
 
-    public Page<Experience> searchExperiences(String city, String category, Pageable pageable) {
+    public Page<ExperienceResponse> searchExperiences(String city, String category, Pageable pageable) {
+        Page<Experience> page;
         if (city != null && category != null) {
             ExperienceCategory cat = ExperienceCategory.valueOf(category.toUpperCase());
-            return experienceRepository.findByCityAndCategoryAndStatus(
+            page = experienceRepository.findByCityAndCategoryAndStatus(
                     city, cat, ExperienceStatus.ACTIVE, pageable);
         } else if (city != null) {
-            return experienceRepository.findByCityAndStatus(city, ExperienceStatus.ACTIVE, pageable);
+            page = experienceRepository.findByCityAndStatus(city, ExperienceStatus.ACTIVE, pageable);
+        } else if (category != null) {
+            ExperienceCategory cat = ExperienceCategory.valueOf(category.toUpperCase());
+            page = experienceRepository.findByCategoryAndStatus(cat, ExperienceStatus.ACTIVE, pageable);
         } else {
-            return experienceRepository.findByStatus(ExperienceStatus.ACTIVE, pageable);
+            page = experienceRepository.findByStatus(ExperienceStatus.ACTIVE, pageable);
         }
+        Map<UUID, String> hostNames = resolveHostNames(page.getContent());
+        return page.map(e -> toResponse(e, hostNames.getOrDefault(e.getHostId(), "Host")));
     }
 
-    public Experience getExperience(UUID experienceId) {
-        return experienceRepository.findById(experienceId)
+    public ExperienceResponse getExperience(UUID experienceId) {
+        Experience e = experienceRepository.findById(experienceId)
                 .orElseThrow(() -> new NoSuchElementException("Experience not found: " + experienceId));
+        return toResponse(e, userNameClient.getUserName(e.getHostId()));
+    }
+
+    public List<ExperienceResponse> getHostExperiences(UUID hostId) {
+        List<Experience> list = experienceRepository.findByHostId(hostId);
+        String hostName = userNameClient.getUserName(hostId);
+        return list.stream().map(e -> toResponse(e, hostName)).toList();
     }
 
     public List<ExperienceBooking> getMyBookings(UUID guestId) {
         return bookingRepository.findByGuestId(guestId);
+    }
+
+    private ExperienceResponse toResponse(Experience e, String hostName) {
+        int durationMinutes = e.getDurationHours() != null
+                ? e.getDurationHours().multiply(BigDecimal.valueOf(60)).intValue()
+                : 0;
+
+        return new ExperienceResponse(
+                e.getId(),
+                e.getHostId(),
+                e.getTitle(),
+                e.getDescription(),
+                e.getCategory(),
+                e.getCity(),
+                e.getLocationName(),
+                durationMinutes,
+                e.getMaxGuests(),
+                e.getPricePaise(),
+                e.getLanguagesSpoken(),
+                e.getMediaUrls(),
+                e.getStatus(),
+                e.getRating(),
+                e.getReviewCount() != null ? e.getReviewCount() : 0,
+                hostName,
+                e.getCreatedAt()
+        );
+    }
+
+    private Map<UUID, String> resolveHostNames(List<Experience> experiences) {
+        Set<UUID> hostIds = experiences.stream()
+                .map(Experience::getHostId)
+                .collect(Collectors.toSet());
+        Map<UUID, String> names = new HashMap<>();
+        for (UUID hostId : hostIds) {
+            names.put(hostId, userNameClient.getUserName(hostId));
+        }
+        return names;
     }
 
     private String generateAlphaNum(int length) {
