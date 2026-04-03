@@ -238,6 +238,14 @@ export const adminApi = {
     return axios.post(`${BASE}/admin/payouts/${payoutId}/retry`, {}, { headers: authHeaders(token) });
   },
 
+  initiateRefund(data: { paymentId: string; bookingId: string; amountPaise: number; reason: string; refundType: string }, token: string) {
+    return axios.post(`${BASE}/payments/refund`, data, { headers: authHeaders(token) });
+  },
+
+  getRefunds(bookingId: string, token: string) {
+    return axios.get(`${BASE}/payments/refunds/${bookingId}`, { headers: authHeaders(token) }).then(r => r.data).catch(() => []);
+  },
+
   getPayoutsByHost(hostId: string, token: string) {
     return axios.get(`${BASE}/admin/payouts/by-host/${hostId}`, { headers: authHeaders(token) }).then(r => r.data).catch(() => []);
   },
