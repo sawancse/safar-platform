@@ -16,6 +16,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.Set;
 
@@ -23,6 +26,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class JwtAuthFilter implements GlobalFilter, Ordered {
 
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthFilter.class);
     private final JwtUtil jwtUtil;
 
     // Paths that never require a token
@@ -47,31 +51,35 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange);
         }
 
-        if (isPublic(path, method)) {
-            return chain.filter(exchange);
-        }
+        boolean publicPath = isPublic(path, method);
+        log.info("AUTH CHECK: {} {} → public={}", method, path, publicPath);
 
+        // Attempt JWT processing — propagate user identity even on public paths
         List<String> authHeaders = request.getHeaders().get(HttpHeaders.AUTHORIZATION);
-        if (authHeaders == null || authHeaders.isEmpty()) {
+        if (authHeaders != null && !authHeaders.isEmpty()) {
+            String bearer = authHeaders.get(0);
+            if (bearer.startsWith("Bearer ")) {
+                try {
+                    Claims claims = jwtUtil.validateToken(bearer.substring(7));
+                    ServerHttpRequest mutated = request.mutate()
+                            .header("X-User-Id", claims.getSubject())
+                            .header("X-User-Role", jwtUtil.extractRole(claims))
+                            .build();
+                    return chain.filter(exchange.mutate().request(mutated).build());
+                } catch (JwtException e) {
+                    if (!publicPath) {
+                        return onError(exchange, HttpStatus.UNAUTHORIZED);
+                    }
+                    // Public path with invalid token — proceed without auth headers
+                }
+            } else if (!publicPath) {
+                return onError(exchange, HttpStatus.UNAUTHORIZED);
+            }
+        } else if (!publicPath) {
             return onError(exchange, HttpStatus.UNAUTHORIZED);
         }
 
-        String bearer = authHeaders.get(0);
-        if (!bearer.startsWith("Bearer ")) {
-            return onError(exchange, HttpStatus.UNAUTHORIZED);
-        }
-
-        try {
-            Claims claims = jwtUtil.validateToken(bearer.substring(7));
-            // Propagate user identity to downstream services via headers
-            ServerHttpRequest mutated = request.mutate()
-                    .header("X-User-Id", claims.getSubject())
-                    .header("X-User-Role", jwtUtil.extractRole(claims))
-                    .build();
-            return chain.filter(exchange.mutate().request(mutated).build());
-        } catch (JwtException e) {
-            return onError(exchange, HttpStatus.UNAUTHORIZED);
-        }
+        return chain.filter(exchange);
     }
 
     private boolean isPublic(String path, HttpMethod method) {
@@ -117,15 +125,22 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         // Builder projects — public read (browse, detail, unit types, construction updates)
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/builder-projects")
                 && !path.contains("/my-projects") && !path.contains("/admin")) return true;
+        // Localities — public read + bulk-import (seed script, no user auth)
+        if (path.startsWith("/api/v1/localities")) return true;
         // Safar Cooks — public browse and chef profiles (exclude admin)
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/chefs")
                 && !path.contains("/admin")) return true;
         // Chef event pricing — public read (exclude admin and /me)
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/chef-events/pricing")
                 && !path.contains("/admin") && !path.contains("/me")) return true;
-        // Chef event inquiry — allow guests to request a quote without login
-        if (HttpMethod.POST.equals(method) && path.equals("/api/v1/chef-events")) return true;
-        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/chef-events/")) return true;
+        // Chef events — public browse only (creating requires auth)
+        if (HttpMethod.GET.equals(method) && (path.equals("/api/v1/chef-events") || path.startsWith("/api/v1/chef-events/"))
+                && !path.contains("/my") && !path.contains("/chef")) return true;
+        // Chef bookings — public read for single booking detail, tracking & invoices
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/chef-bookings/")
+                && !path.contains("/my") && !path.contains("/chef")) return true;
+        // Experience reviews — public read
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/reviews/experience")) return true;
         return false;
     }
 
