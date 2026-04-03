@@ -9,12 +9,12 @@ import java.util.UUID;
 
 public interface LocationSuggestionRepository extends JpaRepository<LocationSuggestion, UUID> {
 
-    @Query("SELECT ls FROM LocationSuggestion ls WHERE LOWER(ls.name) LIKE LOWER(CONCAT(:query, '%')) " +
-           "OR LOWER(ls.displayName) LIKE LOWER(CONCAT('%', :query, '%')) " +
+    @Query("SELECT ls FROM LocationSuggestion ls WHERE ls.name LIKE CONCAT(:query, '%') " +
+           "OR ls.displayName LIKE CONCAT('%', :query, '%') " +
            "ORDER BY ls.popularityScore DESC")
     List<LocationSuggestion> findByNamePrefix(String query);
 
-    List<LocationSuggestion> findByCityIgnoreCaseOrderByPopularityScoreDesc(String city);
+    List<LocationSuggestion> findByCityOrderByPopularityScoreDesc(String city);
 
     List<LocationSuggestion> findByTypeOrderByPopularityScoreDesc(String type);
 }

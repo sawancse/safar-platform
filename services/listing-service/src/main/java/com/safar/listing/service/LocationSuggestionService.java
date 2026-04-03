@@ -41,7 +41,7 @@ public class LocationSuggestionService {
     }
 
     public List<LocationSuggestionDto> getByCity(String city) {
-        return locationRepo.findByCityIgnoreCaseOrderByPopularityScoreDesc(city)
+        return locationRepo.findByCityOrderByPopularityScoreDesc(city)
                 .stream().map(this::toDto).toList();
     }
 
