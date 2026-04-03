@@ -1,10 +1,11 @@
 package com.safar.notification.service;
 
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -17,6 +18,9 @@ public class EmailGatewayImpl implements EmailGateway {
     @Value("${notification.from-email}")
     private String fromEmail;
 
+    @Value("${notification.from-name:Safar}")
+    private String fromName;
+
     @Override
     public void send(String to, String subject, String body) {
         if (to == null || to.isBlank()) {
@@ -24,15 +28,16 @@ public class EmailGatewayImpl implements EmailGateway {
             return;
         }
         try {
-            SimpleMailMessage msg = new SimpleMailMessage();
-            msg.setFrom(fromEmail);
-            msg.setTo(to);
-            msg.setSubject(subject);
-            msg.setText(body);
-            mailSender.send(msg);
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            helper.setFrom(fromEmail, fromName);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(body);
+            mailSender.send(message);
             log.info("Email sent to {} | subject: {}", to, subject);
         } catch (Exception e) {
-            log.warn("Failed to send email to {}: {}", to, e.getMessage());
+            log.error("Failed to send email to {}: {}", to, e.getMessage(), e);
         }
     }
 }

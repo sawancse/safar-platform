@@ -81,5 +81,7 @@ public record BookingResponse(
         // Multi-room-type selections
         List<BookingRoomSelectionResponse> roomSelections,
         // Guest list
-        List<BookingGuestResponse> guests
+        List<BookingGuestResponse> guests,
+        // Pricing unit
+        String pricingUnit
 ) {}

@@ -130,6 +130,33 @@ export default function HostNewListingScreen() {
     }
   };
 
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please grant camera access to take photos.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      const newPhotos: PhotoItem[] = result.assets.map((a) => ({
+        uri: a.uri,
+        category: 'EXTERIOR' as PhotoCategory,
+      }));
+      setPhotos((prev) => [...prev, ...newPhotos]);
+    }
+  };
+
+  const showPhotoOptions = () => {
+    Alert.alert('Add Photo', 'Choose an option', [
+      { text: 'Take Photo', onPress: takePhoto },
+      { text: 'Choose from Gallery', onPress: pickPhotos },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
   const removePhoto = (index: number) => {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
@@ -413,7 +440,7 @@ export default function HostNewListingScreen() {
         Add photos to showcase your property. Assign a category to each.
       </Text>
 
-      <TouchableOpacity style={styles.addPhotoBtn} onPress={pickPhotos} activeOpacity={0.7}>
+      <TouchableOpacity style={styles.addPhotoBtn} onPress={showPhotoOptions} activeOpacity={0.7}>
         <Text style={styles.addPhotoBtnText}>+ Add Photos</Text>
       </TouchableOpacity>
 

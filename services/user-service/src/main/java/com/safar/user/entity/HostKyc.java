@@ -51,6 +51,19 @@ public class HostKyc {
     @Builder.Default
     private Boolean panVerified = false;
 
+    // Document uploads
+    @Column(name = "aadhaar_front_url", length = 500)
+    private String aadhaarFrontUrl;
+
+    @Column(name = "aadhaar_back_url", length = 500)
+    private String aadhaarBackUrl;
+
+    @Column(name = "pan_url", length = 500)
+    private String panUrl;
+
+    @Column(name = "selfie_url", length = 500)
+    private String selfieUrl;
+
     // Step 2: Address
     @Column(name = "address_line1")
     private String addressLine1;
@@ -80,6 +93,9 @@ public class HostKyc {
     @Column(name = "bank_verified")
     @Builder.Default
     private Boolean bankVerified = false;
+
+    @Column(name = "razorpay_linked_account_id", length = 100)
+    private String razorpayLinkedAccountId;
 
     // Step 4: Business (optional)
     @Column(length = 15)

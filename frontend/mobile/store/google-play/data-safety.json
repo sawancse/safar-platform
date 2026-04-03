@@ -1,0 +1,29 @@
+{
+  "_comment": "Google Play Data Safety Form - use this as reference when filling the form in Play Console",
+  "dataCollected": {
+    "personalInfo": {
+      "name": { "collected": true, "shared": false, "purpose": ["App functionality", "Account management"] },
+      "email": { "collected": true, "shared": false, "purpose": ["App functionality", "Account management"] },
+      "phone": { "collected": true, "shared": false, "purpose": ["App functionality", "Account management"] },
+      "address": { "collected": false }
+    },
+    "financialInfo": {
+      "paymentInfo": { "collected": true, "shared": true, "sharedWith": "Razorpay (payment processor)", "purpose": ["App functionality"] },
+      "purchaseHistory": { "collected": true, "shared": false, "purpose": ["App functionality"] }
+    },
+    "location": {
+      "approximateLocation": { "collected": true, "shared": false, "purpose": ["App functionality"], "optional": true },
+      "preciseLocation": { "collected": true, "shared": false, "purpose": ["App functionality"], "optional": true }
+    },
+    "photosAndVideos": {
+      "photos": { "collected": true, "shared": false, "purpose": ["App functionality"], "optional": true }
+    },
+    "deviceInfo": {
+      "deviceId": { "collected": true, "shared": false, "purpose": ["App functionality", "Analytics"] }
+    }
+  },
+  "securityPractices": {
+    "dataEncrypted": true,
+    "dataCanBeDeleted": true
+  }
+}

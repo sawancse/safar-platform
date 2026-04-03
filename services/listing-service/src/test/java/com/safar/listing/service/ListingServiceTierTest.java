@@ -46,7 +46,9 @@ class ListingServiceTierTest {
                 null, null, null, null,
                 null, null, null, null,
                 // PG/Co-living fields
-                null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                // Insurance
+                null, null, null,
                 // Hotel fields
                 null, null, null, null);
     }
@@ -103,7 +105,9 @@ class ListingServiceTierTest {
                 null, null, null, null,
                 null, null, null, null,
                 // PG/Co-living fields
-                null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                // Insurance
+                null, null, null,
                 // Hotel fields
                 null, null, null, null);
 
@@ -132,7 +136,9 @@ class ListingServiceTierTest {
                 null, null, null, null,
                 null, null, null, null,
                 // PG/Co-living fields
-                null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                // Insurance
+                null, null, null,
                 // Hotel fields
                 null, null, null, null);
 

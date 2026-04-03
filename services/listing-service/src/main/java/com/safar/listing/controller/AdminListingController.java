@@ -1,8 +1,11 @@
 package com.safar.listing.controller;
 
+import com.safar.listing.client.HostKycClient;
 import com.safar.listing.dto.ListingResponse;
+import com.safar.listing.entity.Listing;
 import com.safar.listing.entity.enums.ArchiveReason;
 import com.safar.listing.entity.enums.ListingStatus;
+import com.safar.listing.repository.ListingRepository;
 import com.safar.listing.service.ListingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,13 +23,38 @@ import java.util.UUID;
 public class AdminListingController {
 
     private final ListingService listingService;
+    private final ListingRepository listingRepository;
+    private final HostKycClient hostKycClient;
 
     @PutMapping("/{id}/verify")
     public ResponseEntity<ListingResponse> verify(Authentication auth,
                                                    @PathVariable UUID id,
-                                                   @RequestParam(required = false) String notes) {
+                                                   @RequestParam(required = false) String notes,
+                                                   @RequestParam(defaultValue = "false") boolean skipKycCheck) {
         requireAdmin(auth);
+        // Check host KYC status before allowing verification
+        if (!skipKycCheck) {
+            Listing listing = listingRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Listing not found: " + id));
+            Map<String, Object> kycInfo = hostKycClient.getKycStatus(listing.getHostId());
+            boolean kycVerified = Boolean.TRUE.equals(kycInfo.get("verified"));
+            String kycStatus = String.valueOf(kycInfo.get("status"));
+            if (!kycVerified && !"UNKNOWN".equals(kycStatus)) {
+                throw new IllegalStateException(
+                        "Cannot verify listing: host identity not verified (KYC status: " + kycStatus + "). "
+                        + "Host must complete identity verification before their listing can go live.");
+            }
+        }
         return ResponseEntity.ok(listingService.verifyListing(id, notes));
+    }
+
+    /** Get host KYC info for a listing (admin use) */
+    @GetMapping("/{id}/host-kyc")
+    public ResponseEntity<Map<String, Object>> getHostKyc(Authentication auth, @PathVariable UUID id) {
+        requireAdmin(auth);
+        Listing listing = listingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Listing not found: " + id));
+        return ResponseEntity.ok(hostKycClient.getKycStatus(listing.getHostId()));
     }
 
     @PutMapping("/{id}/reject")

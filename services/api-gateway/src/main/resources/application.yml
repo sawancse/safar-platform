@@ -315,6 +315,12 @@ spring:
           predicates:
             - Path=/api/v1/admin/payouts/**,/api/v1/admin/settlements/**,/api/v1/admin/reconciliation/**,/api/v1/admin/commission/**
 
+        # ── Internal: booking-service ────────────────────────────────────────
+        - id: internal-booking-service
+          uri: http://${BOOKING_SERVICE_HOST:localhost}:8095
+          predicates:
+            - Path=/api/v1/internal/bookings/**
+
         # ── Admin: bookings & guests (booking-service) ───────────────────────
         - id: admin-booking-service
           uri: http://${BOOKING_SERVICE_HOST:localhost}:8095

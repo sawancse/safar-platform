@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card, Row, Col, Statistic, Table, Tag, Tabs } from 'antd';
+import { Card, Row, Col, Statistic, Table, Tag, Tabs, Button, Popconfirm, message } from 'antd';
 import { BankOutlined, CheckCircleOutlined, ClockCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { adminApi } from '../lib/api';
 
@@ -27,16 +27,19 @@ export default function PayoutsPage() {
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('ALL');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const token = localStorage.getItem('admin_token') || '';
 
-  useEffect(() => {
+  const reload = () => {
     setLoading(true);
     adminApi.getRecentPayouts(token)
       .then(data => setPayouts(Array.isArray(data) ? data : []))
       .catch(() => setPayouts([]))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { reload(); }, []);
 
   const filtered = activeTab === 'ALL' ? payouts : payouts.filter(p => p.status === activeTab);
 
@@ -44,6 +47,32 @@ export default function PayoutsPage() {
   const completedCount = payouts.filter(p => p.status === 'COMPLETED').length;
   const failedCount = payouts.filter(p => p.status === 'FAILED').length;
   const totalPaidPaise = payouts.filter(p => p.status === 'COMPLETED').reduce((s, p) => s + p.netAmountPaise, 0);
+
+  const handleProcessSettlement = async (bookingId: string) => {
+    setActionLoading(bookingId);
+    try {
+      await adminApi.processSettlementByBooking(bookingId, token);
+      message.success('Settlement processed successfully');
+      reload();
+    } catch (e: any) {
+      message.error(e?.response?.data?.detail || 'Settlement processing failed');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRetryPayout = async (payoutId: string) => {
+    setActionLoading(payoutId);
+    try {
+      await adminApi.retryPayout(payoutId, token);
+      message.success('Payout queued for retry');
+      setPayouts(prev => prev.map(p => p.id === payoutId ? { ...p, status: 'PENDING', failureReason: '' } : p));
+    } catch (e: any) {
+      message.error(e?.response?.data?.detail || 'Retry failed');
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const columns = [
     { title: 'Host ID', dataIndex: 'hostId', key: 'host',
@@ -68,6 +97,28 @@ export default function PayoutsPage() {
       render: (d: string) => d ? new Date(d).toLocaleDateString('en-IN') : '-' },
     { title: 'Failure Reason', dataIndex: 'failureReason', key: 'failure',
       render: (r: string) => r ? <span style={{ color: '#ff4d4f', fontSize: 12 }}>{r}</span> : '-' },
+    {
+      title: 'Action', key: 'action', width: 130,
+      render: (_: any, r: Payout) => {
+        if (r.status === 'PENDING') return (
+          <Popconfirm title="Process this settlement manually?" okText="Yes, Process"
+            onConfirm={() => handleProcessSettlement(r.bookingId)}>
+            <Button size="small" type="primary" loading={actionLoading === r.bookingId}>
+              Settle
+            </Button>
+          </Popconfirm>
+        );
+        if (r.status === 'FAILED') return (
+          <Popconfirm title="Retry this failed payout?" okText="Yes, Retry"
+            onConfirm={() => handleRetryPayout(r.id)}>
+            <Button size="small" danger loading={actionLoading === r.id}>
+              Retry
+            </Button>
+          </Popconfirm>
+        );
+        return null;
+      },
+    },
   ];
 
   return (
@@ -117,6 +168,7 @@ export default function PayoutsPage() {
         loading={loading}
         pagination={{ pageSize: 20, showSizeChanger: true }}
         locale={{ emptyText: 'No payouts yet' }}
+        scroll={{ x: 1100 }}
       />
     </div>
   );

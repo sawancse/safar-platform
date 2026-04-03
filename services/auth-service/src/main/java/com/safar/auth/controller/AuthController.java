@@ -149,4 +149,17 @@ public class AuthController {
             @RequestParam String email) {
         return ResponseEntity.ok(passwordService.checkMethod(email));
     }
+
+    // ── Admin impersonation (login as user for support) ────────────────
+    @PostMapping("/admin/impersonate")
+    public ResponseEntity<AuthResponse> impersonate(
+            @RequestHeader("X-User-Id") UUID adminId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestBody Map<String, String> body) {
+        if (!"ADMIN".equals(role)) {
+            return ResponseEntity.status(403).build();
+        }
+        UUID targetUserId = UUID.fromString(body.get("targetUserId"));
+        return ResponseEntity.ok(authService.impersonate(adminId, targetUserId));
+    }
 }

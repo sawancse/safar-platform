@@ -13,6 +13,16 @@ public class KafkaTopicConfig {
     }
 
     @Bean
+    public NewTopic paymentReminderTopic() {
+        return new NewTopic("payment.reminder", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic paymentReminderUrgentTopic() {
+        return new NewTopic("payment.reminder.urgent", 1, (short) 1);
+    }
+
+    @Bean
     public NewTopic bookingCreatedTopic() {
         return new NewTopic("booking.created", 1, (short) 1);
     }
@@ -95,5 +105,85 @@ public class KafkaTopicConfig {
     @Bean
     public NewTopic cleaningJobCompletedTopic() {
         return new NewTopic("cleaning.job.completed", 1, (short) 1);
+    }
+
+    // --- PG Agreement topics ---
+
+    @Bean
+    public NewTopic tenancyAgreementCreatedTopic() {
+        return new NewTopic("tenancy.agreement.created", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic tenancyAgreementHostSignedTopic() {
+        return new NewTopic("tenancy.agreement.host-signed", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic tenancyAgreementActiveTopic() {
+        return new NewTopic("tenancy.agreement.active", 1, (short) 1);
+    }
+
+    // --- PG Subscription topics ---
+
+    @Bean
+    public NewTopic tenancySubscriptionCreatedTopic() {
+        return new NewTopic("tenancy.subscription.created", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic tenancySubscriptionAuthenticatedTopic() {
+        return new NewTopic("tenancy.subscription.authenticated", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic tenancySubscriptionChargedTopic() {
+        return new NewTopic("tenancy.subscription.charged", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic tenancySubscriptionHaltedTopic() {
+        return new NewTopic("tenancy.subscription.halted", 1, (short) 1);
+    }
+
+    // --- PG Settlement topics ---
+
+    @Bean
+    public NewTopic tenancySettlementInitiatedTopic() {
+        return new NewTopic("tenancy.settlement.initiated", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic tenancySettlementApprovedTopic() {
+        return new NewTopic("tenancy.settlement.approved", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic tenancySettledTopic() {
+        return new NewTopic("tenancy.settled", 1, (short) 1);
+    }
+
+    // --- PG Invoice & Maintenance topics ---
+
+    @Bean
+    public NewTopic tenancyInvoiceOverdueTopic() {
+        return new NewTopic("tenancy.invoice.overdue", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic maintenanceRequestCreatedTopic() {
+        return new NewTopic("maintenance.request.created", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic maintenanceRequestResolvedTopic() {
+        return new NewTopic("maintenance.request.resolved", 1, (short) 1);
+    }
+
+    // --- Host Payout topic (booking → payment) ---
+
+    @Bean
+    public NewTopic tenancyRentCollectedTopic() {
+        return new NewTopic("tenancy.rent.collected", 1, (short) 1);
     }
 }

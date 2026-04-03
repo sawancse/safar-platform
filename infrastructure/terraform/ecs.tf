@@ -102,6 +102,7 @@ resource "aws_ecs_task_definition" "services" {
         { name = "NOTIFICATION_SERVICE_HOST", value = "notification-service.safar.local" },
         { name = "MESSAGING_SERVICE_HOST", value = "messaging-service.safar.local" },
         { name = "AI_SERVICE_HOST", value = "ai-service.safar.local" },
+        { name = "CHEF_SERVICE_HOST", value = "chef-service.safar.local" },
       ],
       # Database config (application-prod.yml uses DB_URL, DB_USERNAME)
       contains(keys(local.db_schemas), each.key) ? [
@@ -121,7 +122,8 @@ resource "aws_ecs_task_definition" "services" {
       contains(["auth-service", "notification-service"], each.key) ? [
         { name = "SPRING_MAIL_HOST", value = "smtp.gmail.com" },
         { name = "SPRING_MAIL_PORT", value = "587" },
-        { name = "NOTIFICATION_FROM_EMAIL", value = "noreply@ysafar.com" },
+        { name = "NOTIFICATION_FROM_EMAIL", value = "sawank.sit@gmail.com" },
+        { name = "NOTIFICATION_BASE_URL", value = "https://ysafar.com" },
       ] : [],
       # S3/CDN for media-service and listing-service
       contains(["media-service", "listing-service"], each.key) ? [

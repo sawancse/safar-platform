@@ -9,19 +9,20 @@ spring:
     connection-timeout: 5s
     socket-timeout: 30s
 
+spring.kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  consumer:
+    group-id: search-service
+    auto-offset-reset: earliest
+    max-poll-records: 100
+    properties:
+      fetch.max.bytes: 5242880
+      max.partition.fetch.bytes: 1048576
+
 elasticsearch:
   index:
     shards: ${ES_INDEX_SHARDS:1}
     replicas: ${ES_INDEX_REPLICAS:0}
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
-    consumer:
-      group-id: search-service
-      auto-offset-reset: earliest
-      max-poll-records: 100
-      properties:
-        fetch.max.bytes: 5242880
-        max.partition.fetch.bytes: 1048576
 
 jwt:
   secret: ${JWT_SECRET:l0UNaBuoYCf7Y/G8G1bihPxkUI7NZuPaZdzTbbEYqzM=}

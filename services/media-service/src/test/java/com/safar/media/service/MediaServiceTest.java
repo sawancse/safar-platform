@@ -21,6 +21,7 @@ import static org.mockito.Mockito.*;
 class MediaServiceTest {
 
     @Mock S3Gateway s3Gateway;
+    @Mock ImageResizeService imageResizeService;
     @Mock KafkaTemplate<String, String> kafka;
 
     @InjectMocks MediaService mediaService;
@@ -80,13 +81,33 @@ class MediaServiceTest {
     }
 
     @Test
-    void confirmUpload_photo_noDurationCheck_succeeds() {
+    void confirmUpload_photo_withResizeEnabled_generatesThumb() {
+        when(imageResizeService.isEnabled()).thenReturn(true);
+        when(imageResizeService.resize(anyString(), anyString()))
+                .thenReturn("https://cdn.test.safar.in/listings/photo/test_thumb.jpg");
+
         ConfirmUploadRequest req = new ConfirmUploadRequest(
                 UUID.randomUUID(), listingId, "listings/" + listingId + "/photo/test",
                 "PHOTO", 0);
 
         mediaService.confirmUpload(req);
 
+        verify(imageResizeService).resize(eq(req.s3Key()), eq("cdn.test.safar.in"));
+        verify(kafka).send(eq("media.uploaded"), eq(listingId.toString()),
+                argThat(event -> event.contains("thumbUrl") && event.contains("_thumb")));
+    }
+
+    @Test
+    void confirmUpload_photo_withResizeDisabled_skipsResize() {
+        when(imageResizeService.isEnabled()).thenReturn(false);
+
+        ConfirmUploadRequest req = new ConfirmUploadRequest(
+                UUID.randomUUID(), listingId, "listings/" + listingId + "/photo/test",
+                "PHOTO", 0);
+
+        mediaService.confirmUpload(req);
+
+        verify(imageResizeService, never()).resize(anyString(), anyString());
         verify(kafka).send(eq("media.uploaded"), eq(listingId.toString()), anyString());
     }
 

@@ -43,14 +43,15 @@ locals {
   db_services = toset([
     "auth-service", "user-service", "listing-service",
     "booking-service", "payment-service", "review-service",
-    "notification-service", "messaging-service"
+    "notification-service", "messaging-service", "chef-service"
   ])
 
   # Services that need Kafka
   kafka_services = toset([
     "listing-service", "booking-service", "payment-service",
     "media-service", "search-service", "review-service",
-    "notification-service", "messaging-service", "user-service"
+    "notification-service", "messaging-service", "user-service",
+    "chef-service"
   ])
 
   # Schema mapping per service
@@ -63,5 +64,6 @@ locals {
     "review-service"       = "reviews"
     "notification-service" = "notifications"
     "messaging-service"    = "messages"
+    "chef-service"         = "chefs"
   }
 }

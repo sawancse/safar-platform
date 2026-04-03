@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
@@ -26,8 +27,8 @@ public class S3StorageService {
     public S3StorageService(
             @Value("${aws.s3.bucket}") String bucket,
             @Value("${aws.s3.region}") String region,
-            @Value("${aws.s3.access-key}") String accessKey,
-            @Value("${aws.s3.secret-key}") String secretKey,
+            @Value("${aws.s3.access-key:}") String accessKey,
+            @Value("${aws.s3.secret-key:}") String secretKey,
             @Value("${aws.cloudfront.domain}") String cdnDomain) {
         this.bucket = bucket;
         this.cdnDomain = cdnDomain;
@@ -38,8 +39,12 @@ public class S3StorageService {
                             AwsBasicCredentials.create(accessKey, secretKey)))
                     .build();
         } else {
-            log.warn("AWS credentials not configured — S3 uploads will be disabled (local dev mode)");
-            this.s3Client = null;
+            // Use IAM task role on ECS (default credential chain)
+            this.s3Client = S3Client.builder()
+                    .region(Region.of(region))
+                    .credentialsProvider(DefaultCredentialsProvider.create())
+                    .build();
+            log.info("Using default AWS credential chain (IAM task role) for S3");
         }
     }
 

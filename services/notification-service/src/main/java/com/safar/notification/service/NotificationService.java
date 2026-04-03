@@ -3,6 +3,7 @@ package com.safar.notification.service;
 import com.safar.notification.dto.EmailContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -21,6 +22,9 @@ public class NotificationService {
     private final JourneyChapterService journeyChapterService;
     private final EmailSchedulerService emailSchedulerService;
     private final EmailContextBuilder emailContextBuilder;
+
+    @Value("${notification.base-url}")
+    private String baseUrl;
 
     // ────────────────────────────────────────────────────────────
     // Booking Created
@@ -343,7 +347,7 @@ public class NotificationService {
                     "Payment Failed — " + booking.bookingRef(),
                     String.format("Hi %s,\n\nPayment for booking %s failed.\n\n" +
                             "Please retry your payment from your dashboard:\n" +
-                            "http://localhost:3000/dashboard\n\n" +
+                            "https://ysafar.com/dashboard\n\n" +
                             "Your booking will be held for 24 hours. After that, it will be automatically cancelled.\n\n" +
                             "Safar Team",
                             booking.guestName(), booking.bookingRef()));
@@ -530,7 +534,7 @@ public class NotificationService {
                 "Hi %s,\n\n" +
                 "Your booking %s is awaiting payment of %s.\n\n" +
                 "%s\n\n" +
-                "Complete your payment: http://localhost:3000/dashboard\n\n" +
+                "Complete your payment: " + baseUrl + "/dashboard\n\n" +
                 "If you've already paid, please ignore this email.\n\n" +
                 "Safar Team",
                 guestName, bookingRef, totalFormatted, urgencyLine);

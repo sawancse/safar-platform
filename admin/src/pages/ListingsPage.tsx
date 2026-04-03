@@ -4,9 +4,10 @@ import {
   message, Tooltip, Spin, Row, Col, Card, Image, Badge,
 } from 'antd';
 import {
-  CheckCircleOutlined, CloseCircleOutlined,
+  CheckCircleOutlined, CloseCircleOutlined, DeleteOutlined,
   CameraOutlined, VideoCameraOutlined, FlagOutlined,
   WarningOutlined, SafetyCertificateOutlined,
+  ExclamationCircleOutlined, UserOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { adminApi } from '../lib/api';
@@ -16,6 +17,7 @@ const { TextArea } = Input;
 
 interface Listing {
   id: string;
+  hostId: string;
   title: string;
   city: string;
   state: string;
@@ -23,6 +25,16 @@ interface Listing {
   status: string;
   basePricePaise: number;
   createdAt: string;
+}
+
+interface Host {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  subscriptionTier?: string;
+  kycStatus?: string;
+  createdAt?: string;
 }
 
 interface MediaItem {
@@ -49,11 +61,52 @@ function getAiBadge(index: number, totalCount: number): { text: string; color: s
   return null;
 }
 
-function MediaReviewPanel({ listing }: { listing: Listing }) {
+function HostIdentityCard({ kycInfo }: { kycInfo: any }) {
+  if (!kycInfo) return <Card size="small" loading style={{ marginBottom: 12 }} />;
+  const verified = kycInfo.verified;
+  const status = kycInfo.status;
+  return (
+    <Card size="small" title={<><UserOutlined /> Host Identity</>}
+      style={{ marginBottom: 12, borderColor: verified ? '#52c41a' : '#faad14' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: verified ? '#f6ffed' : '#fff7e6', border: `2px solid ${verified ? '#52c41a' : '#faad14'}`, fontSize: 20,
+        }}>
+          {verified ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> : <ExclamationCircleOutlined style={{ color: '#faad14' }} />}
+        </div>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>{kycInfo.fullLegalName || kycInfo.hostName || '—'}</div>
+          <Tag color={verified ? 'green' : status === 'SUBMITTED' ? 'blue' : status === 'REJECTED' ? 'red' : 'orange'}>
+            {status === 'VERIFIED' ? 'Identity Verified' : status === 'SUBMITTED' ? 'Under Review' : status === 'REJECTED' ? 'Rejected' : 'Not Verified'}
+          </Tag>
+        </div>
+      </div>
+      {kycInfo.hostPhone && <p style={{ margin: '2px 0', fontSize: 13 }}><Text strong>Phone:</Text> <a href={`tel:${kycInfo.hostPhone}`}>{kycInfo.hostPhone}</a></p>}
+      {kycInfo.hostEmail && <p style={{ margin: '2px 0', fontSize: 13 }}><Text strong>Email:</Text> {kycInfo.hostEmail}</p>}
+      <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+        <Tag icon={kycInfo.aadhaarVerified ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
+          color={kycInfo.aadhaarVerified ? 'green' : 'default'}>Aadhaar</Tag>
+        <Tag icon={kycInfo.panVerified ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
+          color={kycInfo.panVerified ? 'green' : 'default'}>PAN</Tag>
+        <Tag icon={kycInfo.bankVerified ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
+          color={kycInfo.bankVerified ? 'green' : 'default'}>Bank</Tag>
+      </div>
+      {!verified && (
+        <div style={{ marginTop: 8, padding: '6px 10px', background: '#fff7e6', borderRadius: 6, fontSize: 12, color: '#ad6800' }}>
+          Host must complete identity verification before listing can be approved.
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function MediaReviewPanel({ listing, host }: { listing: Listing; host?: Host }) {
   const token = localStorage.getItem('admin_token') ?? '';
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [flagged, setFlagged] = useState<Set<string>>(new Set());
+  const [kycInfo, setKycInfo] = useState<any>(null);
 
   useEffect(() => {
     // Check cache first
@@ -74,6 +127,11 @@ function MediaReviewPanel({ listing }: { listing: Listing }) {
         setMedia([]);
       })
       .finally(() => setLoading(false));
+
+    // Fetch host KYC info
+    adminApi.getHostKyc(listing.id, token)
+      .then(({ data }) => setKycInfo(data))
+      .catch(() => setKycInfo({ status: 'UNKNOWN', verified: false }));
   }, [listing.id, token]);
 
   const toggleFlag = useCallback((mediaId: string) => {
@@ -101,6 +159,7 @@ function MediaReviewPanel({ listing }: { listing: Listing }) {
     <Row gutter={16} style={{ padding: '16px 0' }}>
       {/* Left: Listing details */}
       <Col xs={24} md={8}>
+        <HostIdentityCard kycInfo={kycInfo} />
         <Card size="small" title="Listing Details" style={{ marginBottom: 12 }}>
           <p><Text strong>Title:</Text> {listing.title}</p>
           <p><Text strong>Location:</Text> {listing.city}, {listing.state}</p>
@@ -108,6 +167,20 @@ function MediaReviewPanel({ listing }: { listing: Listing }) {
           <p><Text strong>Price:</Text> {`\u20B9${(listing.basePricePaise / 100).toLocaleString('en-IN')}`}/night</p>
           <p><Text strong>Status:</Text> <Tag color="gold">{listing.status}</Tag></p>
           <p><Text strong>Submitted:</Text> {new Date(listing.createdAt).toLocaleDateString('en-IN')}</p>
+          <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 8, marginTop: 8 }}>
+            <Text strong style={{ fontSize: 13, color: '#1f2937' }}>Host Details</Text>
+            {host ? (
+              <>
+                <p><Text strong>Name:</Text> {host.name || '—'}</p>
+                {host.phone && <p><Text strong>Phone:</Text> <a href={`tel:${host.phone}`}>{host.phone}</a></p>}
+                {host.email && <p><Text strong>Email:</Text> <a href={`mailto:${host.email}`}>{host.email}</a></p>}
+                {host.subscriptionTier && <p><Text strong>Tier:</Text> <Tag color="blue">{host.subscriptionTier}</Tag></p>}
+                {host.kycStatus && <p><Text strong>KYC:</Text> <Tag color={host.kycStatus === 'VERIFIED' ? 'green' : 'orange'}>{host.kycStatus}</Tag></p>}
+              </>
+            ) : (
+              <p><Text type="secondary">Host ID: {listing.hostId}</Text></p>
+            )}
+          </div>
           <p>
             <Text strong>Media:</Text>{' '}
             <Tag icon={<CameraOutlined />} color="blue">{photos.length} photo{photos.length !== 1 ? 's' : ''}</Tag>
@@ -187,6 +260,26 @@ function MediaReviewPanel({ listing }: { listing: Listing }) {
                                   onClick={() => toggleFlag(photo.id)}
                                 />
                               </Tooltip>,
+                              <Tooltip key="delete" title="Delete photo">
+                                <DeleteOutlined
+                                  style={{ color: '#ff4d4f' }}
+                                  onClick={() => {
+                                    Modal.confirm({
+                                      title: 'Delete this photo?',
+                                      content: 'This action cannot be undone.',
+                                      okText: 'Delete',
+                                      okType: 'danger',
+                                      onOk: async () => {
+                                        try {
+                                          await adminApi.deleteListingMedia(listing.id, photo.id, token);
+                                          setMedia(prev => prev.filter(m => m.id !== photo.id));
+                                          message.success('Photo deleted');
+                                        } catch { message.error('Failed to delete photo'); }
+                                      },
+                                    });
+                                  }}
+                                />
+                              </Tooltip>,
                             ]}
                           />
                         </Col>
@@ -228,6 +321,26 @@ function MediaReviewPanel({ listing }: { listing: Listing }) {
                               <FlagOutlined
                                 style={{ color: isFlagged ? '#ff4d4f' : undefined }}
                                 onClick={() => toggleFlag(video.id)}
+                              />
+                            </Tooltip>,
+                            <Tooltip key="delete" title="Delete video">
+                              <DeleteOutlined
+                                style={{ color: '#ff4d4f' }}
+                                onClick={() => {
+                                  Modal.confirm({
+                                    title: 'Delete this video?',
+                                    content: 'This action cannot be undone.',
+                                    okText: 'Delete',
+                                    okType: 'danger',
+                                    onOk: async () => {
+                                      try {
+                                        await adminApi.deleteListingMedia(listing.id, video.id, token);
+                                        setMedia(prev => prev.filter(m => m.id !== video.id));
+                                        message.success('Video deleted');
+                                      } catch { message.error('Failed to delete video'); }
+                                    },
+                                  });
+                                }}
                               />
                             </Tooltip>,
                           ]}
@@ -287,6 +400,8 @@ export default function ListingsPage() {
   const [suspendNote, setSuspendNote] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [mediaCounts, setMediaCounts] = useState<Record<string, { photos: number; videos: number }>>({});
+  const [hostsMap, setHostsMap] = useState<Record<string, Host>>({});
+  const [kycMap, setKycMap] = useState<Record<string, any>>({});
 
   function reload() {
     setLoading(true);
@@ -303,6 +418,12 @@ export default function ListingsPage() {
       })
       .then(({ data }) => {
         setListings(data);
+        // Fetch KYC status for pending listings
+        data.filter((l: Listing) => l.status === 'PENDING_VERIFICATION').forEach((listing: Listing) => {
+          adminApi.getHostKyc(listing.id, token)
+            .then(({ data: kyc }) => setKycMap(prev => ({ ...prev, [listing.id]: kyc })))
+            .catch(() => {});
+        });
         // Fetch media counts for all listings
         data.forEach((listing: Listing) => {
           adminApi.getListingMedia(listing.id, token)
@@ -326,6 +447,18 @@ export default function ListingsPage() {
   }
 
   useEffect(() => { reload(); }, [token, activeTab]);
+
+  // Fetch hosts once for cross-referencing
+  useEffect(() => {
+    if (!token) return;
+    adminApi.getHosts(token)
+      .then(({ data }) => {
+        const map: Record<string, Host> = {};
+        data.forEach((h: Host) => { map[h.id] = h; });
+        setHostsMap(map);
+      })
+      .catch(() => {});
+  }, [token]);
 
   async function handleVerify(id: string) {
     setActionLoading(true);
@@ -403,6 +536,22 @@ export default function ListingsPage() {
       width: 140,
     },
     {
+      title: 'Host',
+      width: 160,
+      render: (_, r) => {
+        const host = hostsMap[r.hostId];
+        return host ? (
+          <div>
+            <div style={{ fontWeight: 600 }}>{host.name || '—'}</div>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>{host.phone || host.email || '—'}</div>
+            {host.kycStatus && <Tag color={host.kycStatus === 'VERIFIED' ? 'green' : 'orange'} style={{ fontSize: 10, marginTop: 2 }}>{host.kycStatus}</Tag>}
+          </div>
+        ) : (
+          <Text type="secondary" style={{ fontSize: 12 }}>ID: {r.hostId?.slice(0, 8)}… (loading…)</Text>
+        );
+      },
+    },
+    {
       title: 'Type',
       dataIndex: 'type',
       width: 100,
@@ -465,15 +614,28 @@ export default function ListingsPage() {
         return (
           <Space wrap size={4}>
             {/* PENDING → Verify / Reject */}
-            {s === 'PENDING_VERIFICATION' && (
-              <>
-                <Button type="primary" icon={<CheckCircleOutlined />} size="small"
-                  onClick={(e) => { e.stopPropagation(); handleVerify(record.id); }}
-                  loading={actionLoading}>Verify</Button>
-                <Button danger icon={<CloseCircleOutlined />} size="small"
-                  onClick={(e) => { e.stopPropagation(); setRejectModal({ open: true, id: record.id }); }}>Reject</Button>
-              </>
-            )}
+            {s === 'PENDING_VERIFICATION' && (() => {
+              const kyc = kycMap[record.id];
+              const kycVerified = kyc?.verified === true;
+              const kycStatus = kyc?.status;
+              return (
+                <>
+                  {!kycVerified && kyc && (
+                    <Tooltip title={`Host identity not verified (${kycStatus}). Verify KYC first.`}>
+                      <Tag color="warning" icon={<ExclamationCircleOutlined />} style={{ fontSize: 11 }}>KYC {kycStatus}</Tag>
+                    </Tooltip>
+                  )}
+                  <Tooltip title={!kycVerified && kyc ? 'Host must complete identity verification first' : ''}>
+                    <Button type="primary" icon={<CheckCircleOutlined />} size="small"
+                      disabled={!kycVerified && kyc != null && kycStatus !== 'UNKNOWN'}
+                      onClick={(e) => { e.stopPropagation(); handleVerify(record.id); }}
+                      loading={actionLoading}>Verify</Button>
+                  </Tooltip>
+                  <Button danger icon={<CloseCircleOutlined />} size="small"
+                    onClick={(e) => { e.stopPropagation(); setRejectModal({ open: true, id: record.id }); }}>Reject</Button>
+                </>
+              );
+            })()}
             {/* VERIFIED/PAUSED/REJECTED/DRAFT → Suspend */}
             {['VERIFIED', 'PAUSED', 'REJECTED', 'DRAFT'].includes(s) && (
               <Button size="small" danger type="dashed"
@@ -520,11 +682,11 @@ export default function ListingsPage() {
           columns={columns}
           dataSource={listings}
           rowKey="id"
-          scroll={{ x: 1050 }}
+          scroll={{ x: 1200 }}
           pagination={{ pageSize: 20, showSizeChanger: false }}
           locale={{ emptyText: `No ${activeTab === 'ALL' ? '' : activeTab.toLowerCase().replace('_', ' ') + ' '}listings` }}
           expandable={{
-            expandedRowRender: (record) => <MediaReviewPanel listing={record} />,
+            expandedRowRender: (record) => <MediaReviewPanel listing={record} host={hostsMap[record.hostId]} />,
             rowExpandable: () => true,
           }}
         />

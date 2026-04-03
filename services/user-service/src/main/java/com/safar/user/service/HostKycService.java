@@ -123,10 +123,31 @@ public class HostKycService {
     }
 
     @Transactional
+    public HostKycDto updateDocuments(UUID userId, String aadhaarFrontUrl, String aadhaarBackUrl,
+                                       String panUrl, String selfieUrl) {
+        HostKyc kyc = getOrCreate(userId);
+        if (aadhaarFrontUrl != null) kyc.setAadhaarFrontUrl(aadhaarFrontUrl);
+        if (aadhaarBackUrl != null) kyc.setAadhaarBackUrl(aadhaarBackUrl);
+        if (panUrl != null) kyc.setPanUrl(panUrl);
+        if (selfieUrl != null) kyc.setSelfieUrl(selfieUrl);
+        log.info("Host KYC documents updated for user {}", userId);
+        return toDto(kycRepository.save(kyc));
+    }
+
+    @Transactional
     public HostKycDto submit(UUID userId) {
         HostKyc kyc = getOrCreate(userId);
         if (kyc.getFullLegalName() == null || kyc.getAadhaarNumber() == null || kyc.getPanNumber() == null) {
             throw new IllegalStateException("Identity details are required before submitting KYC");
+        }
+        if (kyc.getAadhaarFrontUrl() == null || kyc.getAadhaarBackUrl() == null) {
+            throw new IllegalStateException("Aadhaar document images (front and back) are required");
+        }
+        if (kyc.getPanUrl() == null) {
+            throw new IllegalStateException("PAN card image is required");
+        }
+        if (kyc.getSelfieUrl() == null) {
+            throw new IllegalStateException("Selfie photo is required for identity verification");
         }
         if (kyc.getBankAccountNumber() == null || kyc.getBankIfsc() == null) {
             throw new IllegalStateException("Bank details are required before submitting KYC");
@@ -260,6 +281,8 @@ public class HostKycService {
                 k.getFullLegalName(), k.getDateOfBirth(),
                 maskedAadhaar, k.getAadhaarVerified(),
                 k.getPanNumber(), k.getPanVerified(),
+                k.getAadhaarFrontUrl(), k.getAadhaarBackUrl(),
+                k.getPanUrl(), k.getSelfieUrl(),
                 k.getAddressLine1(), k.getAddressLine2(),
                 k.getCity(), k.getState(), k.getPincode(),
                 k.getBankAccountName(), maskedAccount,

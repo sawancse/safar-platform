@@ -23,7 +23,9 @@ public class ListingDocument {
 
     private String title;
     private String description;
+    @Field(type = FieldType.Keyword)
     private String type;
+    @Field(type = FieldType.Keyword)
     private String commercialCategory;
     private String city;
     private String state;
@@ -34,8 +36,10 @@ public class ListingDocument {
     private GeoPoint location;
 
     private Long basePricePaise;
+    @Field(type = FieldType.Keyword)
     private String pricingUnit;
     private Integer maxGuests;
+    @Field(type = FieldType.Keyword)
     private List<String> amenities;
 
     private Double avgRating;
@@ -51,9 +55,13 @@ public class ListingDocument {
     private Integer bathrooms;
 
     private Integer starRating;
+    @Field(type = FieldType.Keyword)
     private String cancellationPolicy;
+    @Field(type = FieldType.Keyword)
     private String mealPlan;
+    @Field(type = FieldType.Keyword)
     private List<String> bedTypes;
+    @Field(type = FieldType.Keyword)
     private List<String> accessibilityFeatures;
     private Boolean freeCancellation;
     private Boolean noPrepayment;
@@ -62,11 +70,15 @@ public class ListingDocument {
 
     private Boolean medicalStay;
     private List<String> hospitalNames;
+    @Field(type = FieldType.Keyword)
     private List<String> medicalSpecialties;
+    @Field(type = FieldType.Keyword)
     private List<String> procedureNames;
 
     // PG/Co-living fields
+    @Field(type = FieldType.Keyword)
     private String occupancyType;
+    @Field(type = FieldType.Keyword)
     private String foodType;
     private Long securityDepositPaise;
 

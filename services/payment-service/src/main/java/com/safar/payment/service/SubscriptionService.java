@@ -6,6 +6,7 @@ import com.safar.payment.entity.enums.SubscriptionTier;
 import com.safar.payment.repository.HostInvoiceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -80,26 +81,24 @@ public class SubscriptionService {
     }
 
     private String extractEventType(String payload) {
-        // Simple extraction — production would use ObjectMapper
-        int start = payload.indexOf("\"event\"") + 9;
-        int end = payload.indexOf("\"", start + 1);
-        if (start > 8 && end > start) {
-            return payload.substring(start, end);
+        try {
+            return new JSONObject(payload).getString("event");
+        } catch (Exception e) {
+            log.warn("Failed to extract event type from webhook payload: {}", e.getMessage());
+            return "";
         }
-        return "";
     }
 
     private String extractSubscriptionId(String payload) {
-        // Simplified for MVP — production would use ObjectMapper
-        int idx = payload.indexOf("\"subscription\"");
-        if (idx < 0) return "";
-        int idIdx = payload.indexOf("\"id\"", idx);
-        if (idIdx < 0) return "";
-        int start = payload.indexOf("\"", idIdx + 5);
-        int end = payload.indexOf("\"", start + 1);
-        if (start >= 0 && end > start) {
-            return payload.substring(start + 1, end);
+        try {
+            return new JSONObject(payload)
+                    .getJSONObject("payload")
+                    .getJSONObject("subscription")
+                    .getJSONObject("entity")
+                    .getString("id");
+        } catch (Exception e) {
+            log.warn("Failed to extract subscription ID from webhook payload: {}", e.getMessage());
+            return "";
         }
-        return "";
     }
 }

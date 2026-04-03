@@ -66,6 +66,14 @@ public record UpdateListingRequest(
         String gateClosingTime,
         Integer noticePeriodDays,
         Long securityDepositPaise,
+        String depositType,
+        String depositTerms,
+        Integer gracePeriodDays,
+        Integer latePenaltyBps,
+        // Insurance
+        Boolean insuranceEnabled,
+        Long insuranceAmountPaise,
+        String insuranceType,
         // Hotel fields
         String hotelChain,
         Boolean frontDesk24h,

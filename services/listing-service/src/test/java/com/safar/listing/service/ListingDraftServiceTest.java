@@ -87,7 +87,9 @@ class ListingDraftServiceTest {
                 null, null, null,
                 null, null, // visibilityBoostPercent, preferredPartner
                 // PG/Co-living fields
-                null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                // Insurance
+                null, null, null,
                 // Hotel fields
                 null, null, null, null,
                 // Hotel enhancements

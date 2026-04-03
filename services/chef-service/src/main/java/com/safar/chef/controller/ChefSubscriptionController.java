@@ -1,6 +1,7 @@
 package com.safar.chef.controller;
 
 import com.safar.chef.dto.CreateSubscriptionRequest;
+import com.safar.chef.dto.ModifySubscriptionRequest;
 import com.safar.chef.entity.ChefSubscription;
 import com.safar.chef.service.ChefSubscriptionService;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,14 @@ public class ChefSubscriptionController {
                                                     @RequestParam(required = false) String reason) {
         UUID userId = UUID.fromString(auth.getName());
         return ResponseEntity.ok(subscriptionService.cancelSubscription(userId, id, reason));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ChefSubscription> modify(Authentication auth,
+                                                    @PathVariable UUID id,
+                                                    @RequestBody ModifySubscriptionRequest req) {
+        UUID customerId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(subscriptionService.modifySubscription(customerId, id, req));
     }
 
     @GetMapping("/my")

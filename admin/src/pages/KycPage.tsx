@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Table, Card, Tag, Button, Modal, Input, Space, Tabs,
+  Table, Card, Tag, Button, Modal, Input, Space, Tabs, Image, Typography,
   Statistic, Row, Col, Badge, Descriptions, Progress, message, Select,
 } from 'antd';
 import {
@@ -10,6 +10,7 @@ import {
 import { adminApi } from '../lib/api';
 
 const { TextArea } = Input;
+const { Text } = Typography;
 
 interface KycRecord {
   id: string;
@@ -20,6 +21,10 @@ interface KycRecord {
   aadhaarVerified: boolean;
   panNumber: string;
   panVerified: boolean;
+  aadhaarFrontUrl?: string;
+  aadhaarBackUrl?: string;
+  panUrl?: string;
+  selfieUrl?: string;
   addressLine1: string;
   city: string;
   state: string;
@@ -338,6 +343,30 @@ export default function KycPage() {
                 {selectedKyc.panNumber} {selectedKyc.panVerified ? <Tag color="green">Verified</Tag> : <Tag>Pending</Tag>}
               </Descriptions.Item>
             </Descriptions>
+
+            {/* Document Images */}
+            {(selectedKyc.aadhaarFrontUrl || selectedKyc.aadhaarBackUrl || selectedKyc.panUrl || selectedKyc.selfieUrl) ? (
+              <Card size="small" title="Uploaded Documents" style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  {[
+                    { label: 'Aadhaar Front', url: selectedKyc.aadhaarFrontUrl },
+                    { label: 'Aadhaar Back', url: selectedKyc.aadhaarBackUrl },
+                    { label: 'PAN Card', url: selectedKyc.panUrl },
+                    { label: 'Selfie with ID', url: selectedKyc.selfieUrl },
+                  ].map(doc => doc.url && (
+                    <div key={doc.label} style={{ textAlign: 'center' }}>
+                      <Image src={doc.url} width={140} height={100}
+                        style={{ objectFit: 'cover', borderRadius: 8, border: '1px solid #e5e7eb' }} />
+                      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>{doc.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            ) : (
+              <Card size="small" style={{ marginBottom: 16, background: '#fff7e6', borderColor: '#ffd591' }}>
+                <Text type="warning">No documents uploaded by host. Identity documents are required for verification.</Text>
+              </Card>
+            )}
 
             <Descriptions title="Address" bordered size="small" column={2} style={{ marginBottom: 16 }}>
               <Descriptions.Item label="Address" span={2}>{selectedKyc.addressLine1}</Descriptions.Item>

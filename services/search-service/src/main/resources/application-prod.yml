@@ -3,13 +3,19 @@ spring:
     uris: ${ELASTICSEARCH_URI}
     connection-timeout: 5s
     socket-timeout: 30s
-
-elasticsearch:
-  index:
-    shards: ${ES_INDEX_SHARDS:2}
-    replicas: ${ES_INDEX_REPLICAS:1}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    properties:
+      security.protocol: SASL_SSL
+      sasl.mechanism: AWS_MSK_IAM
+      sasl.jaas.config: software.amazon.msk.auth.iam.IAMLoginModule required;
+      sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+    admin:
+      properties:
+        security.protocol: SASL_SSL
+        sasl.mechanism: AWS_MSK_IAM
+        sasl.jaas.config: software.amazon.msk.auth.iam.IAMLoginModule required;
+        sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
     consumer:
       group-id: search-service
       auto-offset-reset: earliest
@@ -18,6 +24,11 @@ elasticsearch:
         sasl.mechanism: AWS_MSK_IAM
         sasl.jaas.config: software.amazon.msk.auth.iam.IAMLoginModule required;
         sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+
+elasticsearch:
+  index:
+    shards: ${ES_INDEX_SHARDS:2}
+    replicas: ${ES_INDEX_REPLICAS:1}
 
 services:
   listing-service:

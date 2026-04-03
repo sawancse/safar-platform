@@ -172,6 +172,23 @@ services:
       kafka:
         condition: service_started
 
+  chef-service:
+    build: ./services/chef-service
+    container_name: safar-chef
+    ports:
+      - "8093:8093"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://safar-postgres:5432/safar
+      SPRING_DATASOURCE_USERNAME: safar
+      SPRING_DATASOURCE_PASSWORD: safar_dev
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: safar-kafka:9092
+      JWT_SECRET: ${JWT_SECRET:-dGhpcyBpcyBhIHZlcnkgbG9uZyBzZWNyZXQga2V5IGZvciBzYWZhciBwbGF0Zm9ybQ==}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+
 volumes:
   postgres_data:
   es_data:

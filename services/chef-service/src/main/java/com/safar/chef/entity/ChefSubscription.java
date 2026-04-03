@@ -94,6 +94,13 @@ public class ChefSubscription {
     @Column(name = "cancelled_at")
     private OffsetDateTime cancelledAt;
 
+    @Column(name = "modified_at")
+    private OffsetDateTime modifiedAt;
+
+    @Column(name = "modification_count")
+    @Builder.Default
+    private Integer modificationCount = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;

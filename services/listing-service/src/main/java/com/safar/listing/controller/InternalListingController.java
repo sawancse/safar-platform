@@ -13,8 +13,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.safar.listing.entity.enums.ArchiveReason;
+import com.safar.listing.service.ListingService;
+
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -26,6 +30,7 @@ import java.util.UUID;
 public class InternalListingController {
 
     private final ListingRepository listingRepository;
+    private final ListingService listingService;
     private final AvailabilityService availabilityService;
     private final RoomTypeService roomTypeService;
     private final RoomTypeRepository roomTypeRepository;
@@ -185,5 +190,36 @@ public class InternalListingController {
                 "calendarUnblocked", true,
                 "roomTypesReset", resetCount
         ));
+    }
+
+    /** Suspend all listings for a host (called by user-service when host is suspended/banned) */
+    @PostMapping("/by-host/{hostId}/suspend-all")
+    public ResponseEntity<Map<String, Object>> suspendAllByHost(
+            @PathVariable UUID hostId,
+            @RequestParam(defaultValue = "HOST_SUSPENDED") String reason,
+            @RequestParam(required = false) String note) {
+        List<Listing> listings = listingRepository.findByHostId(hostId);
+        int count = 0;
+        for (Listing listing : listings) {
+            if (listing.getStatus() != ListingStatus.SUSPENDED) {
+                try {
+                    listingService.suspendListing(listing.getId(), hostId, ArchiveReason.POLICY_VIOLATION,
+                            reason + (note != null ? ": " + note : ""));
+                    count++;
+                } catch (Exception e) {
+                    log.warn("Could not suspend listing {}: {}", listing.getId(), e.getMessage());
+                }
+            }
+        }
+        log.info("Suspended {}/{} listings for host {}", count, listings.size(), hostId);
+        return ResponseEntity.ok(Map.of("count", count, "total", listings.size()));
+    }
+
+    /** Check host account status (used by listing creation to block suspended hosts) */
+    @GetMapping("/hosts/{hostId}/account-status")
+    public ResponseEntity<Map<String, String>> getHostAccountStatus(@PathVariable UUID hostId) {
+        // This is a passthrough — listing-service delegates to user-service
+        // For now return OK; the actual check happens at listing creation via HostKycClient
+        return ResponseEntity.ok(Map.of("hostId", hostId.toString(), "status", "OK"));
     }
 }

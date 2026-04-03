@@ -1,6 +1,8 @@
 package com.safar.search.config;
 
+import com.safar.search.document.BuilderProjectDocument;
 import com.safar.search.document.ListingDocument;
+import com.safar.search.document.SalePropertyDocument;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -80,8 +82,34 @@ public class IndexInitializer {
                 }
                 log.info("Index 'listings' already exists, mapping verified");
             }
+            // ── Builder Projects index ──
+            ensureIndex(BuilderProjectDocument.class, "builder_projects");
+
+            // ── Sale Properties index ──
+            ensureIndex(SalePropertyDocument.class, "sale_properties");
+
         } catch (Exception e) {
             log.warn("Index initialization skipped — Elasticsearch may be unavailable: {}", e.getMessage());
+        }
+    }
+
+    private <T> void ensureIndex(Class<T> docClass, String indexName) {
+        try {
+            IndexOperations ops = elasticsearchOperations.indexOps(docClass);
+            if (!ops.exists()) {
+                Document settings = Document.from(Map.of(
+                        "index.number_of_shards", shards,
+                        "index.number_of_replicas", replicas
+                ));
+                ops.create(settings);
+                ops.putMapping(ops.createMapping(docClass));
+                log.info("Created '{}' index", indexName);
+            } else {
+                try { ops.putMapping(ops.createMapping(docClass)); } catch (Exception ignored) {}
+                log.info("Index '{}' already exists", indexName);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to init '{}' index: {}", indexName, e.getMessage());
         }
     }
 

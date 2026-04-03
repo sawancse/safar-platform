@@ -131,6 +131,26 @@ public class ChefProfile {
     @Column(name = "bank_ifsc")
     private String bankIfsc;
 
+    @Column(length = 30)
+    private String badge;
+
+    @Column(name = "badge_awarded_at")
+    private OffsetDateTime badgeAwardedAt;
+
+    @Column(name = "referral_code", unique = true, length = 20)
+    private String referralCode;
+
+    @Column(name = "referred_by")
+    private UUID referredBy;
+
+    @Column(name = "referral_count")
+    @Builder.Default
+    private Integer referralCount = 0;
+
+    @Column(name = "referral_earnings_paise")
+    @Builder.Default
+    private Long referralEarningsPaise = 0L;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;

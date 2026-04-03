@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
@@ -146,6 +147,52 @@ public class UserProfile {
     @Builder.Default
     private Integer totalCompletedStays = 0;
 
+    // ── Referral System ──
+    @Column(name = "referral_code", unique = true, length = 12)
+    private String referralCode;
+
+    @Column(name = "referred_by_code", length = 12)
+    private String referredByCode;
+
+    @Column(name = "total_referrals")
+    @Builder.Default
+    private Integer totalReferrals = 0;
+
+    @Column(name = "referral_earnings_paise")
+    @Builder.Default
+    private Long referralEarningsPaise = 0L;
+
+    // ── Loyalty Tiers ──
+    @Column(name = "loyalty_tier", length = 10)
+    @Builder.Default
+    private String loyaltyTier = "BRONZE";
+
+    @Column(name = "completed_stays")
+    @Builder.Default
+    private Integer completedStays = 0;
+
+    @Column(name = "loyalty_points")
+    @Builder.Default
+    private Long loyaltyPoints = 0L;
+
+    @Column(name = "tier_upgraded_at")
+    private OffsetDateTime tierUpgradedAt;
+
+    // Account status (Airbnb-style host suspension)
+    @Column(name = "account_status", length = 20)
+    @Builder.Default
+    private String accountStatus = "ACTIVE"; // ACTIVE, SUSPENDED, BANNED
+
+    @Column(name = "suspended_at")
+    private OffsetDateTime suspendedAt;
+
+    @Column(name = "suspension_reason", columnDefinition = "TEXT")
+    private String suspensionReason;
+
+    @Column(name = "suspended_by")
+    private UUID suspendedBy;
+
+    @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;
 

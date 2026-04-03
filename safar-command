@@ -1,0 +1,85 @@
+ Backend (ECS) — build, push, and force new deployment:
+  cd C:/Users/Win-10/safar-platform
+
+  # Chef Service
+  docker build --no-cache -t safar-chef-service:latest -f services/chef-service/Dockerfile .
+  docker tag safar-chef-service:latest 624627192872.dkr.ecr.ap-south-1.amazonaws.com/safar-chef-service:latest
+  docker push 624627192872.dkr.ecr.ap-south-1.amazonaws.com/safar-chef-service:latest
+  aws ecs update-service --cluster safar-production --service chef-service --force-new-deployment
+
+  # API Gateway
+  docker build --no-cache -t safar-api-gateway:latest -f services/api-gateway/Dockerfile .
+  docker tag safar-api-gateway:latest 624627192872.dkr.ecr.ap-south-1.amazonaws.com/safar-api-gateway:latest
+  docker push 624627192872.dkr.ecr.ap-south-1.amazonaws.com/safar/api-gateway:latest
+  aws ecs update-service --cluster safar-production --service api-gateway --force-new-deployment
+  
+  aws ecs update-service --cluster safar-production-cluster --service api-gateway --force-new-deployment 
+
+  Frontend (Amplify) — just push to master:
+  cd C:/Users/Win-10/safar-web
+  git add -A && git commit -m "Allow guest event quote requests" && git push origin master
+
+  Amplify auto-deploys on push.
+
+  Want me to run these?
+
+logs checking:
+------------------------
+
+──────────────────────────────────────────────
+
+Now let me rebuild and deploy the chef-service with the new topic config, and also check if builder topics need fixing.
+
+  Read 1 file (ctrl+o to expand)
+
+● Good. All 7 topics across chef and builder:
+
+  Chef topics (5):
+  - chef.booking.created
+  - chef.booking.confirmed
+  - chef.booking.cancelled
+  - chef.booking.completed
+  - chef.booking.payment.confirmed (new)
+
+  Builder topics (2):
+  - builder.project.indexed
+  - builder.construction.update
+
+  Builder topics are already configured in listing-service's KafkaTopicConfig with replication factor 1. Let me rebuild and deploy chef-service.
+
+● Bash(cd /c/Users/Win-10/safar-platform && docker build --no-cache -t safar-chef-service -f services/chef-service/Dockerfile . 2>&1 | tail -10)
+  ⎿  Running in the background (↓ to manage)
+  ⎿  (timeout 10m)
+
+● Bash(cd /c/Users/Win-10/safar-platform && docker build --no-cache -t safar-chef-service -f services/chef-service/Dockerfile . 2>&1 | tail -10)
+  ⎿  #20 exporting layers 8.2s done
+     #20 exporting manifest sha256:26ba771862d4fca80ec260ff0af9250bdb914bee58115f12b6e51a8f9c7495a0 0.0s done
+     #20 exporting config sha256:4835e0b0e07d14c8c6b43008ff4f62e03e6f508df3c0cfd060beef2844f7cc35 0.0s done
+     … +7 lines (ctrl+o to expand)
+  ⎿  (timeout 10m)
+
+● Bash(docker tag safar-chef-service:latest 624627192872.dkr.ecr.ap-south-1.amazonaws.com/safar/chef-service:latest && docker push 624627192872.dkr.ecr.ap-south-1.amaz…)
+  ⎿  The push refers to repository [624627192872.dkr.ecr.ap-south-1.amazonaws.com/safar/chef-service]
+     072e8c934c9e: Waiting
+     b09ab66960ff: Waiting
+     … +81 lines (ctrl+o to expand)
+  ⎿  (timeout 2m)
+
+● Bash(aws ecs update-service --cluster safar-production-cluster --service chef-service --force-new-deployment --region ap-south-1 --query 'service.serviceName' --outp…)
+  ⎿  chef-service
+
+● Done. Here's the summary:
+
+  Chef Kafka topics (5):
+  - chef.booking.created
+  - chef.booking.confirmed
+  - chef.booking.cancelled
+  - chef.booking.completed
+  - chef.booking.payment.confirmed ← new, was missing
+
+  Builder Kafka topics (2):
+  - builder.project.indexed
+  - builder.construction.update
+
+  All topics will auto-create when chef-service starts (via KafkaTopicConfig beans + MSK IAM admin). Builder topics are already configured in listing-service. Fixed replication
+   factor from -1 to 1 for MSK compatibility.

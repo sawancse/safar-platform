@@ -1,0 +1,1 @@
+ALTER TABLE bookings.bookings ADD COLUMN IF NOT EXISTS pricing_unit VARCHAR(10) DEFAULT 'NIGHT';

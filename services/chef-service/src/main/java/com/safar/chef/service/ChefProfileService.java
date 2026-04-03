@@ -110,9 +110,10 @@ public class ChefProfileService {
                                           Long maxPricePaise, int page, int size) {
         Specification<ChefProfile> spec = Specification.where(null);
 
-        // Only show available and verified chefs in public search
+        // Only show available chefs, exclude suspended/rejected
         spec = spec.and((root, query, cb) -> cb.equal(root.get("available"), true));
-        spec = spec.and((root, query, cb) -> cb.equal(root.get("verificationStatus"), VerificationStatus.VERIFIED));
+        spec = spec.and((root, query, cb) -> cb.notEqual(root.get("verificationStatus"), VerificationStatus.SUSPENDED));
+        spec = spec.and((root, query, cb) -> cb.notEqual(root.get("verificationStatus"), VerificationStatus.REJECTED));
 
         if (city != null && !city.isBlank()) {
             spec = spec.and((root, query, cb) ->

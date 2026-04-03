@@ -186,7 +186,8 @@ public class GroupBookingService {
                         .map(g -> new BookingGuestResponse(g.getId(), g.getFullName(), g.getEmail(),
                                 g.getPhone(), g.getAge(), g.getIdType(), g.getIdNumber(),
                                 g.getRoomAssignment(), g.getIsPrimary()))
-                        .toList()
+                        .toList(),
+                b.getPricingUnit()
         );
     }
 }

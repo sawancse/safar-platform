@@ -1,0 +1,59 @@
+package com.safar.listing.dto;
+
+import com.safar.listing.entity.enums.BuilderListingStatus;
+import com.safar.listing.entity.enums.ProjectStatus;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
+
+public record BuilderProjectResponse(
+        UUID id,
+        UUID builderId,
+        String builderName,
+        String builderLogoUrl,
+        String projectName,
+        String tagline,
+        String description,
+        String reraId,
+        Boolean reraVerified,
+        String city,
+        String state,
+        String locality,
+        String pincode,
+        BigDecimal lat,
+        BigDecimal lng,
+        String address,
+        Integer totalUnits,
+        Integer availableUnits,
+        Integer totalTowers,
+        Integer totalFloorsMax,
+        ProjectStatus projectStatus,
+        LocalDate launchDate,
+        LocalDate possessionDate,
+        Integer constructionProgressPercent,
+        Integer landAreaSqft,
+        Integer projectAreaSqft,
+        List<String> amenities,
+        String masterPlanUrl,
+        String brochureUrl,
+        String walkthroughUrl,
+        List<String> photos,
+        List<String> bankApprovals,
+        String paymentPlansJson,
+        Long minPricePaise,
+        Long maxPricePaise,
+        Integer minBhk,
+        Integer maxBhk,
+        Integer minAreaSqft,
+        Integer maxAreaSqft,
+        BuilderListingStatus status,
+        Boolean verified,
+        Integer viewsCount,
+        Integer inquiriesCount,
+        List<UnitTypeResponse> unitTypes,
+        OffsetDateTime createdAt,
+        OffsetDateTime updatedAt
+) {}

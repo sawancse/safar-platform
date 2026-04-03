@@ -71,6 +71,17 @@ public class TenancyInvoice {
     @Column(name = "razorpay_payment_id", length = 100)
     private String razorpayPaymentId;
 
+    @Column(name = "razorpay_subscription_id", length = 100)
+    private String razorpaySubscriptionId;
+
+    @Column(name = "late_penalty_paise", nullable = false)
+    @Builder.Default
+    private long latePenaltyPaise = 0;
+
+    @Column(name = "water_paise", nullable = false)
+    @Builder.Default
+    private long waterPaise = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

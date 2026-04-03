@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <title>How was your meal?</title>
+    <style>
+        body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        body { margin: 0; padding: 0; width: 100% !important; background-color: #F7F7F7; }
+        @media only screen and (max-width: 620px) {
+            .email-container { width: 100% !important; }
+            .mobile-padding { padding-left: 16px !important; padding-right: 16px !important; }
+            .stack-column { display: block !important; width: 100% !important; }
+        }
+    </style>
+</head>
+<body style="margin:0; padding:0; background-color:#F7F7F7; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+
+    <div style="display:none; font-size:1px; color:#F7F7F7; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;"
+         th:text="'How was your meal with Chef ' + ${ctx.chefName} + '? Share your experience!'"></div>
+
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#F7F7F7;">
+        <tr><td align="center" style="padding:20px 0;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="email-container" style="max-width:600px; background-color:#FFFFFF; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+
+                <!-- HEADER -->
+                <tr>
+                    <td style="background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding:28px 40px;" class="mobile-padding">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr>
+                            <td>
+                                <p style="margin:0; font-family:'Georgia','Times New Roman',serif; font-size:32px; font-weight:bold; color:#FF5A5F; letter-spacing:1px;"><span style="font-style:italic;">S</span>afar</p>
+                                <p style="margin:2px 0 0; font-size:11px; color:rgba(255,255,255,0.5); letter-spacing:3px; text-transform:uppercase; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Cooks</p>
+                            </td>
+                            <td align="right" valign="middle" style="font-size:13px; color:rgba(255,255,255,0.9); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                                <span th:if="${ctx.customerName}" th:text="'Hi, ' + ${ctx.customerName}">Hi, Customer</span>
+                            </td>
+                        </tr></table>
+                    </td>
+                </tr>
+
+                <!-- CONTENT -->
+                <tr>
+                    <td style="padding:0;">
+
+                        <!-- Hero (Warm orange) -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td align="center" style="background:linear-gradient(135deg, #FF5A5F 0%, #FF8A5C 100%); padding:40px;" class="mobile-padding">
+                                    <p style="margin:0 0 8px; font-size:40px; line-height:1;">&#127835;</p>
+                                    <h1 style="margin:0 0 4px; font-size:32px; font-weight:800; color:#FFFFFF; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">How was your meal?</h1>
+                                    <p style="margin:0; font-size:15px; color:rgba(255,255,255,0.9); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">We hope you had a wonderful experience!</p>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Booking Summary -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td style="padding:32px 40px 0;" class="mobile-padding">
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                        <tr>
+                                            <td style="padding:12px 0; border-bottom:1px solid #F0F0F0;">
+                                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr>
+                                                    <td style="font-size:13px; color:#767676; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Booking Ref</td>
+                                                    <td align="right" style="font-size:15px; font-weight:600; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.bookingRef}">CK-XXXXXX</td>
+                                                </tr></table>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:12px 0; border-bottom:1px solid #F0F0F0;">
+                                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr>
+                                                    <td style="font-size:13px; color:#767676; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Chef</td>
+                                                    <td align="right" style="font-size:15px; font-weight:600; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.chefName}">Chef Name</td>
+                                                </tr></table>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:12px 0; border-bottom:1px solid #F0F0F0;">
+                                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr>
+                                                    <td style="font-size:13px; color:#767676; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Date</td>
+                                                    <td align="right" style="font-size:15px; font-weight:600; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.serviceDate}">Mar 28, 2026</td>
+                                                </tr></table>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:12px 0;">
+                                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr>
+                                                    <td style="font-size:13px; color:#767676; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Meal</td>
+                                                    <td align="right" style="font-size:15px; font-weight:600; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.mealType}">Dinner</td>
+                                                </tr></table>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Star Rating Visual -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td align="center" style="padding:32px 40px 0;" class="mobile-padding">
+                                    <p style="margin:0 0 8px; font-size:40px; letter-spacing:8px; line-height:1;">&#11088;&#11088;&#11088;&#11088;&#11088;</p>
+                                    <p style="margin:0; font-size:15px; color:#767676; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Your rating helps chefs improve and other customers decide</p>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Rate CTA -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td align="center" style="padding:32px 40px 0;" class="mobile-padding">
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr>
+                                        <td style="border-radius:8px; background-color:#FF5A5F;">
+                                            <a th:href="${ctx.cooksBookingsUrl}" style="display:inline-block; padding:16px 36px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:16px; font-weight:600; color:#FFFFFF; text-decoration:none; border-radius:8px;">Rate Your Experience</a>
+                                        </td>
+                                    </tr></table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Rebooking Section -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr>
+                                <td style="padding:32px 40px 0;" class="mobile-padding">
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); border-radius:12px; border:1px solid #FFCC80;">
+                                        <tr>
+                                            <td style="padding:24px; text-align:center;">
+                                                <p style="margin:0 0 8px; font-size:18px; font-weight:700; color:#E65100; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="'Book Chef ' + ${ctx.chefName} + ' again?'">Book Chef again?</p>
+                                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#FFFFFF; border-radius:8px; margin:12px 0;">
+                                                    <tr>
+                                                        <td style="padding:12px 16px; text-align:center;">
+                                                            <p style="margin:0 0 2px; font-size:14px; font-weight:700; color:#FF5A5F; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Use code REPEAT10 for 10% off</p>
+                                                            <p style="margin:0; font-size:12px; color:#767676; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Valid on your next booking</p>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center"><tr>
+                                                    <td style="border-radius:8px; background-color:#E65100;">
+                                                        <a th:href="${ctx.repeatBookUrl}" style="display:inline-block; padding:12px 28px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:14px; font-weight:600; color:#FFFFFF; text-decoration:none; border-radius:8px;">Book Again</a>
+                                                    </td>
+                                                </tr></table>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Spacer -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                            <tr><td style="padding:0 0 40px;"></td></tr>
+                        </table>
+
+                    </td>
+                </tr>
+
+                <!-- FOOTER -->
+                <tr>
+                    <td style="background-color:#FAFAFA; border-top:1px solid #EEEEEE; padding:32px 40px;" class="mobile-padding">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr><td align="center">
+                            <p style="margin:0 0 16px; font-family:'Georgia','Times New Roman',serif; font-size:22px; font-weight:bold; color:#FF5A5F;"><span style="font-style:italic;">S</span>afar</p>
+                            <p style="margin:0 0 12px; font-size:13px; color:#767676; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                                <a th:href="${ctx.supportUrl ?: '#'}" style="color:#FF5A5F; text-decoration:none;">Help Center</a>
+                                <span style="color:#DDD; padding:0 8px;">|</span>
+                                <a th:href="${ctx.unsubscribeUrl ?: '#'}" style="color:#FF5A5F; text-decoration:none;">Unsubscribe</a>
+                            </p>
+                            <p style="margin:0 0 8px; font-size:14px; color:#484848; font-weight:500; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Safar Cooks &mdash; Home-cooked, Happiness Delivered</p>
+                            <p style="margin:0; font-size:11px; color:#AAA; line-height:1.5; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                                This email was sent to <span th:text="${ctx.recipientEmail ?: 'you'}">you</span>.<br/>
+                                <span th:text="${ctx.companyAddress ?: 'Safar Technologies Pvt. Ltd., India'}">Safar Technologies Pvt. Ltd., India</span>
+                            </p>
+                        </td></tr></table>
+                    </td>
+                </tr>
+
+            </table>
+        </td></tr>
+    </table>
+</body>
+</html>

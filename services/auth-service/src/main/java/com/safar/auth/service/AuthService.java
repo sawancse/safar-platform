@@ -255,6 +255,28 @@ public class AuthService {
         );
     }
 
+    /**
+     * Admin impersonation: generate tokens for a target user (for support purposes).
+     * The JWT includes an "impersonatedBy" claim so actions can be audited.
+     */
+    public AuthResponse impersonate(UUID adminId, UUID targetUserId) {
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new IllegalArgumentException("Admin user not found"));
+        if (admin.getRole() != UserRole.ADMIN) {
+            throw new SecurityException("Only ADMIN users can impersonate");
+        }
+
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("Target user not found: " + targetUserId));
+
+        String accessToken = jwtService.generateImpersonationToken(target.getId(), target.getRole().name(), adminId);
+        String refreshToken = jwtService.generateRefreshToken(target.getId());
+
+        log.info("Admin {} impersonating user {} ({})", adminId, targetUserId, target.getName());
+
+        return new AuthResponse(accessToken, refreshToken, jwtService.getExpirySeconds(), toDto(target));
+    }
+
     private UserDto toDto(User user) {
         return new UserDto(
                 user.getId(), user.getPhone(), user.getEmail(),

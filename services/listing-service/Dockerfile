@@ -11,7 +11,7 @@ RUN mvn -f services/listing-service/pom.xml dependency:go-offline -B -q 2>/dev/n
 
 # Copy source and build
 COPY services/listing-service/src ./services/listing-service/src
-RUN mvn -f services/listing-service/pom.xml clean package -DskipTests -q
+RUN mvn -f services/listing-service/pom.xml clean package -Dmaven.test.skip=true -q
 
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app

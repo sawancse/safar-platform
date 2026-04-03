@@ -26,4 +26,8 @@ public interface PgTenancyRepository extends JpaRepository<PgTenancy, UUID> {
     Optional<PgTenancy> findByTenancyRef(String tenancyRef);
 
     long countByListingIdAndStatus(UUID listingId, TenancyStatus status);
+
+    List<PgTenancy> findByStatusAndMoveOutDateLessThanEqual(TenancyStatus status, LocalDate date);
+
+    List<PgTenancy> findByRoomTypeIdAndStatus(UUID roomTypeId, TenancyStatus status);
 }

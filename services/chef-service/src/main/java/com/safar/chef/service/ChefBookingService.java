@@ -1,6 +1,7 @@
 package com.safar.chef.service;
 
 import com.safar.chef.dto.CreateChefBookingRequest;
+import com.safar.chef.dto.ModifyChefBookingRequest;
 import com.safar.chef.entity.ChefBooking;
 import com.safar.chef.entity.ChefMenu;
 import com.safar.chef.entity.ChefProfile;
@@ -76,6 +77,10 @@ public class ChefBookingService {
         long platformFeePaise = totalAmountPaise * 15 / 100;
         long chefEarningsPaise = totalAmountPaise - platformFeePaise;
 
+        // 10% advance, 90% balance
+        long advanceAmountPaise = Math.max(totalAmountPaise * 10 / 100, 100); // min ₹1
+        long balanceAmountPaise = totalAmountPaise - advanceAmountPaise;
+
         ChefBooking booking = ChefBooking.builder()
                 .bookingRef(generateBookingRef())
                 .chefId(chef.getId())
@@ -96,9 +101,12 @@ public class ChefBookingService {
                 .locality(req.locality())
                 .pincode(req.pincode())
                 .totalAmountPaise(totalAmountPaise)
+                .advanceAmountPaise(advanceAmountPaise)
+                .balanceAmountPaise(balanceAmountPaise)
                 .platformFeePaise(platformFeePaise)
                 .chefEarningsPaise(chefEarningsPaise)
-                .status(ChefBookingStatus.PENDING)
+                .paymentStatus("UNPAID")
+                .status(ChefBookingStatus.PENDING_PAYMENT)
                 .build();
 
         ChefBooking saved = bookingRepo.save(booking);
@@ -109,6 +117,35 @@ public class ChefBookingService {
                     buildEventJson(saved, chef));
         } catch (Exception e) {
             log.warn("Failed to send chef.booking.created Kafka event: {}", e.getMessage());
+        }
+
+        return saved;
+    }
+
+    @Transactional
+    public ChefBooking confirmPayment(UUID customerId, UUID bookingId, String razorpayOrderId, String razorpayPaymentId) {
+        ChefBooking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+
+        if (!booking.getCustomerId().equals(customerId)) {
+            throw new IllegalArgumentException("Not authorized to confirm payment for this booking");
+        }
+        if (booking.getStatus() != ChefBookingStatus.PENDING_PAYMENT) {
+            throw new IllegalArgumentException("Booking is not awaiting payment");
+        }
+
+        booking.setRazorpayOrderId(razorpayOrderId);
+        booking.setRazorpayPaymentId(razorpayPaymentId);
+        booking.setPaymentStatus("ADVANCE_PAID");
+        booking.setStatus(ChefBookingStatus.PENDING);
+
+        ChefBooking saved = bookingRepo.save(booking);
+        log.info("Chef booking advance payment confirmed: {} razorpayPaymentId={}", bookingId, razorpayPaymentId);
+
+        try {
+            kafka.send("chef.booking.payment.confirmed", saved.getId().toString(), buildEventJson(saved, null));
+        } catch (Exception e) {
+            log.warn("Kafka chef.booking.payment.confirmed failed: {}", e.getMessage());
         }
 
         return saved;
@@ -225,6 +262,76 @@ public class ChefBookingService {
         return bookingRepo.save(booking);
     }
 
+    @Transactional
+    public ChefBooking modifyBooking(UUID customerId, UUID bookingId, ModifyChefBookingRequest req) {
+        ChefBooking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+
+        if (!booking.getCustomerId().equals(customerId)) {
+            throw new IllegalArgumentException("Not authorized to modify this booking");
+        }
+        if (booking.getStatus() != ChefBookingStatus.PENDING_PAYMENT && booking.getStatus() != ChefBookingStatus.PENDING) {
+            throw new IllegalArgumentException("Booking can only be modified in PENDING_PAYMENT or PENDING status");
+        }
+
+        // Apply non-null fields
+        if (req.serviceDate() != null) booking.setServiceDate(req.serviceDate());
+        if (req.serviceTime() != null) booking.setServiceTime(req.serviceTime());
+        if (req.specialRequests() != null) booking.setSpecialRequests(req.specialRequests());
+        if (req.address() != null) booking.setAddress(req.address());
+        if (req.city() != null) booking.setCity(req.city());
+        if (req.locality() != null) booking.setLocality(req.locality());
+        if (req.pincode() != null) booking.setPincode(req.pincode());
+
+        // If guests/meals/menu changed, recalculate pricing
+        boolean recalculate = false;
+        if (req.guestsCount() != null) { booking.setGuestsCount(req.guestsCount()); recalculate = true; }
+        if (req.numberOfMeals() != null) { booking.setNumberOfMeals(req.numberOfMeals()); recalculate = true; }
+        if (req.menuId() != null) { booking.setMenuId(req.menuId()); recalculate = true; }
+
+        if (recalculate) {
+            int guests = booking.getGuestsCount() != null ? booking.getGuestsCount() : 1;
+            int meals = booking.getNumberOfMeals() != null ? booking.getNumberOfMeals() : 1;
+
+            long totalAmountPaise;
+            if (booking.getMenuId() != null) {
+                ChefMenu menu = menuRepo.findById(booking.getMenuId())
+                        .orElseThrow(() -> new IllegalArgumentException("Menu not found"));
+                totalAmountPaise = menu.getPricePerPlatePaise() * guests * meals;
+                booking.setMenuName(menu.getName());
+            } else {
+                ChefProfile chef = chefProfileRepo.findById(booking.getChefId())
+                        .orElseThrow(() -> new IllegalArgumentException("Chef not found"));
+                totalAmountPaise = chef.getDailyRatePaise() * guests * meals;
+            }
+
+            long platformFeePaise = totalAmountPaise * 15 / 100;
+            long chefEarningsPaise = totalAmountPaise - platformFeePaise;
+            long advanceAmountPaise = Math.max(totalAmountPaise * 10 / 100, 100);
+            long balanceAmountPaise = totalAmountPaise - advanceAmountPaise;
+
+            booking.setTotalAmountPaise(totalAmountPaise);
+            booking.setPlatformFeePaise(platformFeePaise);
+            booking.setChefEarningsPaise(chefEarningsPaise);
+            booking.setAdvanceAmountPaise(advanceAmountPaise);
+            booking.setBalanceAmountPaise(balanceAmountPaise);
+        }
+
+        booking.setModifiedAt(OffsetDateTime.now());
+        booking.setModificationCount(booking.getModificationCount() != null ? booking.getModificationCount() + 1 : 1);
+
+        ChefBooking saved = bookingRepo.save(booking);
+        log.info("Chef booking modified: {} by customer={}", bookingId, customerId);
+
+        try {
+            kafka.send("chef.booking.modified", saved.getId().toString(), buildEventJson(saved, null));
+        } catch (Exception e) {
+            log.warn("Kafka chef.booking.modified failed: {}", e.getMessage());
+        }
+
+        return saved;
+    }
+
     @Transactional(readOnly = true)
     public List<ChefBooking> getMyBookings(UUID customerId) {
         return bookingRepo.findByCustomerId(customerId);
@@ -237,6 +344,38 @@ public class ChefBookingService {
         return bookingRepo.findByChefId(chef.getId());
     }
 
+    @Transactional
+    public ChefBooking rebook(UUID customerId, UUID originalBookingId, java.time.LocalDate newDate, String newTime) {
+        ChefBooking original = bookingRepo.findById(originalBookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Original booking not found"));
+
+        if (!original.getCustomerId().equals(customerId)) {
+            throw new IllegalArgumentException("Not authorized to rebook");
+        }
+
+        // Create a new booking from the original, same chef/menu/guests/address
+        CreateChefBookingRequest req = new CreateChefBookingRequest(
+                original.getChefId(),
+                original.getServiceType() != null ? original.getServiceType().name() : "DAILY",
+                original.getMealType() != null ? original.getMealType().name() : null,
+                newDate,
+                newTime != null ? newTime : original.getServiceTime(),
+                original.getGuestsCount(),
+                original.getNumberOfMeals(),
+                original.getMenuId(),
+                original.getSpecialRequests(),
+                original.getAddress(),
+                original.getCity(),
+                original.getLocality(),
+                original.getPincode(),
+                original.getCustomerName(),
+                null // phone not stored on booking
+        );
+
+        log.info("Rebooking from {} for customer={} newDate={}", originalBookingId, customerId, newDate);
+        return createBooking(customerId, req);
+    }
+
     @Transactional(readOnly = true)
     public ChefBooking getBooking(UUID bookingId) {
         return bookingRepo.findById(bookingId)
@@ -247,12 +386,16 @@ public class ChefBookingService {
         return String.format(
                 "{\"bookingId\":\"%s\",\"bookingRef\":\"%s\",\"chefId\":\"%s\",\"customerId\":\"%s\","
                 + "\"chefName\":\"%s\",\"customerName\":\"%s\",\"serviceDate\":\"%s\",\"mealType\":\"%s\","
-                + "\"status\":\"%s\",\"totalAmountPaise\":%d,\"city\":\"%s\"}",
+                + "\"status\":\"%s\",\"totalAmountPaise\":%d,\"advanceAmountPaise\":%d,"
+                + "\"balanceAmountPaise\":%d,\"paymentStatus\":\"%s\",\"city\":\"%s\"}",
                 b.getId(), b.getBookingRef(), b.getChefId(), b.getCustomerId(),
                 b.getChefName() != null ? b.getChefName() : (chef != null ? chef.getName() : ""),
                 b.getCustomerName() != null ? b.getCustomerName() : "",
                 b.getServiceDate(), b.getMealType() != null ? b.getMealType() : "",
                 b.getStatus(), b.getTotalAmountPaise() != null ? b.getTotalAmountPaise() : 0,
+                b.getAdvanceAmountPaise() != null ? b.getAdvanceAmountPaise() : 0,
+                b.getBalanceAmountPaise() != null ? b.getBalanceAmountPaise() : 0,
+                b.getPaymentStatus() != null ? b.getPaymentStatus() : "UNPAID",
                 b.getCity() != null ? b.getCity() : "");
     }
 }

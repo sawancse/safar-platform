@@ -14,6 +14,12 @@ spring:
       sasl.mechanism: AWS_MSK_IAM
       sasl.jaas.config: software.amazon.msk.auth.iam.IAMLoginModule required;
       sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
+    admin:
+      properties:
+        security.protocol: SASL_SSL
+        sasl.mechanism: AWS_MSK_IAM
+        sasl.jaas.config: software.amazon.msk.auth.iam.IAMLoginModule required;
+        sasl.client.callback.handler.class: software.amazon.msk.auth.iam.IAMClientCallbackHandler
     producer:
       properties:
         security.protocol: SASL_SSL
@@ -31,6 +37,8 @@ aws:
   s3:
     bucket: ${S3_BUCKET}
     region: ${AWS_REGION:ap-south-1}
+    access-key:
+    secret-key:
   cloudfront:
     domain: ${CDN_DOMAIN}
 

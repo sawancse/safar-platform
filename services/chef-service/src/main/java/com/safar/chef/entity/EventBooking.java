@@ -144,6 +144,20 @@ public class EventBooking {
     @Column(name = "review_comment", columnDefinition = "TEXT")
     private String reviewComment;
 
+    @Column(name = "reminder_sent")
+    @Builder.Default
+    private Boolean reminderSent = false;
+
+    @Column(name = "invoice_number", length = 30)
+    private String invoiceNumber;
+
+    @Column(name = "modified_at")
+    private OffsetDateTime modifiedAt;
+
+    @Column(name = "modification_count")
+    @Builder.Default
+    private Integer modificationCount = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;

@@ -111,6 +111,17 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.markNoShow(id, hostId));
     }
 
+    /** Refund security deposit (full or partial). Host initiates after checkout. */
+    @PostMapping("/{id}/deposit-refund")
+    public ResponseEntity<BookingResponse> depositRefund(
+            Authentication auth, @PathVariable UUID id,
+            @RequestParam(defaultValue = "FULL") String refundType,
+            @RequestParam(required = false) Long deductionPaise,
+            @RequestParam(required = false) String deductionReason) {
+        UUID hostId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(bookingService.refundDeposit(id, hostId, refundType, deductionPaise, deductionReason));
+    }
+
     // ── S19: Video Reviews ────────────────────────────────────────────────────
 
     @PostMapping("/{id}/video-review")

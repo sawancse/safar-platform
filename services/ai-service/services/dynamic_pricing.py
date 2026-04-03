@@ -427,3 +427,146 @@ async def pricing_analytics(
         occupancy_estimate_percent=round(occ * 100, 1),
         top_factors=top_factors,
     )
+
+
+# ──────────────────────────────────────────────
+# Competitor Comparison & Occupancy Auto-Pricing
+# ──────────────────────────────────────────────
+
+
+class CompetitorComparison(BaseModel):
+    listing_id: str
+    your_price_paise: int
+    market_low_paise: int
+    market_median_paise: int
+    market_high_paise: int
+    percentile: int  # where your price falls (0-100)
+    recommendation: str  # "competitive", "underpriced", "overpriced"
+    suggested_range_min_paise: int
+    suggested_range_max_paise: int
+
+
+class OccupancyPricingRequest(BaseModel):
+    listing_id: str
+    base_price_paise: int
+    city: str
+    property_type: str = "HOME"
+    current_occupancy_percent: float = Field(ge=0, le=100)
+    target_occupancy_percent: float = Field(ge=0, le=100, default=75)
+    days_ahead: int = Field(ge=1, le=90, default=30)
+
+
+class OccupancyPricingResponse(BaseModel):
+    listing_id: str
+    current_occupancy_percent: float
+    target_occupancy_percent: float
+    prices: list[dict]  # [{date, price_paise, expected_occupancy}]
+    avg_suggested_paise: int
+    estimated_monthly_revenue_paise: int
+    strategy: str
+
+
+@router.get("/competitor-comparison/{listing_id}", response_model=CompetitorComparison)
+async def competitor_comparison(
+    listing_id: str,
+    price_paise: int = Query(..., ge=100),
+    city: str = Query(...),
+    property_type: str = Query("HOME"),
+    bedrooms: int = Query(1, ge=1),
+):
+    """Compare your listing price against estimated market rates."""
+    base_demand = CITY_BASE_DEMAND.get(city, 0.6)
+    type_mult = PROPERTY_MULTIPLIERS.get(property_type, 1.0)
+
+    # Estimate market prices based on city demand and type
+    base_market = int(base_demand * 600000 * type_mult)  # base market per night in paise
+    bhk_factor = 1 + (bedrooms - 1) * 0.3
+    market_median = int(base_market * bhk_factor)
+    market_low = int(market_median * 0.65)
+    market_high = int(market_median * 1.45)
+
+    # Calculate percentile
+    if price_paise <= market_low:
+        percentile = int((price_paise / max(market_low, 1)) * 25)
+    elif price_paise <= market_median:
+        percentile = 25 + int(((price_paise - market_low) / max(market_median - market_low, 1)) * 25)
+    elif price_paise <= market_high:
+        percentile = 50 + int(((price_paise - market_median) / max(market_high - market_median, 1)) * 25)
+    else:
+        percentile = min(75 + int(((price_paise - market_high) / max(market_high, 1)) * 25), 99)
+
+    if percentile < 20:
+        rec = "underpriced"
+    elif percentile > 80:
+        rec = "overpriced"
+    else:
+        rec = "competitive"
+
+    return CompetitorComparison(
+        listing_id=listing_id,
+        your_price_paise=price_paise,
+        market_low_paise=market_low,
+        market_median_paise=market_median,
+        market_high_paise=market_high,
+        percentile=percentile,
+        recommendation=rec,
+        suggested_range_min_paise=int(market_median * 0.85),
+        suggested_range_max_paise=int(market_median * 1.15),
+    )
+
+
+@router.post("/occupancy-pricing", response_model=OccupancyPricingResponse)
+async def occupancy_pricing(req: OccupancyPricingRequest):
+    """Auto-adjust prices to hit target occupancy."""
+    current_occ = req.current_occupancy_percent / 100
+    target_occ = req.target_occupancy_percent / 100
+    today = date.today()
+
+    # Strategy: if current < target, lower prices; if current > target, raise prices
+    occ_gap = target_occ - current_occ
+    if occ_gap > 0.15:
+        strategy = "aggressive_discount"
+        price_adj = -0.15  # up to 15% discount
+    elif occ_gap > 0.05:
+        strategy = "moderate_discount"
+        price_adj = -0.08
+    elif occ_gap < -0.15:
+        strategy = "aggressive_increase"
+        price_adj = 0.20  # up to 20% increase
+    elif occ_gap < -0.05:
+        strategy = "moderate_increase"
+        price_adj = 0.10
+    else:
+        strategy = "maintain"
+        price_adj = 0.0
+
+    prices = []
+    total_suggested = 0
+    for i in range(req.days_ahead):
+        d = today + timedelta(days=i)
+        base_suggested, _, _ = calculate_price(
+            req.base_price_paise, req.city, req.property_type, d, current_occ
+        )
+        # Apply occupancy adjustment
+        adjusted = int(base_suggested * (1 + price_adj))
+        expected_occ = min(max(current_occ + (price_adj * -1.5), 0), 1.0)
+
+        prices.append({
+            "date": d.isoformat(),
+            "price_paise": adjusted,
+            "expected_occupancy": round(expected_occ * 100, 1),
+        })
+        total_suggested += adjusted
+
+    avg = total_suggested // req.days_ahead if req.days_ahead > 0 else 0
+    est_revenue = int(avg * target_occ * 30)
+
+    return OccupancyPricingResponse(
+        listing_id=req.listing_id,
+        current_occupancy_percent=req.current_occupancy_percent,
+        target_occupancy_percent=req.target_occupancy_percent,
+        prices=prices,
+        avg_suggested_paise=avg,
+        estimated_monthly_revenue_paise=est_revenue,
+        strategy=strategy,
+    )

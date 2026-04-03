@@ -52,6 +52,15 @@ public class HostKycController {
         return ResponseEntity.ok(kycService.updateBusiness(userId, req));
     }
 
+    @PutMapping("/documents")
+    public ResponseEntity<HostKycDto> updateDocuments(Authentication auth,
+                                                       @RequestBody java.util.Map<String, String> body) {
+        UUID userId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(kycService.updateDocuments(userId,
+                body.get("aadhaarFrontUrl"), body.get("aadhaarBackUrl"),
+                body.get("panUrl"), body.get("selfieUrl")));
+    }
+
     @PostMapping("/submit")
     public ResponseEntity<HostKycDto> submit(Authentication auth) {
         UUID userId = UUID.fromString(auth.getName());

@@ -81,11 +81,29 @@ public class ChefBooking {
     @Column(name = "total_amount_paise")
     private Long totalAmountPaise;
 
+    @Column(name = "advance_amount_paise")
+    @Builder.Default
+    private Long advanceAmountPaise = 0L;
+
+    @Column(name = "balance_amount_paise")
+    @Builder.Default
+    private Long balanceAmountPaise = 0L;
+
     @Column(name = "platform_fee_paise")
     private Long platformFeePaise;
 
     @Column(name = "chef_earnings_paise")
     private Long chefEarningsPaise;
+
+    @Column(name = "razorpay_order_id")
+    private String razorpayOrderId;
+
+    @Column(name = "razorpay_payment_id")
+    private String razorpayPaymentId;
+
+    @Column(name = "payment_status")
+    @Builder.Default
+    private String paymentStatus = "UNPAID";
 
     @Enumerated(EnumType.STRING)
     private ChefBookingStatus status;
@@ -104,6 +122,35 @@ public class ChefBooking {
 
     @Column(name = "review_comment", columnDefinition = "TEXT")
     private String reviewComment;
+
+    @Column(name = "reminder_sent")
+    @Builder.Default
+    private Boolean reminderSent = false;
+
+    @Column(name = "auto_expire_at")
+    private OffsetDateTime autoExpireAt;
+
+    @Column(name = "eta_minutes")
+    private Integer etaMinutes;
+
+    @Column(name = "chef_lat")
+    private Double chefLat;
+
+    @Column(name = "chef_lng")
+    private Double chefLng;
+
+    @Column(name = "location_updated_at")
+    private OffsetDateTime locationUpdatedAt;
+
+    @Column(name = "invoice_number", length = 30)
+    private String invoiceNumber;
+
+    @Column(name = "modified_at")
+    private OffsetDateTime modifiedAt;
+
+    @Column(name = "modification_count")
+    @Builder.Default
+    private Integer modificationCount = 0;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

@@ -80,6 +80,13 @@ public class RoomType {
     @Builder.Default
     private Integer occupiedBeds = 0;
 
+    @Column(name = "security_deposit_paise")
+    private Long securityDepositPaise;
+
+    @Column(name = "deposit_type", length = 20)
+    @Builder.Default
+    private String depositType = "REFUNDABLE";
+
     @Column(name = "sort_order")
     @Builder.Default
     private Integer sortOrder = 0;

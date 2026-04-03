@@ -1,0 +1,24 @@
+-- V60: NoBroker/99acres parity for apartment/flat rentals
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS apartment_name VARCHAR(200);
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS apartment_type VARCHAR(30);
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS floor_number INT;
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS total_floors INT;
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS property_age VARCHAR(20);
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS facing VARCHAR(20);
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS built_up_area_sqft INT;
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS rental_type VARCHAR(15) DEFAULT 'RENT';
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS rent_negotiable BOOLEAN DEFAULT FALSE;
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS maintenance_included BOOLEAN DEFAULT FALSE;
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS available_from DATE;
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS preferred_tenants VARCHAR(100);
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS water_supply VARCHAR(30);
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS gated_security BOOLEAN DEFAULT FALSE;
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS non_veg_allowed BOOLEAN DEFAULT TRUE;
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS property_condition VARCHAR(20);
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS show_property_by VARCHAR(30);
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS direction_tips TEXT;
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS visit_availability VARCHAR(50);
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS visit_time_from VARCHAR(10);
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS visit_time_until VARCHAR(10);
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS secondary_phone VARCHAR(15);
+ALTER TABLE listings.listings ADD COLUMN IF NOT EXISTS multiple_units BOOLEAN DEFAULT FALSE;

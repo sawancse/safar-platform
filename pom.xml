@@ -24,6 +24,7 @@
         <module>services/review-service</module>
         <module>services/notification-service</module>
         <module>services/messaging-service</module>
+        <module>services/chef-service</module>
     </modules>
 
     <parent>

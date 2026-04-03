@@ -82,6 +82,22 @@ public class PaymentController {
                         hostId, req.bookingId(), req.amountPaise(), req.upiId()));
     }
 
+    @PostMapping("/payouts/{payoutId}/retry")
+    public ResponseEntity<Payout> retryPayout(@PathVariable UUID payoutId) {
+        return ResponseEntity.ok(bookingPaymentService.retryPayout(payoutId));
+    }
+
+    @PostMapping("/settlement-payout")
+    public ResponseEntity<Payout> settlementPayout(
+            @RequestParam UUID tenancyId,
+            @RequestParam UUID hostId,
+            @RequestParam long amountPaise,
+            @RequestParam String upiId) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(bookingPaymentService.initiateSettlementPayout(
+                        hostId, tenancyId, amountPaise, upiId));
+    }
+
     @GetMapping("/commission-rate")
     public ResponseEntity<Map<String, Object>> getCommissionRate(
             Authentication auth,

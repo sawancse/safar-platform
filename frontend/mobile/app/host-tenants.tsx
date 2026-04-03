@@ -473,6 +473,13 @@ export default function HostTenantsScreen() {
                 </View>
               </View>
 
+              {/* Penalty Config */}
+              <View style={[s.detailRow, { marginTop: 6 }]}>
+                <Text style={[s.detailLabel, { fontSize: 11, color: '#9ca3af' }]}>
+                  Grace: {(t as any).gracePeriodDays ?? 5}d · Penalty: {(((t as any).latePenaltyBps ?? 200) / 100).toFixed(1)}%/day · Cap: {(t as any).maxPenaltyPercent ?? 25}%
+                </Text>
+              </View>
+
               {/* Actions */}
               {t.status !== 'VACATED' && (
                 <View style={s.cardActions}>

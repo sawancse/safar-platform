@@ -196,7 +196,11 @@ export default function ProfileEditScreen() {
         <View style={styles.avatarSection}>
           <TouchableOpacity onPress={handleAvatarPress} disabled={uploading} activeOpacity={0.7}>
             <View style={styles.avatarWrapper}>
-              {avatarUrl ? (
+              {uploading ? (
+                <View style={[styles.avatarFallback, { backgroundColor: '#e5e7eb' }]}>
+                  <ActivityIndicator color="#f97316" size="large" />
+                </View>
+              ) : avatarUrl ? (
                 <Image
                   source={{ uri: resolveAvatarUrl(avatarUrl) }}
                   style={styles.avatarImage}
@@ -206,20 +210,10 @@ export default function ProfileEditScreen() {
                   <Text style={styles.avatarInitials}>{getInitials(name)}</Text>
                 </View>
               )}
-              {uploading && (
-                <View style={styles.avatarOverlay}>
-                  <ActivityIndicator color="#fff" size="small" />
-                </View>
-              )}
-              {!uploading && (
-                <View style={styles.avatarBadge}>
-                  <Text style={styles.avatarBadgeText}>&#128247;</Text>
-                </View>
-              )}
             </View>
           </TouchableOpacity>
           <Text style={styles.avatarHint}>
-            {avatarUrl ? 'Tap to change photo' : 'Tap to add a profile photo'}
+            {uploading ? 'Uploading...' : avatarUrl ? 'Tap photo to change' : 'Tap to add photo'}
           </Text>
         </View>
 
@@ -277,8 +271,5 @@ const styles = StyleSheet.create({
   avatarImage:    { width: '100%', height: '100%' },
   avatarFallback: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
   avatarInitials: { fontSize: 28, fontWeight: '700', color: '#fff' },
-  avatarOverlay:  { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },
-  avatarBadge:    { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#f97316', width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
-  avatarBadgeText: { fontSize: 14 },
   avatarHint:     { fontSize: 13, color: '#6b7280', marginTop: 8 },
 });

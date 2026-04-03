@@ -16,6 +16,7 @@ import java.util.UUID;
 public class MediaService {
 
     private final S3Gateway s3Gateway;
+    private final ImageResizeService imageResizeService;
     private final KafkaTemplate<String, String> kafka;
 
     @Value("${aws.cloudfront.domain}")
@@ -42,13 +43,24 @@ public class MediaService {
         String moderationStatus = "APPROVED";
 
         String cdnUrl = "https://" + cdnDomain + "/" + request.s3Key();
+
+        // Generate resized thumbnail for photos
+        String thumbUrl = "";
+        if ("PHOTO".equalsIgnoreCase(request.mediaType()) && imageResizeService.isEnabled()) {
+            String result = imageResizeService.resize(request.s3Key(), cdnDomain);
+            if (result != null) {
+                thumbUrl = result;
+            }
+        }
+
         String event = """
-                {"mediaId":"%s","listingId":"%s","s3Key":"%s","type":"%s","moderationStatus":"%s","cdnUrl":"%s"}
+                {"mediaId":"%s","listingId":"%s","s3Key":"%s","type":"%s","moderationStatus":"%s","cdnUrl":"%s","thumbUrl":"%s"}
                 """.formatted(
                 request.mediaId(), request.listingId(),
-                request.s3Key(), request.mediaType(), moderationStatus, cdnUrl);
+                request.s3Key(), request.mediaType(), moderationStatus, cdnUrl, thumbUrl);
 
         kafka.send("media.uploaded", request.listingId().toString(), event.strip());
-        log.info("Media {} confirmed and moderated: {}", request.mediaId(), moderationStatus);
+        log.info("Media {} confirmed and moderated: {} (resize={})", request.mediaId(), moderationStatus,
+                imageResizeService.isEnabled() && "PHOTO".equalsIgnoreCase(request.mediaType()));
     }
 }

@@ -39,6 +39,21 @@ public class Booking {
     @Column(name = "listing_title")
     private String listingTitle;
 
+    @Column(name = "listing_city")
+    private String listingCity;
+
+    @Column(name = "listing_type")
+    private String listingType;
+
+    @Column(name = "listing_photo_url", columnDefinition = "TEXT")
+    private String listingPhotoUrl;
+
+    @Column(name = "host_name")
+    private String hostName;
+
+    @Column(name = "listing_address", columnDefinition = "TEXT")
+    private String listingAddress;
+
     @Column(nullable = false)
     private LocalDateTime checkIn;
 
@@ -213,6 +228,10 @@ public class Booking {
 
     @Column(name = "security_deposit_status")
     private String securityDepositStatus; // PENDING, COLLECTED, REFUNDED
+
+    @Column(name = "pricing_unit", length = 10)
+    @Builder.Default
+    private String pricingUnit = "NIGHT"; // NIGHT, MONTH, HOUR
 
     @CreationTimestamp
     private OffsetDateTime createdAt;

@@ -308,6 +308,131 @@ public class Listing {
     @Column(name = "security_deposit_paise")
     private Long securityDepositPaise;
 
+    @Column(name = "deposit_type", length = 20)
+    @Builder.Default
+    private String depositType = "REFUNDABLE";
+
+    @Column(name = "deposit_terms", columnDefinition = "TEXT")
+    private String depositTerms;
+
+    @Column(name = "maintenance_charge_paise")
+    private Long maintenanceChargePaise;
+
+    @Column(name = "min_lease_months")
+    private Integer minLeaseMonths;
+
+    // ── Rental-specific fields (NoBroker/99acres parity) ──
+    @Column(name = "apartment_name", length = 200)
+    private String apartmentName; // Society/building name
+
+    @Column(name = "apartment_type", length = 30)
+    private String apartmentType; // GATED_COMMUNITY, STANDALONE, VILLA, BUILDER_FLOOR, PENTHOUSE
+
+    @Column(name = "floor_number")
+    private Integer floorNumber;
+
+    @Column(name = "total_floors")
+    private Integer totalFloors;
+
+    @Column(name = "property_age", length = 20)
+    private String propertyAge; // NEW, 1_TO_3, 3_TO_5, 5_TO_10, 10_PLUS
+
+    @Column(name = "facing", length = 20)
+    private String facing; // NORTH, SOUTH, EAST, WEST, NORTH_EAST, NORTH_WEST, SOUTH_EAST, SOUTH_WEST
+
+    @Column(name = "built_up_area_sqft")
+    private Integer builtUpAreaSqft;
+
+    @Column(name = "rental_type", length = 15)
+    private String rentalType; // RENT, LEASE, RENT_OR_LEASE
+
+    @Column(name = "rent_negotiable")
+    @Builder.Default
+    private Boolean rentNegotiable = false;
+
+    @Column(name = "maintenance_included")
+    @Builder.Default
+    private Boolean maintenanceIncluded = false;
+
+    @Column(name = "available_from")
+    private java.time.LocalDate availableFrom;
+
+    @Column(name = "preferred_tenants", length = 100)
+    private String preferredTenants; // ANYONE, FAMILY, BACHELOR_MALE, BACHELOR_FEMALE, COMPANY (comma-separated)
+
+    @Column(name = "water_supply", length = 30)
+    private String waterSupply; // MUNICIPAL, BOREWELL, BOTH, TANKER
+
+    @Column(name = "gated_security")
+    @Builder.Default
+    private Boolean gatedSecurity = false;
+
+    @Column(name = "non_veg_allowed")
+    @Builder.Default
+    private Boolean nonVegAllowed = true;
+
+    @Column(name = "property_condition", length = 20)
+    private String propertyCondition; // VACANT, OCCUPIED, UNDER_RENOVATION
+
+    @Column(name = "show_property_by", length = 30)
+    private String showPropertyBy; // OWNER, AGENT, CARETAKER, KEY_WITH_NEIGHBOR
+
+    @Column(name = "direction_tips", columnDefinition = "TEXT")
+    private String directionTips;
+
+    @Column(name = "visit_availability", length = 50)
+    private String visitAvailability; // EVERYDAY, WEEKDAY, WEEKEND, CUSTOM
+
+    @Column(name = "visit_time_from", length = 10)
+    private String visitTimeFrom;
+
+    @Column(name = "visit_time_until", length = 10)
+    private String visitTimeUntil;
+
+    @Column(name = "secondary_phone", length = 15)
+    private String secondaryPhone;
+
+    @Column(name = "multiple_units")
+    @Builder.Default
+    private Boolean multipleUnits = false;
+
+    // Insurance
+    @Column(name = "insurance_enabled")
+    @Builder.Default
+    private Boolean insuranceEnabled = false;
+
+    @Column(name = "insurance_amount_paise")
+    private Long insuranceAmountPaise; // per booking
+
+    @Column(name = "insurance_type", length = 30)
+    private String insuranceType; // BASIC, PREMIUM, DAMAGE_PROTECTION
+
+    // Rental rules (monthly)
+    @Column(name = "rent_payment_day")
+    @Builder.Default
+    private Integer rentPaymentDay = 1;
+
+    @Column(name = "visitor_policy", length = 20)
+    private String visitorPolicy; // ALLOWED, RESTRICTED, NO_OVERNIGHT, NOT_ALLOWED
+
+    @Column(name = "quiet_hours_from", length = 10)
+    private String quietHoursFrom;
+
+    @Column(name = "quiet_hours_until", length = 10)
+    private String quietHoursUntil;
+
+    @Column(name = "smoking_allowed")
+    @Builder.Default
+    private Boolean smokingAllowed = false;
+
+    @Column(name = "grace_period_days")
+    @Builder.Default
+    private Integer gracePeriodDays = 5;
+
+    @Column(name = "late_penalty_bps")
+    @Builder.Default
+    private Integer latePenaltyBps = 200;
+
     // Hotel specific
     @Column(name = "hotel_chain")
     private String hotelChain;

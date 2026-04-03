@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        @page { size: A4; margin: 25mm 20mm; }
+        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 11pt; line-height: 1.6; color: #1a1a1a; }
+        .header { text-align: center; border-bottom: 3px solid #f97316; padding-bottom: 15px; margin-bottom: 25px; }
+        .header h1 { font-size: 20pt; color: #f97316; margin: 0; letter-spacing: 1px; }
+        .header p { font-size: 9pt; color: #666; margin: 5px 0 0; }
+        .agreement-number { text-align: center; font-size: 10pt; color: #888; margin-bottom: 20px; }
+        h2 { font-size: 13pt; color: #333; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px; margin-top: 20px; }
+        .party-box { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; padding: 12px 15px; margin: 10px 0; }
+        .party-box .label { font-size: 9pt; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .party-box .name { font-size: 13pt; font-weight: bold; color: #333; }
+        .party-box .detail { font-size: 10pt; color: #555; }
+        table.details { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        table.details td { padding: 6px 10px; border: 1px solid #e5e5e5; font-size: 10pt; }
+        table.details td:first-child { background: #fafafa; font-weight: 600; width: 35%; color: #555; }
+        table.details td:last-child { color: #333; }
+        .financial { font-size: 14pt; font-weight: bold; color: #f97316; }
+        .clause { margin: 8px 0; padding-left: 20px; }
+        .clause-number { font-weight: bold; color: #f97316; }
+        .signature-box { border: 1px dashed #ccc; border-radius: 8px; padding: 20px; margin: 10px 0; min-height: 80px; }
+        .signature-box .sig-label { font-size: 9pt; color: #888; text-transform: uppercase; }
+        .signature-box .sig-name { font-size: 12pt; font-weight: bold; margin: 5px 0; }
+        .signature-box .sig-date { font-size: 9pt; color: #666; }
+        .signed-badge { display: inline-block; background: #dcfce7; color: #166534; padding: 3px 10px; border-radius: 20px; font-size: 9pt; font-weight: bold; }
+        .pending-badge { display: inline-block; background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 20px; font-size: 9pt; font-weight: bold; }
+        .footer { text-align: center; font-size: 8pt; color: #999; border-top: 1px solid #e0e0e0; padding-top: 10px; margin-top: 30px; }
+        .two-col { display: flex; gap: 15px; }
+        .two-col > div { flex: 1; }
+        .highlight { background: #fff7ed; border-left: 3px solid #f97316; padding: 10px 15px; margin: 10px 0; }
+        .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 72pt; color: rgba(249, 115, 22, 0.04); font-weight: bold; z-index: -1; }
+    </style>
+</head>
+<body>
+<div class="watermark">SAFAR</div>
+
+<!-- Header -->
+<div class="header">
+    <h1>SAFAR</h1>
+    <p>Rental / Paying Guest Agreement</p>
+</div>
+
+<p class="agreement-number" th:text="'Agreement #' + ${agreementNumber}">Agreement #AGR-2026-0001</p>
+
+<p style="font-size: 10pt; color: #555;">
+    This Rental Agreement is entered into on
+    <strong th:text="${moveInDate}">01 January 2026</strong>
+</p>
+
+<!-- Parties -->
+<h2>Parties</h2>
+
+<div class="two-col">
+    <div class="party-box">
+        <div class="label">Licensor (Owner / Host)</div>
+        <div class="name" th:text="${hostName}">Host Name</div>
+        <div class="detail" th:text="'Phone: ' + ${hostPhone}">Phone: N/A</div>
+        <div class="detail" th:text="'Property: ' + ${propertyAddress}">Property Address</div>
+    </div>
+    <div class="party-box">
+        <div class="label">Licensee (Tenant / Paying Guest)</div>
+        <div class="name" th:text="${tenantName}">Tenant Name</div>
+        <div class="detail" th:text="'Phone: ' + ${tenantPhone}">Phone: N/A</div>
+        <div class="detail" th:text="'Email: ' + ${tenantEmail}">Email</div>
+        <div class="detail" th:if="${aadhaarLast4 != null}" th:text="'Aadhaar: XXXX-XXXX-' + ${aadhaarLast4}">Aadhaar</div>
+    </div>
+</div>
+
+<!-- Premises -->
+<h2>1. Premises</h2>
+<table class="details">
+    <tr><td>Room / Bed</td><td th:text="${roomDescription ?: 'As assigned'}">Room 1</td></tr>
+    <tr><td>Sharing Type</td><td th:text="${sharingType}">PRIVATE</td></tr>
+    <tr><td>Property Address</td><td th:text="${propertyAddress}">Address</td></tr>
+</table>
+
+<!-- Duration -->
+<h2>2. Duration</h2>
+<table class="details">
+    <tr><td>Move-in Date</td><td th:text="${moveInDate}">01 Jan 2026</td></tr>
+    <tr><td>Lock-in Period</td><td th:text="${lockInMonths} + ' month(s)'">0 month(s)</td></tr>
+    <tr><td>Notice Period</td><td th:text="${noticeDays} + ' days'">30 days</td></tr>
+</table>
+
+<!-- Financial -->
+<h2>3. Monthly Rent &amp; Charges</h2>
+<div class="highlight">
+    <table class="details">
+        <tr><td>Base Rent</td><td class="financial" th:text="${rentFormatted}">₹10,000</td></tr>
+        <tr><td>Maintenance</td><td th:text="${maintenanceFormatted}">₹0</td></tr>
+        <tr><td>Total Monthly</td><td class="financial" th:text="${totalFormatted}">₹10,000</td></tr>
+    </table>
+    <p style="font-size: 9pt; color: #666; margin-top: 8px;">
+        Rent is due on the <strong th:text="${billingDayOrdinal}">1st</strong> of every month.
+        Payment must be made between the 1st and 5th of each month.
+        A grace period of <strong th:text="${gracePeriodDays}">5</strong> day(s) is allowed,
+        after which a late fee of <strong th:text="${penaltyPercent}">2.0%</strong> per day applies
+        (capped at <strong th:text="${maxPenaltyPercent}">25%</strong> of the invoice total).
+    </p>
+</div>
+
+<!-- Security Deposit -->
+<h2>4. Security Deposit</h2>
+<table class="details">
+    <tr><td>Amount</td><td class="financial" th:text="${depositFormatted}">₹20,000</td></tr>
+</table>
+<p style="font-size: 10pt;">
+    The security deposit shall be refunded within 30 days of vacating, after deducting any dues, damages, or unpaid rent.
+</p>
+
+<!-- Inclusions -->
+<h2>5. Inclusions</h2>
+<table class="details">
+    <tr><td>Meals</td><td th:text="${mealsIncluded ? 'Included' : 'Not Included'}">Not Included</td></tr>
+    <tr><td>Laundry</td><td th:text="${laundryIncluded ? 'Included' : 'Not Included'}">Not Included</td></tr>
+    <tr><td>WiFi</td><td th:text="${wifiIncluded ? 'Included' : 'Not Included'}">Not Included</td></tr>
+</table>
+
+<!-- House Rules -->
+<h2>6. House Rules</h2>
+<div class="clause"><span class="clause-number">a)</span> Gate closing time must be adhered to as set by the property.</div>
+<div class="clause"><span class="clause-number">b)</span> No subletting or transfer of the license to any third party.</div>
+<div class="clause"><span class="clause-number">c)</span> The Licensee shall maintain the premises in good condition.</div>
+<div class="clause"><span class="clause-number">d)</span> Any damage caused by the Licensee shall be repaired at their expense.</div>
+<div class="clause"><span class="clause-number">e)</span> The Licensor reserves the right to inspect the premises with prior notice.</div>
+<div class="clause"><span class="clause-number">f)</span> Illegal activities, substance abuse, and loud noise after 10 PM are strictly prohibited.</div>
+<div class="clause"><span class="clause-number">g)</span> Guests are allowed only in common areas and during permitted hours.</div>
+
+<!-- Termination -->
+<h2>7. Termination</h2>
+<div class="clause"><span class="clause-number">a)</span> Either party may terminate by providing <strong th:text="${noticeDays}">30</strong> days' written notice.</div>
+<div class="clause"><span class="clause-number">b)</span> During the lock-in period of <strong th:text="${lockInMonths}">0</strong> month(s), early termination results in forfeiture of rent from the security deposit.</div>
+<div class="clause"><span class="clause-number">c)</span> The Licensor may terminate immediately for violation of house rules or non-payment exceeding 15 days.</div>
+
+<!-- Settlement -->
+<h2>8. Settlement on Vacating</h2>
+<p style="font-size: 10pt;">Upon vacating, a final settlement will include: outstanding rent, utility charges, damage assessment, late penalties, and refund of deposit after deductions.</p>
+
+<!-- Jurisdiction -->
+<h2>9. Jurisdiction</h2>
+<p style="font-size: 10pt;">This agreement shall be governed by the laws of India. Disputes subject to the jurisdiction of the courts in the city where the property is located.</p>
+
+<!-- Digital Signatures -->
+<h2>10. Digital Signatures</h2>
+<p style="font-size: 10pt; margin-bottom: 15px;">Both parties agree that digital signatures on this platform constitute valid and binding consent, per the Information Technology Act, 2000.</p>
+
+<!-- Additional Terms -->
+<div th:if="${additionalTerms != null and !additionalTerms.isEmpty()}">
+    <h2>11. Additional Terms</h2>
+    <p style="font-size: 10pt; white-space: pre-line;" th:text="${additionalTerms}">Additional terms here</p>
+</div>
+
+<!-- Signature Blocks -->
+<div class="two-col" style="margin-top: 25px;">
+    <div class="signature-box">
+        <div class="sig-label">Licensor (Host)</div>
+        <div class="sig-name" th:text="${hostName}">Host Name</div>
+        <div th:if="${hostSignedAt != null}">
+            <span class="signed-badge">SIGNED</span>
+            <div class="sig-date" th:text="'Signed: ' + ${hostSignedAt}">Signed: 01 Jan 2026</div>
+            <div class="sig-date" th:text="'IP: ' + ${hostSignatureIp}">IP: 0.0.0.0</div>
+        </div>
+        <div th:if="${hostSignedAt == null}">
+            <span class="pending-badge">PENDING</span>
+        </div>
+    </div>
+    <div class="signature-box">
+        <div class="sig-label">Licensee (Tenant)</div>
+        <div class="sig-name" th:text="${tenantName}">Tenant Name</div>
+        <div th:if="${tenantSignedAt != null}">
+            <span class="signed-badge">SIGNED</span>
+            <div class="sig-date" th:text="'Signed: ' + ${tenantSignedAt}">Signed: 01 Jan 2026</div>
+            <div class="sig-date" th:text="'IP: ' + ${tenantSignatureIp}">IP: 0.0.0.0</div>
+        </div>
+        <div th:if="${tenantSignedAt == null}">
+            <span class="pending-badge">PENDING</span>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+    <p>Generated via Safar Platform | <span th:text="${agreementNumber}">AGR-2026-0001</span></p>
+    <p>This is a digitally generated document. No physical signature required.</p>
+    <p>www.ysafar.com</p>
+</div>
+</body>
+</html>

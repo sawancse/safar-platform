@@ -37,6 +37,24 @@ public class InternalRoomTypeController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/{roomTypeId}/occupy")
+    public ResponseEntity<Void> occupy(
+            @PathVariable UUID roomTypeId,
+            @RequestParam String sharingType) {
+        roomTypeService.incrementOccupancy(roomTypeId, sharingType);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{roomTypeId}/release")
+    public ResponseEntity<Void> release(
+            @PathVariable UUID roomTypeId,
+            @RequestParam String sharingType,
+            @RequestParam(required = false) String moveOutDate) {
+        java.time.LocalDate date = moveOutDate != null ? java.time.LocalDate.parse(moveOutDate) : null;
+        roomTypeService.decrementOccupancy(roomTypeId, sharingType, date);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/{roomTypeId}")
     public ResponseEntity<RoomTypeResponse> getRoomType(@PathVariable UUID roomTypeId) {
         return ResponseEntity.ok(roomTypeService.getRoomTypeById(roomTypeId));

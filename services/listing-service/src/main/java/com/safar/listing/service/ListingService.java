@@ -144,6 +144,14 @@ public class ListingService {
                 .gateClosingTime(parseTime(req.gateClosingTime(), null))
                 .noticePeriodDays(req.noticePeriodDays())
                 .securityDepositPaise(req.securityDepositPaise())
+                .depositType(req.depositType())
+                .depositTerms(req.depositTerms())
+                .gracePeriodDays(req.gracePeriodDays() != null ? req.gracePeriodDays() : 5)
+                .latePenaltyBps(req.latePenaltyBps() != null ? req.latePenaltyBps() : 200)
+                // Insurance
+                .insuranceEnabled(req.insuranceEnabled() != null ? req.insuranceEnabled() : false)
+                .insuranceAmountPaise(req.insuranceAmountPaise())
+                .insuranceType(req.insuranceType())
                 // Hotel fields
                 .hotelChain(req.hotelChain())
                 .frontDesk24h(req.frontDesk24h() != null ? req.frontDesk24h() : false)
@@ -165,12 +173,16 @@ public class ListingService {
 
         Listing saved = listingRepository.save(listing);
 
-        // Publish host.registered event on first listing
+        // Publish host.registered event on first listing (async, non-blocking)
         long totalCount = listingRepository.findByHostId(hostId).size();
         if (totalCount == 1) {
-            String event = String.format("{\"hostId\":\"%s\"}", hostId);
-            kafkaTemplate.send("host.registered", hostId.toString(), event);
-            log.info("First listing created by host {} — host.registered event published", hostId);
+            try {
+                String event = String.format("{\"hostId\":\"%s\"}", hostId);
+                kafkaTemplate.send("host.registered", hostId.toString(), event);
+                log.info("First listing created by host {} — host.registered event published", hostId);
+            } catch (Exception e) {
+                log.warn("Failed to publish host.registered event for host {}: {}", hostId, e.getMessage());
+            }
         }
 
         return toResponse(saved);
@@ -241,6 +253,14 @@ public class ListingService {
         if (req.gateClosingTime() != null) listing.setGateClosingTime(java.time.LocalTime.parse(req.gateClosingTime()));
         if (req.noticePeriodDays() != null) listing.setNoticePeriodDays(req.noticePeriodDays());
         if (req.securityDepositPaise() != null) listing.setSecurityDepositPaise(req.securityDepositPaise());
+        if (req.depositType() != null) listing.setDepositType(req.depositType());
+        if (req.depositTerms() != null) listing.setDepositTerms(req.depositTerms());
+        if (req.gracePeriodDays() != null) listing.setGracePeriodDays(req.gracePeriodDays());
+        if (req.latePenaltyBps() != null) listing.setLatePenaltyBps(req.latePenaltyBps());
+        // Insurance
+        if (req.insuranceEnabled() != null) listing.setInsuranceEnabled(req.insuranceEnabled());
+        if (req.insuranceAmountPaise() != null) listing.setInsuranceAmountPaise(req.insuranceAmountPaise());
+        if (req.insuranceType() != null) listing.setInsuranceType(req.insuranceType());
         // Hotel fields
         if (req.hotelChain() != null) listing.setHotelChain(req.hotelChain());
         if (req.frontDesk24h() != null) listing.setFrontDesk24h(req.frontDesk24h());
@@ -683,6 +703,14 @@ public class ListingService {
                 l.getGateClosingTime() != null ? l.getGateClosingTime().toString() : null,
                 l.getNoticePeriodDays(),
                 l.getSecurityDepositPaise(),
+                l.getDepositType(),
+                l.getDepositTerms(),
+                l.getGracePeriodDays(),
+                l.getLatePenaltyBps(),
+                // Insurance
+                l.getInsuranceEnabled(),
+                l.getInsuranceAmountPaise(),
+                l.getInsuranceType(),
                 // Hotel fields
                 l.getHotelChain(),
                 l.getFrontDesk24h(),

@@ -20,6 +20,9 @@ public record RoomTypeRequest(
         String stayMode,       // NIGHTLY, HOURLY
         String sharingType,    // PRIVATE, TWO_SHARING, THREE_SHARING, FOUR_SHARING, DORMITORY
         String roomVariant,    // AC, NON_AC, FURNISHED, SEMI_FURNISHED
+        // Deposit (overrides listing-level deposit when set)
+        Long securityDepositPaise,
+        String depositType, // REFUNDABLE, PARTIAL_REFUNDABLE, NON_REFUNDABLE
         // Photos
         String primaryPhotoUrl,
         List<String> photoUrls // up to 5 URLs

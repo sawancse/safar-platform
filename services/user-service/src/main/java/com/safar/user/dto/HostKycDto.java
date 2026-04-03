@@ -15,6 +15,11 @@ public record HostKycDto(
         Boolean aadhaarVerified,
         String panNumber,
         Boolean panVerified,
+        // Document URLs
+        String aadhaarFrontUrl,
+        String aadhaarBackUrl,
+        String panUrl,
+        String selfieUrl,
         // Address
         String addressLine1,
         String addressLine2,

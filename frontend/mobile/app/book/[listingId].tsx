@@ -211,7 +211,9 @@ export default function BookScreen() {
 
   const subtotalPaise = listing.basePricePaise * nights;
   const gstPaise      = listing.gstApplicable ? Math.round(subtotalPaise * 0.18) : 0;
-  const totalPaise    = subtotalPaise + gstPaise;
+  const isPG = listing.listingType === 'PG' || listing.listingType === 'COLIVING';
+  const securityDepositPaise = isPG ? (listing.securityDepositPaise ?? 0) : 0;
+  const totalPaise    = subtotalPaise + gstPaise + securityDepositPaise;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
@@ -307,6 +309,12 @@ export default function BookScreen() {
           <Text style={styles.priceLabel}>{formatPaise(listing.basePricePaise)} x {nights} night</Text>
           <Text style={styles.priceValue}>{formatPaise(subtotalPaise)}</Text>
         </View>
+        {securityDepositPaise > 0 && (
+          <View style={styles.priceRow}>
+            <Text style={styles.priceLabel}>Security deposit (refundable)</Text>
+            <Text style={styles.priceValue}>{formatPaise(securityDepositPaise)}</Text>
+          </View>
+        )}
         {gstPaise > 0 && (
           <View style={styles.priceRow}>
             <Text style={[styles.priceLabel, { color: '#9ca3af' }]}>GST (18%)</Text>
@@ -317,7 +325,7 @@ export default function BookScreen() {
           <Text style={styles.priceTotalLabel}>Total</Text>
           <Text style={styles.priceTotalValue}>{formatPaise(totalPaise)}</Text>
         </View>
-        <Text style={styles.note}>Zero deposit / Micro-insurance included</Text>
+        <Text style={styles.note}>{isPG ? 'Security deposit refunded on checkout' : 'Zero deposit / Micro-insurance included'}</Text>
       </View>
 
       {error !== '' && (

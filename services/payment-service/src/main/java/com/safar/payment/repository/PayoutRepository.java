@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface PayoutRepository extends JpaRepository<Payout, UUID> {
@@ -13,4 +14,5 @@ public interface PayoutRepository extends JpaRepository<Payout, UUID> {
     List<Payout> findByStatusAndScheduledAtBefore(PayoutStatus status, OffsetDateTime before);
     List<Payout> findByHostIdAndStatusIn(UUID hostId, List<PayoutStatus> statuses);
     List<Payout> findByStatus(PayoutStatus status);
+    Optional<Payout> findByRazorpayPayoutId(String razorpayPayoutId);
 }

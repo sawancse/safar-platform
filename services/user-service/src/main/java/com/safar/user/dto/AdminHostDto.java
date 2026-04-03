@@ -10,5 +10,9 @@ public record AdminHostDto(
         String email,
         String role,
         String subscriptionTier,
+        String kycStatus,
+        String accountStatus,
+        String suspensionReason,
+        OffsetDateTime suspendedAt,
         OffsetDateTime createdAt
 ) {}

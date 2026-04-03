@@ -63,12 +63,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                 List.of(new SimpleGrantedAuthority("ROLE_" + role))
                         );
                 SecurityContextHolder.getContext().setAuthentication(auth);
+                log.info("JWT auth set for userId={} role={}", userId, role);
             } catch (JwtException e) {
-                // Don't reject — let Spring Security's permitAll() handle public endpoints
+                log.warn("JWT validation failed: {} — falling back to gateway headers", e.getMessage());
             } catch (Exception e) {
-                // Don't reject — let Spring Security's permitAll() handle public endpoints
+                log.warn("JWT parsing error: {} — falling back to gateway headers", e.getMessage());
             }
         }
+
+        log.info("Auth after JWT phase: {}", SecurityContextHolder.getContext().getAuthentication());
 
         // Fallback: trust gateway-propagated headers if JWT validation failed
         if (SecurityContextHolder.getContext().getAuthentication() == null) {

@@ -1,6 +1,7 @@
 package com.safar.chef.controller;
 
 import com.safar.chef.dto.CreateChefBookingRequest;
+import com.safar.chef.dto.ModifyChefBookingRequest;
 import com.safar.chef.entity.ChefBooking;
 import com.safar.chef.service.ChefBookingService;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,6 +27,15 @@ public class ChefBookingController {
         UUID customerId = UUID.fromString(auth.getName());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(chefBookingService.createBooking(customerId, req));
+    }
+
+    @PostMapping("/{id}/confirm-payment")
+    public ResponseEntity<ChefBooking> confirmPayment(Authentication auth,
+                                                       @PathVariable UUID id,
+                                                       @RequestParam String razorpayOrderId,
+                                                       @RequestParam String razorpayPaymentId) {
+        UUID customerId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(chefBookingService.confirmPayment(customerId, id, razorpayOrderId, razorpayPaymentId));
     }
 
     @PostMapping("/{id}/confirm")
@@ -58,6 +69,14 @@ public class ChefBookingController {
         return ResponseEntity.ok(chefBookingService.rateBooking(customerId, id, rating, comment));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ChefBooking> modifyBooking(Authentication auth,
+                                                      @PathVariable UUID id,
+                                                      @RequestBody ModifyChefBookingRequest req) {
+        UUID customerId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(chefBookingService.modifyBooking(customerId, id, req));
+    }
+
     @GetMapping("/my")
     public ResponseEntity<List<ChefBooking>> getMyBookings(Authentication auth) {
         UUID customerId = UUID.fromString(auth.getName());
@@ -68,6 +87,16 @@ public class ChefBookingController {
     public ResponseEntity<List<ChefBooking>> getChefBookings(Authentication auth) {
         UUID chefId = UUID.fromString(auth.getName());
         return ResponseEntity.ok(chefBookingService.getChefBookings(chefId));
+    }
+
+    @PostMapping("/{id}/rebook")
+    public ResponseEntity<ChefBooking> rebook(Authentication auth,
+                                               @PathVariable UUID id,
+                                               @RequestParam LocalDate newDate,
+                                               @RequestParam(required = false) String newTime) {
+        UUID customerId = UUID.fromString(auth.getName());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(chefBookingService.rebook(customerId, id, newDate, newTime));
     }
 
     @GetMapping("/{id}")

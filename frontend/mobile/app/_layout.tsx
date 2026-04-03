@@ -59,6 +59,15 @@ export default function RootLayout() {
             <Stack.Screen name="messages" options={{ title: 'Messages' }} />
             <Stack.Screen name="review" options={{ title: 'Write Review' }} />
             <Stack.Screen name="profile-edit" options={{ title: 'Edit Profile' }} />
+            <Stack.Screen name="buy" options={{ title: 'Buy Property', headerShown: false }} />
+            <Stack.Screen name="buy-search" options={{ title: 'Search Properties', headerShown: false }} />
+            <Stack.Screen name="buy-property/[id]" options={{ title: 'Property Details', headerShown: false }} />
+            <Stack.Screen name="sell" options={{ title: 'Sell Property', headerShown: false }} />
+            <Stack.Screen name="seller-dashboard" options={{ title: 'Seller Dashboard', headerShown: false }} />
+            <Stack.Screen name="site-visits" options={{ title: 'Site Visits', headerShown: false }} />
+            <Stack.Screen name="projects" options={{ title: 'New Projects', headerShown: false }} />
+            <Stack.Screen name="project-detail/[id]" options={{ title: 'Project Details', headerShown: false }} />
+            <Stack.Screen name="builder-dashboard" options={{ title: 'Builder Dashboard', headerShown: false }} />
           </Stack>
         </I18nProvider>
       </SafeAreaProvider>

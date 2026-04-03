@@ -15,6 +15,9 @@ public interface ListingServiceClient {
     String getCity(UUID listingId);
 
     String getListingTitle(UUID listingId);
+    default String getListingPhotoUrl(UUID listingId) { return null; }
+    default String getListingAddress(UUID listingId) { return null; }
+    default String getHostName(UUID listingId) { return null; }
     long getCleaningFeePaise(UUID listingId);
     String getHostTier(UUID hostId);
 
@@ -51,4 +54,7 @@ public interface ListingServiceClient {
 
     // Room type inclusions
     List<Map<String, Object>> getRoomTypeInclusions(UUID roomTypeId);
+
+    // Room type info (sharingType, count, totalBeds etc.)
+    default Map<String, Object> getRoomTypeInfo(UUID roomTypeId) { return Map.of(); }
 }

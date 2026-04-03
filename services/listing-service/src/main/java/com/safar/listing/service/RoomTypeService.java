@@ -58,6 +58,8 @@ public class RoomTypeService {
                 .sharingType(req.sharingType() != null ? SharingType.valueOf(req.sharingType()) : null)
                 .roomVariant(req.roomVariant() != null ? RoomVariant.valueOf(req.roomVariant()) : null)
                 .totalBeds(req.sharingType() != null ? computeTotalBeds(req.sharingType(), req.count()) : null)
+                .securityDepositPaise(req.securityDepositPaise())
+                .depositType(req.depositType() != null ? req.depositType() : "REFUNDABLE")
                 .sortOrder(nextSort)
                 .primaryPhotoUrl(req.primaryPhotoUrl())
                 .photoUrls(req.photoUrls() != null ? String.join(",", req.photoUrls()) : null)
@@ -102,6 +104,8 @@ public class RoomTypeService {
             roomType.setTotalBeds(computeTotalBeds(req.sharingType(), req.count()));
         }
         if (req.roomVariant() != null) roomType.setRoomVariant(RoomVariant.valueOf(req.roomVariant()));
+        roomType.setSecurityDepositPaise(req.securityDepositPaise());
+        if (req.depositType() != null) roomType.setDepositType(req.depositType());
         if (req.primaryPhotoUrl() != null) roomType.setPrimaryPhotoUrl(req.primaryPhotoUrl());
         if (req.photoUrls() != null) roomType.setPhotoUrls(String.join(",", req.photoUrls()));
 
@@ -259,6 +263,69 @@ public class RoomTypeService {
                 roomTypeId, from, to, roomType.getCount());
     }
 
+    /**
+     * Increment occupiedBeds when a new PG tenant moves in.
+     * bedsToOccupy is calculated from sharingType: PRIVATE = all beds in one room, shared = 1 bed.
+     */
+    @Transactional
+    public void incrementOccupancy(UUID roomTypeId, String sharingType) {
+        RoomType roomType = roomTypeRepo.findById(roomTypeId)
+                .orElseThrow(() -> new NoSuchElementException("Room type not found: " + roomTypeId));
+
+        int beds = bedsForSharingType(sharingType, roomType);
+        int current = roomType.getOccupiedBeds() != null ? roomType.getOccupiedBeds() : 0;
+        int total = roomType.getTotalBeds() != null ? roomType.getTotalBeds() : roomType.getCount();
+
+        if (current + beds > total) {
+            throw new IllegalStateException("Cannot occupy " + beds + " bed(s) — only " + (total - current) + " available in room type " + roomTypeId);
+        }
+
+        roomType.setOccupiedBeds(current + beds);
+        roomTypeRepo.save(roomType);
+        log.info("Occupancy incremented for room type {} by {} beds (now {}/{})",
+                roomTypeId, beds, roomType.getOccupiedBeds(), total);
+    }
+
+    /**
+     * Decrement occupiedBeds when a PG tenant vacates.
+     * Also restores date-based availability for the next 12 months from moveOutDate.
+     */
+    @Transactional
+    public void decrementOccupancy(UUID roomTypeId, String sharingType, LocalDate moveOutDate) {
+        RoomType roomType = roomTypeRepo.findById(roomTypeId)
+                .orElseThrow(() -> new NoSuchElementException("Room type not found: " + roomTypeId));
+
+        int beds = bedsForSharingType(sharingType, roomType);
+        int current = roomType.getOccupiedBeds() != null ? roomType.getOccupiedBeds() : 0;
+
+        roomType.setOccupiedBeds(Math.max(0, current - beds));
+        roomTypeRepo.save(roomType);
+        log.info("Occupancy decremented for room type {} by {} beds (now {}/{})",
+                roomTypeId, beds, roomType.getOccupiedBeds(),
+                roomType.getTotalBeds() != null ? roomType.getTotalBeds() : roomType.getCount());
+
+        // Restore date-based availability for 12 months from moveOutDate
+        if (moveOutDate != null) {
+            LocalDate from = moveOutDate.isAfter(LocalDate.now()) ? moveOutDate : LocalDate.now();
+            LocalDate to = from.plusMonths(12);
+            incrementAvailability(roomTypeId, from, to, 1);
+            log.info("Restored date availability for room type {} from {} to {}", roomTypeId, from, to);
+        }
+    }
+
+    /**
+     * Calculate how many beds one tenancy occupies based on sharing type.
+     * PRIVATE = entire room (all beds), shared = 1 bed.
+     */
+    private int bedsForSharingType(String sharingType, RoomType roomType) {
+        if (sharingType == null || "PRIVATE".equals(sharingType)) {
+            // Private tenant occupies all beds in one room unit
+            return roomType.getSharingType() != null ? computeTotalBeds(roomType.getSharingType().name(), 1) : 1;
+        }
+        // Shared occupant takes 1 bed
+        return 1;
+    }
+
     // ── Private helpers ─────────────────────────────────────────
 
     private void initializeAvailability(UUID roomTypeId, int count, int days) {
@@ -328,6 +395,8 @@ public class RoomTypeService {
                 rt.getRoomVariant() != null ? rt.getRoomVariant().name() : null,
                 rt.getTotalBeds(),
                 rt.getOccupiedBeds(),
+                rt.getSecurityDepositPaise(),
+                rt.getDepositType(),
                 rt.getPrimaryPhotoUrl(),
                 rt.getPhotoUrls() != null && !rt.getPhotoUrls().isBlank()
                         ? Arrays.asList(rt.getPhotoUrls().split(",")) : List.of(),

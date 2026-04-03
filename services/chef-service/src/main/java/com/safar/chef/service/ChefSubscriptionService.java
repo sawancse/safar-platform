@@ -1,6 +1,7 @@
 package com.safar.chef.service;
 
 import com.safar.chef.dto.CreateSubscriptionRequest;
+import com.safar.chef.dto.ModifySubscriptionRequest;
 import com.safar.chef.entity.ChefProfile;
 import com.safar.chef.entity.ChefSubscription;
 import com.safar.chef.entity.enums.SubscriptionStatus;
@@ -105,6 +106,36 @@ public class ChefSubscriptionService {
         subscription.setCancelledAt(OffsetDateTime.now());
         log.info("Chef subscription cancelled: {} by userId={}", subscriptionId, userId);
         return subscriptionRepo.save(subscription);
+    }
+
+    @Transactional
+    public ChefSubscription modifySubscription(UUID customerId, UUID subscriptionId, ModifySubscriptionRequest req) {
+        ChefSubscription subscription = subscriptionRepo.findById(subscriptionId)
+                .orElseThrow(() -> new IllegalArgumentException("Subscription not found"));
+
+        if (!subscription.getCustomerId().equals(customerId)) {
+            throw new IllegalArgumentException("Not authorized to modify this subscription");
+        }
+        if (subscription.getStatus() != SubscriptionStatus.ACTIVE) {
+            throw new IllegalArgumentException("Subscription can only be modified while ACTIVE");
+        }
+
+        if (req.mealsPerDay() != null) subscription.setMealsPerDay(req.mealsPerDay());
+        if (req.mealTypes() != null) subscription.setMealTypes(req.mealTypes());
+        if (req.schedule() != null) subscription.setSchedule(req.schedule());
+        if (req.address() != null) subscription.setAddress(req.address());
+        if (req.city() != null) subscription.setCity(req.city());
+        if (req.locality() != null) subscription.setLocality(req.locality());
+        if (req.pincode() != null) subscription.setPincode(req.pincode());
+        if (req.specialRequests() != null) subscription.setSpecialRequests(req.specialRequests());
+        if (req.dietaryPreferences() != null) subscription.setDietaryPreferences(req.dietaryPreferences());
+
+        subscription.setModifiedAt(OffsetDateTime.now());
+        subscription.setModificationCount(subscription.getModificationCount() != null ? subscription.getModificationCount() + 1 : 1);
+
+        ChefSubscription saved = subscriptionRepo.save(subscription);
+        log.info("Chef subscription modified: {} by customer={}", subscriptionId, customerId);
+        return saved;
     }
 
     @Transactional(readOnly = true)

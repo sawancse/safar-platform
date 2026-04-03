@@ -9,18 +9,30 @@
       "distribution": "internal",
       "env": {
         "API_URL": "http://192.168.29.215:8080"
+      },
+      "ios": {
+        "simulator": true
       }
     },
     "preview": {
       "distribution": "internal",
       "env": {
         "API_URL": "https://api.ysafar.com"
+      },
+      "android": {
+        "buildType": "apk"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "API_URL": "https://api.ysafar.com"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "autoIncrement": true
       }
     }
   },
@@ -28,10 +40,11 @@
     "production": {
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
-        "track": "internal"
+        "track": "internal",
+        "releaseStatus": "draft"
       },
       "ios": {
-        "appleId": "your-apple-id@example.com",
+        "appleId": "YOUR_APPLE_ID@example.com",
         "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID",
         "appleTeamId": "YOUR_TEAM_ID"
       }

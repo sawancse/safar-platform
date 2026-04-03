@@ -299,25 +299,27 @@ public class ListingController {
     }
 
     @DeleteMapping("/{id}/media/{mediaId}")
-    public ResponseEntity<Void> deleteMedia(@PathVariable UUID id, @PathVariable UUID mediaId,
-            @RequestHeader("X-User-Id") String userId) {
-        listingService.deleteMedia(id, mediaId, UUID.fromString(userId));
+    public ResponseEntity<Void> deleteMedia(Authentication auth,
+            @PathVariable UUID id, @PathVariable UUID mediaId) {
+        UUID hostId = UUID.fromString(auth.getName());
+        listingService.deleteMedia(id, mediaId, hostId);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{id}/media/reorder")
-    public ResponseEntity<Void> reorderMedia(@PathVariable UUID id,
-            @RequestHeader("X-User-Id") String userId,
+    public ResponseEntity<Void> reorderMedia(Authentication auth, @PathVariable UUID id,
             @RequestBody List<UUID> mediaIds) {
-        listingService.reorderMedia(id, UUID.fromString(userId), mediaIds);
+        UUID hostId = UUID.fromString(auth.getName());
+        listingService.reorderMedia(id, hostId, mediaIds);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/{id}/media/{mediaId}/category")
-    public ResponseEntity<Void> updateMediaCategory(@PathVariable UUID id, @PathVariable UUID mediaId,
-            @RequestHeader("X-User-Id") String userId,
+    public ResponseEntity<Void> updateMediaCategory(Authentication auth,
+            @PathVariable UUID id, @PathVariable UUID mediaId,
             @RequestParam String category) {
-        listingService.updateMediaCategory(id, mediaId, UUID.fromString(userId), category);
+        UUID hostId = UUID.fromString(auth.getName());
+        listingService.updateMediaCategory(id, mediaId, hostId, category);
         return ResponseEntity.ok().build();
     }
 
@@ -368,13 +370,14 @@ public class ListingController {
 
     @PostMapping("/{id}/community-verify")
     public ResponseEntity<CommunityVerificationService.CommunityVerifyResult> communityVerify(
+            Authentication auth,
             @PathVariable UUID id,
             @RequestParam boolean photosMatch,
             @RequestParam boolean amenitiesMatch,
-            @RequestParam boolean feltSafe,
-            @RequestHeader("X-User-Id") String userId) {
+            @RequestParam boolean feltSafe) {
+        UUID userId = UUID.fromString(auth.getName());
         return ResponseEntity.ok(communityVerificationService.submitVerification(
-                id, UUID.fromString(userId), photosMatch, amenitiesMatch, feltSafe));
+                id, userId, photosMatch, amenitiesMatch, feltSafe));
     }
 
     @GetMapping("/{id}/investment-signal")

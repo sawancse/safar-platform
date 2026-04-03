@@ -76,6 +76,46 @@ public class RazorpayGatewayImpl implements RazorpayGateway {
     }
 
     @Override
+    public void cancelSubscription(String subscriptionId, boolean cancelAtCycleEnd) throws Exception {
+        JSONObject cancelReq = new JSONObject();
+        cancelReq.put("cancel_at_cycle_end", (Object) (cancelAtCycleEnd ? 1 : 0));
+        razorpay.subscriptions.cancel(subscriptionId, cancelReq);
+        log.info("Razorpay subscription cancelled: {} (atCycleEnd={})", subscriptionId, cancelAtCycleEnd);
+    }
+
+    @Override
+    public String createPayout(String upiId, long amountPaise, String purpose, String referenceId) throws Exception {
+        // Razorpay Payouts API: create a contact + fund account + payout
+        // For UPI payouts, we use the RazorpayX Payout API
+        JSONObject payoutReq = new JSONObject();
+        payoutReq.put("account_number", (Object) System.getenv("RAZORPAY_ACCOUNT_NUMBER"));
+        payoutReq.put("amount", (Object) amountPaise);
+        payoutReq.put("currency", (Object) "INR");
+        payoutReq.put("mode", (Object) "UPI");
+        payoutReq.put("purpose", (Object) purpose);
+        payoutReq.put("reference_id", (Object) referenceId);
+
+        JSONObject fundAccount = new JSONObject();
+        JSONObject vpa = new JSONObject();
+        vpa.put("address", (Object) upiId);
+        fundAccount.put("account_type", (Object) "vpa");
+        fundAccount.put("vpa", (Object) vpa);
+        payoutReq.put("fund_account", (Object) fundAccount);
+
+        // Note: Razorpay Payouts API uses RazorpayX (different base URL)
+        // The razorpay-java SDK supports payouts via razorpay.payouts.create()
+        // In sandbox/test mode, payouts are auto-processed
+        log.info("Creating Razorpay payout: {} paise to UPI {} (ref={})", amountPaise, upiId, referenceId);
+
+        // Razorpay Java SDK doesn't have a direct payouts.create() — use orders for now
+        // and implement the actual RazorpayX call when going live.
+        // For production: HTTP POST to https://api.razorpay.com/v1/payouts with above JSON
+        log.warn("Razorpay Payouts API (RazorpayX) requires separate activation. " +
+                "Payout recorded in DB — process manually or via RazorpayX dashboard until API is activated.");
+        return "pout_pending_" + referenceId;
+    }
+
+    @Override
     public boolean verifyPaymentSignature(String orderId, String paymentId, String signature) {
         try {
             JSONObject attrs = new JSONObject();

@@ -147,5 +147,10 @@ variable "services" {
       desired_count = 1, min_count = 1, max_count = 2,
       health_path = "/health"
     }
+    chef-service = {
+      port = 8093, cpu = 512, memory = 1024,
+      desired_count = 1, min_count = 1, max_count = 2,
+      health_path = "/actuator/health"
+    }
   }
 }

@@ -66,8 +66,8 @@ aws:
   s3:
     bucket: ${S3_BUCKET:safar-media-dev}
     region: ${AWS_REGION:ap-south-1}
-    access-key: ${AWS_ACCESS_KEY_ID:AKIAZC3VOSQUK453WDMO}
-    secret-key: ${AWS_SECRET_ACCESS_KEY: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}
+    access-key: ${AWS_ACCESS_KEY_ID:AKIAZC3VOSQUHZCIFDVR}
+    secret-key: ${AWS_SECRET_ACCESS_KEY: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}
   cloudfront:
     domain: ${CDN_DOMAIN:d1pei2hufbgxoj.cloudfront.net}
 
@@ -81,7 +81,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,mappings
 
 services:
   user-service:

@@ -11,13 +11,21 @@ aws:
   s3:
     bucket: ${S3_BUCKET:safar-media-dev}
     region: ${AWS_REGION:ap-south-1}
-    access-key: ${AWS_ACCESS_KEY_ID:AKIAZC3VOSQUK453WDMO}
-    secret-key: ${AWS_SECRET_ACCESS_KEY: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}
+    access-key: ${AWS_ACCESS_KEY_ID:AKIAZC3VOSQUHZCIFDVR}
+    secret-key: ${AWS_SECRET_ACCESS_KEY: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}
   cloudfront:
     domain: ${CDN_DOMAIN:d1pei2hufbgxoj.cloudfront.net}
 
-jwt: 
+jwt:
   secret: ${JWT_SECRET:l0UNaBuoYCf7Y/G8G1bihPxkUI7NZuPaZdzTbbEYqzM=}
+
+media:
+  resize:
+    enabled: ${MEDIA_RESIZE_ENABLED:true}
+    width: 720
+    height: 480
+    quality: 0.85
+    max-original-bytes: 15728640
 
 management:
   endpoint:

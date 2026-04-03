@@ -11,29 +11,92 @@
       "resizeMode": "contain",
       "backgroundColor": "#f97316"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.safar.app",
+      "bundleIdentifier": "com.ysafar.app",
+      "buildNumber": "1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Safar needs camera access to take photos of your property listings",
+        "NSPhotoLibraryUsageDescription": "Safar needs photo library access to upload property images",
+        "NSLocationWhenInUseUsageDescription": "Safar uses your location to find nearby properties",
+        "NSLocationAlwaysUsageDescription": "Safar uses your location to find nearby properties",
+        "UIBackgroundModes": ["remote-notification"]
+      },
+      "config": {
+        "googleSignIn": {
+          "reservedClientId": "com.googleusercontent.apps.YOUR_IOS_CLIENT_ID"
+        }
+      },
+      "associatedDomains": ["applinks:ysafar.com", "applinks:www.ysafar.com"]
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#f97316"
       },
-      "package": "com.safar.app"
+      "package": "com.ysafar.app",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "READ_MEDIA_IMAGES"
+      ],
+      "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "ysafar.com",
+              "pathPrefix": "/listing"
+            },
+            {
+              "scheme": "https",
+              "host": "www.ysafar.com",
+              "pathPrefix": "/listing"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#f97316",
+          "sounds": []
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Safar needs access to your photos to upload property images",
+          "cameraPermission": "Safar needs camera access to take photos of your property"
+        }
+      ],
+      "expo-clipboard",
+      [
+        "expo-auth-session",
+        {
+          "scheme": "safar"
+        }
+      ]
     ],
     "scheme": "safar",
     "extra": {
@@ -44,6 +107,13 @@
       "eas": {
         "projectId": "5280ee28-a8b1-45c8-b64e-e2cba6666a17"
       }
+    },
+    "owner": "ysafar",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5280ee28-a8b1-45c8-b64e-e2cba6666a17"
     }
   }
 }

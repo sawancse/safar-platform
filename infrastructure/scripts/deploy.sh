@@ -20,6 +20,7 @@ SERVICES=(
   api-gateway auth-service user-service listing-service
   search-service booking-service payment-service review-service
   media-service notification-service messaging-service ai-service
+  chef-service
 )
 
 ECR_REGISTRY="$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com"

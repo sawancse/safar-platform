@@ -91,6 +91,25 @@ public class PgTenancy {
     @Column(name = "razorpay_subscription_id", length = 100)
     private String razorpaySubscriptionId;
 
+    @Column(name = "razorpay_plan_id", length = 100)
+    private String razorpayPlanId;
+
+    @Column(name = "subscription_status", length = 20)
+    private String subscriptionStatus;
+
+    @Column(name = "grace_period_days", nullable = false)
+    @Builder.Default
+    private int gracePeriodDays = 5;
+
+    @Column(name = "late_penalty_bps", nullable = false)
+    @Builder.Default
+    private int latePenaltyBps = 200;
+
+    /** Maximum penalty as a percentage of invoice total (e.g. 25 = 25%). 0 means no cap. */
+    @Column(name = "max_penalty_percent", nullable = false)
+    @Builder.Default
+    private int maxPenaltyPercent = 25;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

@@ -39,6 +39,17 @@ public class JwtService {
                 .compact();
     }
 
+    public String generateImpersonationToken(UUID targetUserId, String role, UUID adminId) {
+        return Jwts.builder()
+                .subject(targetUserId.toString())
+                .claim("role", role)
+                .claim("impersonatedBy", adminId.toString())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expiryMinutes * 60 * 1000))
+                .signWith(getKey())
+                .compact();
+    }
+
     public String generateRefreshToken(UUID userId) {
         String token = UUID.randomUUID().toString();
         redis.opsForValue().set(

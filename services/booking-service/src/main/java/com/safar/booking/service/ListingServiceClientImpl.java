@@ -142,6 +142,33 @@ public class ListingServiceClientImpl implements ListingServiceClient {
     }
 
     @Override
+    public String getListingPhotoUrl(UUID listingId) {
+        try {
+            Map<String, Object> listing = fetchListing(listingId);
+            if (listing == null) return null;
+            return listing.get("primaryPhotoUrl") != null ? (String) listing.get("primaryPhotoUrl") : null;
+        } catch (Exception e) { return null; }
+    }
+
+    @Override
+    public String getListingAddress(UUID listingId) {
+        try {
+            Map<String, Object> listing = fetchListing(listingId);
+            if (listing == null) return null;
+            return listing.get("address") != null ? (String) listing.get("address") : null;
+        } catch (Exception e) { return null; }
+    }
+
+    @Override
+    public String getHostName(UUID listingId) {
+        try {
+            Map<String, Object> listing = fetchListing(listingId);
+            if (listing == null) return null;
+            return listing.get("hostName") != null ? (String) listing.get("hostName") : null;
+        } catch (Exception e) { return null; }
+    }
+
+    @Override
     @CircuitBreaker(name = "listingService", fallbackMethod = "getCleaningFeePaiseFallback")
     @Retry(name = "listingService")
     public long getCleaningFeePaise(UUID listingId) {
@@ -178,7 +205,22 @@ public class ListingServiceClientImpl implements ListingServiceClient {
         return "STARTER";
     }
 
-    // ── Room type methods ───────────────────────────────────────
+    @Override
+    @CircuitBreaker(name = "listingService", fallbackMethod = "getPricingUnitFallback")
+    @Retry(name = "listingService")
+    public String getPricingUnit(UUID listingId) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> listing = fetchListing(listingId);
+        if (listing == null || listing.get("pricingUnit") == null) return "NIGHT";
+        return (String) listing.get("pricingUnit");
+    }
+
+    public String getPricingUnitFallback(UUID listingId, Throwable t) {
+        log.warn("Could not get pricing unit for listing {}: {}, defaulting to NIGHT", listingId, t.getMessage());
+        return "NIGHT";
+    }
+
+    // ── Room type methods ───────────────────────────���───────────
 
     @Override
     @CircuitBreaker(name = "listingService", fallbackMethod = "getRoomTypePriceFallback")
@@ -413,6 +455,12 @@ public class ListingServiceClientImpl implements ListingServiceClient {
     public List<Map<String, Object>> getRoomTypeInclusionsFallback(UUID roomTypeId, Throwable t) {
         log.warn("Could not get inclusions for room type {}: {}", roomTypeId, t.getMessage());
         return Collections.emptyList();
+    }
+
+    @Override
+    public Map<String, Object> getRoomTypeInfo(UUID roomTypeId) {
+        Map<String, Object> rt = fetchRoomType(roomTypeId);
+        return rt != null ? rt : Map.of();
     }
 
     @SuppressWarnings("unchecked")

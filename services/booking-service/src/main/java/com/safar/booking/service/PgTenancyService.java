@@ -1,34 +1,107 @@
 package com.safar.booking.service;
 
+import com.safar.booking.dto.CreateTenancyRequest;
 import com.safar.booking.entity.PgTenancy;
 import com.safar.booking.entity.TenancyInvoice;
 import com.safar.booking.entity.enums.InvoiceStatus;
 import com.safar.booking.entity.enums.TenancyStatus;
 import com.safar.booking.repository.PgTenancyRepository;
 import com.safar.booking.repository.TenancyInvoiceRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class PgTenancyService {
 
     private final PgTenancyRepository tenancyRepository;
     private final TenancyInvoiceRepository invoiceRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final UtilityReadingService utilityReadingService;
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+    private final String listingServiceUrl;
+
+    public PgTenancyService(PgTenancyRepository tenancyRepository,
+                            TenancyInvoiceRepository invoiceRepository,
+                            KafkaTemplate<String, Object> kafkaTemplate,
+                            UtilityReadingService utilityReadingService,
+                            RestTemplate restTemplate,
+                            ObjectMapper objectMapper,
+                            @Value("${services.listing-service.url}") String listingServiceUrl) {
+        this.tenancyRepository = tenancyRepository;
+        this.invoiceRepository = invoiceRepository;
+        this.kafkaTemplate = kafkaTemplate;
+        this.utilityReadingService = utilityReadingService;
+        this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
+        this.listingServiceUrl = listingServiceUrl;
+    }
 
     private static long tenancyCounter = 1000;
     private static long invoiceCounter = 1000;
+
+    /**
+     * Create tenancy from DTO, inheriting penalty config from listing defaults.
+     * Priority: request value > listing value > hardcoded default.
+     */
+    @Transactional
+    public PgTenancy createTenancyFromRequest(CreateTenancyRequest req) {
+        // Fetch listing defaults for penalty config
+        int listingGraceDays = 5;
+        int listingPenaltyBps = 200;
+        int listingMaxPenaltyPercent = 25;
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> listing = restTemplate.getForObject(
+                    listingServiceUrl + "/api/v1/listings/" + req.listingId(), Map.class);
+            if (listing != null) {
+                if (listing.get("gracePeriodDays") != null)
+                    listingGraceDays = ((Number) listing.get("gracePeriodDays")).intValue();
+                if (listing.get("latePenaltyBps") != null)
+                    listingPenaltyBps = ((Number) listing.get("latePenaltyBps")).intValue();
+            }
+        } catch (Exception e) {
+            log.warn("Could not fetch listing {} for penalty defaults, using hardcoded: {}",
+                    req.listingId(), e.getMessage());
+        }
+
+        PgTenancy tenancy = PgTenancy.builder()
+                .tenantId(req.tenantId())
+                .listingId(req.listingId())
+                .roomTypeId(req.roomTypeId())
+                .bedNumber(req.bedNumber())
+                .sharingType(req.sharingType() != null ? req.sharingType() : "PRIVATE")
+                .moveInDate(req.moveInDate())
+                .noticePeriodDays(req.noticePeriodDays())
+                .monthlyRentPaise(req.monthlyRentPaise())
+                .securityDepositPaise(req.securityDepositPaise())
+                .mealsIncluded(req.mealsIncluded())
+                .laundryIncluded(req.laundryIncluded())
+                .wifiIncluded(req.wifiIncluded())
+                .totalMonthlyPaise(req.totalMonthlyPaise())
+                .billingDay(req.billingDay() != null ? req.billingDay() : 1)
+                .gracePeriodDays(req.gracePeriodDays() != null ? req.gracePeriodDays() : listingGraceDays)
+                .latePenaltyBps(req.latePenaltyBps() != null ? req.latePenaltyBps() : listingPenaltyBps)
+                .maxPenaltyPercent(req.maxPenaltyPercent() != null ? req.maxPenaltyPercent() : listingMaxPenaltyPercent)
+                .build();
+
+        return createTenancy(tenancy);
+    }
 
     @Transactional
     public PgTenancy createTenancy(PgTenancy tenancy) {
@@ -48,9 +121,13 @@ public class PgTenancyService {
         tenancy.setNextBillingDate(nextBilling);
 
         PgTenancy saved = tenancyRepository.save(tenancy);
-        kafkaTemplate.send("tenancy.created", saved.getId().toString(), saved);
+        kafkaTemplate.send("tenancy.created", saved.getId().toString(), toEventJson(saved));
         log.info("PG tenancy created: {} for listing {}", saved.getTenancyRef(), saved.getListingId());
         return saved;
+    }
+
+    public List<PgTenancy> getActiveTenanciesByRoomType(UUID roomTypeId) {
+        return tenancyRepository.findByRoomTypeIdAndStatus(roomTypeId, TenancyStatus.ACTIVE);
     }
 
     public PgTenancy getTenancy(UUID id) {
@@ -78,7 +155,7 @@ public class PgTenancyService {
         tenancy.setStatus(TenancyStatus.NOTICE_PERIOD);
         tenancy.setMoveOutDate(LocalDate.now().plusDays(tenancy.getNoticePeriodDays()));
         PgTenancy saved = tenancyRepository.save(tenancy);
-        kafkaTemplate.send("tenancy.notice", saved.getId().toString(), saved);
+        kafkaTemplate.send("tenancy.notice", saved.getId().toString(), toEventJson(saved));
         log.info("Notice given for tenancy {}, move-out: {}", saved.getTenancyRef(), saved.getMoveOutDate());
         return saved;
     }
@@ -91,7 +168,7 @@ public class PgTenancyService {
             tenancy.setMoveOutDate(LocalDate.now());
         }
         PgTenancy saved = tenancyRepository.save(tenancy);
-        kafkaTemplate.send("tenancy.vacated", saved.getId().toString(), saved);
+        kafkaTemplate.send("tenancy.vacated", saved.getId().toString(), toEventJson(saved));
         log.info("Tenancy {} vacated", saved.getTenancyRef());
         return saved;
     }
@@ -108,7 +185,12 @@ public class PgTenancyService {
 
         long rent = tenancy.getMonthlyRentPaise();
         long packages = tenancy.getTotalMonthlyPaise() - rent;
-        long total = rent + packages;
+
+        // Include unbilled utility charges
+        long electricity = utilityReadingService.getUnbilledElectricity(tenancy.getId());
+        long water = utilityReadingService.getUnbilledWater(tenancy.getId());
+
+        long total = rent + packages + electricity + water;
         long gst = total * 18 / 100; // 18% GST
         long grandTotal = total + gst;
 
@@ -119,6 +201,8 @@ public class PgTenancyService {
                 .billingYear(year)
                 .rentPaise(rent)
                 .packagesPaise(packages)
+                .electricityPaise(electricity)
+                .waterPaise(water)
                 .totalPaise(total)
                 .gstPaise(gst)
                 .grandTotalPaise(grandTotal)
@@ -127,8 +211,15 @@ public class PgTenancyService {
                 .build();
 
         TenancyInvoice saved = invoiceRepository.save(invoice);
+
+        // Mark utility readings as billed
+        if (electricity > 0 || water > 0) {
+            utilityReadingService.markBilled(tenancy.getId(), saved.getId());
+        }
+
         kafkaTemplate.send("tenancy.invoice.generated", saved.getId().toString(), saved);
-        log.info("Invoice {} generated for tenancy {}", saved.getInvoiceNumber(), tenancy.getTenancyRef());
+        log.info("Invoice {} generated for tenancy {} (rent={}, pkg={}, elec={}, water={})",
+                saved.getInvoiceNumber(), tenancy.getTenancyRef(), rent, packages, electricity, water);
         return saved;
     }
 
@@ -172,5 +263,59 @@ public class PgTenancyService {
 
     public List<TenancyInvoice> getOverdueInvoices() {
         return invoiceRepository.findByStatus(InvoiceStatus.OVERDUE);
+    }
+
+    @Transactional
+    public PgTenancy updatePenaltyConfig(UUID id, Integer gracePeriodDays, Integer latePenaltyBps, Integer maxPenaltyPercent) {
+        PgTenancy tenancy = getTenancy(id);
+        if (gracePeriodDays != null) {
+            if (gracePeriodDays < 0 || gracePeriodDays > 30) {
+                throw new RuntimeException("Grace period must be 0-30 days");
+            }
+            tenancy.setGracePeriodDays(gracePeriodDays);
+        }
+        if (latePenaltyBps != null) {
+            if (latePenaltyBps < 0 || latePenaltyBps > 500) {
+                throw new RuntimeException("Late penalty must be 0-500 bps (0-5% per day)");
+            }
+            tenancy.setLatePenaltyBps(latePenaltyBps);
+        }
+        if (maxPenaltyPercent != null) {
+            if (maxPenaltyPercent < 0 || maxPenaltyPercent > 100) {
+                throw new RuntimeException("Max penalty percent must be 0-100");
+            }
+            tenancy.setMaxPenaltyPercent(maxPenaltyPercent);
+        }
+        PgTenancy saved = tenancyRepository.save(tenancy);
+        log.info("Penalty config updated for tenancy {}: grace={}d, penalty={}bps, maxCap={}%",
+                saved.getTenancyRef(), saved.getGracePeriodDays(), saved.getLatePenaltyBps(), saved.getMaxPenaltyPercent());
+        return saved;
+    }
+
+    /**
+     * Convert tenancy to a JSON string for Kafka events, including fields
+     * needed by listing-service to manage room occupancy.
+     */
+    private String toEventJson(PgTenancy tenancy) {
+        try {
+            Map<String, Object> event = new HashMap<>();
+            event.put("id", tenancy.getId().toString());
+            event.put("tenancyRef", tenancy.getTenancyRef());
+            event.put("tenantId", tenancy.getTenantId().toString());
+            event.put("listingId", tenancy.getListingId().toString());
+            if (tenancy.getRoomTypeId() != null) {
+                event.put("roomTypeId", tenancy.getRoomTypeId().toString());
+            }
+            event.put("bedNumber", tenancy.getBedNumber());
+            event.put("sharingType", tenancy.getSharingType());
+            event.put("status", tenancy.getStatus().name());
+            event.put("moveInDate", tenancy.getMoveInDate() != null ? tenancy.getMoveInDate().toString() : null);
+            event.put("moveOutDate", tenancy.getMoveOutDate() != null ? tenancy.getMoveOutDate().toString() : null);
+            event.put("monthlyRentPaise", tenancy.getMonthlyRentPaise());
+            return objectMapper.writeValueAsString(event);
+        } catch (Exception e) {
+            log.error("Failed to serialize tenancy event: {}", e.getMessage());
+            return "{}";
+        }
     }
 }

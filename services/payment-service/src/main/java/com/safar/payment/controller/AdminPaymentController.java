@@ -8,7 +8,9 @@ import com.safar.payment.repository.GstInvoiceRepository;
 import com.safar.payment.repository.PayoutRepository;
 import com.safar.payment.repository.SettlementPlanRepository;
 import com.safar.payment.service.LedgerService;
+import com.safar.payment.service.SettlementService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -20,12 +22,14 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor
+@Slf4j
 public class AdminPaymentController {
 
     private final PayoutRepository payoutRepository;
     private final SettlementPlanRepository settlementPlanRepository;
     private final LedgerService ledgerService;
     private final GstInvoiceRepository gstInvoiceRepository;
+    private final SettlementService settlementService;
 
     @GetMapping("/payouts")
     public ResponseEntity<List<Payout>> getAllPayouts(Authentication auth) {
@@ -120,6 +124,51 @@ public class AdminPaymentController {
         results.sort((a, b) -> Long.compare((long) b.get("grossRevenuePaise"), (long) a.get("grossRevenuePaise")));
 
         return ResponseEntity.ok(results);
+    }
+
+    // ── Manual settlement processing ────────────────────────────────────────
+
+    @PostMapping("/settlements/{planId}/process")
+    public ResponseEntity<SettlementPlan> processSettlement(@PathVariable UUID planId, Authentication auth) {
+        requireAdmin(auth);
+        log.info("Admin manually processing settlement plan {}", planId);
+        SettlementPlan processed = settlementService.processSettlement(planId);
+        return ResponseEntity.ok(processed);
+    }
+
+    @PostMapping("/settlements/by-booking/{bookingId}/process")
+    public ResponseEntity<SettlementPlan> processSettlementByBooking(@PathVariable UUID bookingId, Authentication auth) {
+        requireAdmin(auth);
+        SettlementPlan plan = settlementPlanRepository.findByBookingId(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("No settlement plan found for booking: " + bookingId));
+        log.info("Admin manually processing settlement for booking {} (plan {})", bookingId, plan.getId());
+        SettlementPlan processed = settlementService.processSettlement(plan.getId());
+        return ResponseEntity.ok(processed);
+    }
+
+    // ── Retry failed payout ──────────────────────────────────────────────────
+
+    @PostMapping("/payouts/{payoutId}/retry")
+    public ResponseEntity<Payout> retryPayout(@PathVariable UUID payoutId, Authentication auth) {
+        requireAdmin(auth);
+        Payout payout = payoutRepository.findById(payoutId)
+                .orElseThrow(() -> new IllegalArgumentException("Payout not found: " + payoutId));
+        if (payout.getStatus() != PayoutStatus.FAILED) {
+            throw new IllegalStateException("Only FAILED payouts can be retried, current status: " + payout.getStatus());
+        }
+        log.info("Admin retrying failed payout {} for host {}", payoutId, payout.getHostId());
+        payout.setStatus(PayoutStatus.PENDING);
+        payout.setFailureReason(null);
+        Payout saved = payoutRepository.save(payout);
+        return ResponseEntity.ok(saved);
+    }
+
+    // ── Payouts by host ──────────────────────────────────────────────────────
+
+    @GetMapping("/payouts/by-host/{hostId}")
+    public ResponseEntity<List<Payout>> getPayoutsByHost(@PathVariable UUID hostId, Authentication auth) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(payoutRepository.findByHostId(hostId));
     }
 
     private void requireAdmin(Authentication auth) {

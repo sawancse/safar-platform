@@ -23,6 +23,9 @@ public record RoomTypeResponse(
         String roomVariant,
         Integer totalBeds,
         Integer occupiedBeds,
+        // Deposit
+        Long securityDepositPaise,
+        String depositType,
         // Photos
         String primaryPhotoUrl,
         List<String> photoUrls,

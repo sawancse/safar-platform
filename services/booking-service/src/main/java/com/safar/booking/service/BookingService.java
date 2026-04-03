@@ -9,6 +9,7 @@ import com.safar.booking.entity.Booking;
 import com.safar.booking.entity.BookingGuest;
 import com.safar.booking.entity.BookingInclusion;
 import com.safar.booking.entity.BookingRoomSelection;
+import com.safar.booking.entity.PgTenancy;
 import com.safar.booking.entity.enums.BookingStatus;
 import com.safar.booking.repository.BookingGuestRepository;
 import com.safar.booking.repository.BookingInclusionRepository;
@@ -51,6 +52,7 @@ public class BookingService {
     private final StringRedisTemplate redis;
     private final KafkaTemplate<String, String> kafka;
     private final ListingServiceClient listingClient;
+    private final PgTenancyService pgTenancyService;
 
     public ListingServiceClient getListingClient() { return listingClient; }
 
@@ -303,8 +305,11 @@ public class BookingService {
         boolean isCommercialType = "COMMERCIAL".equals(listingType);
         long gstPaise = (isCommercialType || !"MONTH".equals(pricingUnit))
                 ? Math.round(basePaise * GST_RATE) : 0L;
-        long depositPaise = securityDepositPaise != null ? securityDepositPaise : 0L;
-        long totalPaise = basePaise + cleaningFee + insurancePaise + gstPaise + inclusionsTotalPaise;
+        // PG/Co-living: deposit is per bed (per adult), multiply by adults count
+        int depositMultiplier = isPgColiving && req.adultsCount() != null && req.adultsCount() > 1
+                ? req.adultsCount() : 1;
+        long depositPaise = securityDepositPaise != null ? securityDepositPaise * depositMultiplier : 0L;
+        long totalPaise = basePaise + cleaningFee + insurancePaise + gstPaise + inclusionsTotalPaise + depositPaise;
 
         // Feature 2: Pay at Property
         String paymentMode = req.paymentMode() != null ? req.paymentMode() : "PREPAID";
@@ -343,6 +348,11 @@ public class BookingService {
                 .hostId(hostId2)
                 .listingId(req.listingId())
                 .listingTitle(listingClient.getListingTitle(req.listingId()))
+                .listingCity(listingClient.getCity(req.listingId()))
+                .listingType(listingType)
+                .listingPhotoUrl(listingClient.getListingPhotoUrl(req.listingId()))
+                .hostName(listingClient.getHostName(req.listingId()))
+                .listingAddress(listingClient.getListingAddress(req.listingId()))
                 .checkIn(req.checkIn())
                 .checkOut(req.checkOut())
                 .guestsCount(req.guestsCount())
@@ -667,6 +677,52 @@ public class BookingService {
             log.warn("Failed to send Kafka event for checked-in booking {}: {}", booking.getBookingRef(), e.getMessage());
         }
         log.info("Booking {} checked in by host {}", booking.getBookingRef(), hostId);
+
+        // Auto-create PG tenancy on check-in for PG bookings
+        if ("PG".equals(booking.getBookingType()) && booking.getRoomTypeId() != null) {
+            try {
+                // Determine sharing type from listing room type
+                String sharingType = "TWO_SHARING"; // default for PG
+                int bedsPerRoom = 2;
+                try {
+                    Map<String, Object> rtInfo = listingClient.getRoomTypeInfo(booking.getRoomTypeId());
+                    if (rtInfo != null && rtInfo.get("sharingType") != null) {
+                        sharingType = rtInfo.get("sharingType").toString();
+                        bedsPerRoom = switch (sharingType) {
+                            case "PRIVATE" -> 1;
+                            case "TWO_SHARING" -> 2;
+                            case "THREE_SHARING" -> 3;
+                            case "FOUR_SHARING" -> 4;
+                            case "DORMITORY" -> 6;
+                            default -> 1;
+                        };
+                    }
+                } catch (Exception ignored) {}
+
+                // Find next available bed number
+                String bedNumber = calculateNextAvailableBed(booking.getRoomTypeId(), bedsPerRoom);
+
+                pgTenancyService.createTenancy(PgTenancy.builder()
+                        .tenantId(booking.getGuestId())
+                        .listingId(booking.getListingId())
+                        .roomTypeId(booking.getRoomTypeId())
+                        .bedNumber(bedNumber)
+                        .sharingType(sharingType)
+                        .moveInDate(booking.getCheckIn().toLocalDate())
+                        .noticePeriodDays(booking.getNoticePeriodDays() != null ? booking.getNoticePeriodDays() : 30)
+                        .monthlyRentPaise(booking.getBaseAmountPaise() > 0 ? booking.getBaseAmountPaise() : 0L)
+                        .securityDepositPaise(booking.getSecurityDepositPaise() != null ? booking.getSecurityDepositPaise() : 0L)
+                        .mealsIncluded(false)
+                        .laundryIncluded(false)
+                        .wifiIncluded(false)
+                        .billingDay(1)
+                        .build());
+                log.info("Auto-created PG tenancy for booking {} with bed {}", booking.getBookingRef(), bedNumber);
+            } catch (Exception e) {
+                log.warn("Failed to auto-create PG tenancy for booking {}: {}", booking.getBookingRef(), e.getMessage());
+            }
+        }
+
         return toResponse(saved);
     }
 
@@ -827,6 +883,33 @@ public class BookingService {
 
         guestRepo.delete(guest);
         log.info("Removed guest '{}' from booking {}", guest.getFullName(), booking.getBookingRef());
+    }
+
+    /**
+     * Calculate the next available bed number for a room type.
+     * Bed numbers follow pattern: "1-A", "1-B", "2-A", "2-B", etc.
+     * Room number increments, bed letter cycles A-F based on bedsPerRoom.
+     */
+    private String calculateNextAvailableBed(UUID roomTypeId, int bedsPerRoom) {
+        // Get all active tenancies for this room type
+        List<PgTenancy> activeTenancies = pgTenancyService.getActiveTenanciesByRoomType(roomTypeId);
+        Set<String> occupiedBeds = activeTenancies.stream()
+                .map(PgTenancy::getBedNumber)
+                .filter(b -> b != null)
+                .collect(java.util.stream.Collectors.toSet());
+
+        // Generate bed labels: Room 1 → "1-A","1-B", Room 2 → "2-A","2-B", etc.
+        char[] bedLetters = {'A', 'B', 'C', 'D', 'E', 'F'};
+        for (int room = 1; room <= 100; room++) { // max 100 rooms
+            for (int bed = 0; bed < bedsPerRoom && bed < bedLetters.length; bed++) {
+                String bedId = room + "-" + bedLetters[bed];
+                if (!occupiedBeds.contains(bedId)) {
+                    return bedId;
+                }
+            }
+        }
+        // Fallback: all beds occupied, assign overflow
+        return (occupiedBeds.size() + 1) + "-A";
     }
 
     private Booking getBookingById(UUID bookingId) {

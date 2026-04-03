@@ -141,6 +141,8 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
                 && !path.contains("/my") && !path.contains("/chef")) return true;
         // Experience reviews — public read
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/reviews/experience")) return true;
+        // Internal service-to-service endpoints — no user auth
+        if (path.startsWith("/api/v1/internal/")) return true;
         return false;
     }
 

@@ -25,4 +25,15 @@ public interface RazorpayGateway {
      * Initiates a refund for a captured payment. Returns the gateway refund ID.
      */
     String refund(String razorpayPaymentId, long amountPaise) throws Exception;
+
+    /**
+     * Cancels a Razorpay subscription. cancelAtCycleEnd=true cancels at end of current billing period.
+     */
+    void cancelSubscription(String subscriptionId, boolean cancelAtCycleEnd) throws Exception;
+
+    /**
+     * Creates a Razorpay payout via Fund Account + Payout API (or direct transfer).
+     * Returns the payout ID.
+     */
+    String createPayout(String upiId, long amountPaise, String purpose, String referenceId) throws Exception;
 }
