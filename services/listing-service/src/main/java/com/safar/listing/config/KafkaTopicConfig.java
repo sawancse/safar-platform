@@ -7,6 +7,37 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class KafkaTopicConfig {
 
+    // Topics consumed by listing-service (ensure they exist)
+    @Bean
+    public NewTopic bookingConfirmedTopic() {
+        return new NewTopic("booking.confirmed", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic bookingCancelledTopic() {
+        return new NewTopic("booking.cancelled", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic tenancyCreatedTopic() {
+        return new NewTopic("tenancy.created", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic tenancyVacatedTopic() {
+        return new NewTopic("tenancy.vacated", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic mediaUploadedTopic() {
+        return new NewTopic("media.uploaded", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic reviewCreatedTopic() {
+        return new NewTopic("review.created", 1, (short) 1);
+    }
+
     @Bean
     public NewTopic hostRegisteredTopic() {
         return new NewTopic("host.registered", 1, (short) 1);
