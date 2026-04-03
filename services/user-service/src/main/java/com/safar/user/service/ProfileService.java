@@ -10,14 +10,16 @@ import com.safar.user.entity.UserProfile;
 import com.safar.user.repository.HostSubscriptionRepository;
 import com.safar.user.repository.ProfileRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -27,10 +29,15 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProfileService {
 
     private final ProfileRepository profileRepository;
     private final HostSubscriptionRepository hostSubscriptionRepository;
+    private final RestTemplate restTemplate;
+
+    @Value("${services.media-service.url:http://localhost:8088}")
+    private String mediaServiceUrl;
 
     @Cacheable(value = "users", key = "#userId")
     public MyProfileDto getMyProfile(UUID userId) {
@@ -204,21 +211,53 @@ public class ProfileService {
         UserProfile profile = profileRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("Profile not found"));
 
-        // Save file locally
-        String filename = "avatar-" + userId + "-" + System.currentTimeMillis() + getExtension(file.getOriginalFilename());
-        Path uploadDir = Path.of("uploads/avatars");
-        Files.createDirectories(uploadDir);
-        Path filePath = uploadDir.resolve(filename);
-        file.transferTo(filePath.toFile());
+        // Upload to media-service via presigned URL
+        String ext = getExtension(file.getOriginalFilename());
+        String contentType = file.getContentType() != null ? file.getContentType() : "image/jpeg";
+        String s3Key = "avatars/" + userId + "/avatar-" + System.currentTimeMillis() + ext;
 
-        String avatarUrl = "/api/v1/users/avatars/" + filename;
-        profile.setAvatarUrl(avatarUrl);
-        profileRepository.save(profile);
+        try {
+            String mediaUrl = mediaServiceUrl + "/api/v1/media/upload/avatar-presign?contentType=" +
+                    java.net.URLEncoder.encode(contentType, "UTF-8");
+            var headers = new org.springframework.http.HttpHeaders();
+            headers.set("X-User-Id", userId.toString());
+            var entity = new org.springframework.http.HttpEntity<>(null, headers);
+            var presignRes = restTemplate.exchange(mediaUrl, org.springframework.http.HttpMethod.POST, entity, java.util.Map.class);
+            var presignBody = presignRes.getBody();
+            if (presignBody != null) {
+                String uploadUrl = (String) presignBody.get("uploadUrl");
+                String publicUrl = (String) presignBody.get("publicUrl");
 
-        // Recalculate profile completion
-        calculateProfileCompletion(profile);
+                // Upload bytes to S3
+                var s3Headers = new org.springframework.http.HttpHeaders();
+                s3Headers.set("Content-Type", contentType);
+                var s3Entity = new org.springframework.http.HttpEntity<>(file.getBytes(), s3Headers);
+                restTemplate.exchange(uploadUrl, org.springframework.http.HttpMethod.PUT, s3Entity, Void.class);
 
-        return avatarUrl;
+                profile.setAvatarUrl(publicUrl);
+                profileRepository.save(profile);
+                calculateProfileCompletion(profile);
+                return publicUrl;
+            }
+        } catch (Exception e) {
+            log.warn("S3 avatar upload failed, falling back: {}", e.getMessage());
+        }
+
+        // Fallback: save locally (won't work in Docker but prevents crash)
+        try {
+            String filename = "avatar-" + userId + "-" + System.currentTimeMillis() + ext;
+            Path uploadDir = Path.of("/tmp/uploads/avatars");
+            java.nio.file.Files.createDirectories(uploadDir);
+            Path filePath = uploadDir.resolve(filename);
+            file.transferTo(filePath.toFile());
+            String avatarUrl = "/api/v1/users/avatars/" + filename;
+            profile.setAvatarUrl(avatarUrl);
+            profileRepository.save(profile);
+            calculateProfileCompletion(profile);
+            return avatarUrl;
+        } catch (Exception e2) {
+            throw new IOException("Avatar upload failed: " + e2.getMessage(), e2);
+        }
     }
 
     @Transactional
