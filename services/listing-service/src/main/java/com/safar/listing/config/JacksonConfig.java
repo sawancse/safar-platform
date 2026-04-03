@@ -8,14 +8,18 @@ import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilde
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+
 @Configuration
+@RequiredArgsConstructor
 public class JacksonConfig {
 
-    @Bean
-    public Jackson2ObjectMapperBuilderCustomizer jsonCustomizer() {
-        return builder -> builder.postConfigurer(objectMapper -> {
-            objectMapper.coercionConfigFor(LogicalType.Enum)
-                    .setCoercion(CoercionInputShape.EmptyString, CoercionAction.AsNull);
-        });
+    private final ObjectMapper objectMapper;
+
+    @PostConstruct
+    public void configureObjectMapper() {
+        objectMapper.coercionConfigFor(LogicalType.Enum)
+                .setCoercion(CoercionInputShape.EmptyString, CoercionAction.AsNull);
     }
 }

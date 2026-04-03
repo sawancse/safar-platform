@@ -4,6 +4,7 @@ import com.safar.payment.security.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -31,10 +32,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/payments/webhook/**").permitAll()
                         .requestMatchers("/api/v1/payments/tenancy/webhook/**").permitAll()
                         .requestMatchers("/api/v1/payments/fx/currencies").permitAll()
-                        .requestMatchers("POST", "/api/v1/donations").permitAll()
-                        .requestMatchers("POST", "/api/v1/donations/verify").permitAll()
-                        .requestMatchers("GET", "/api/v1/donations/stats").permitAll()
-                        .requestMatchers("GET", "/api/v1/donations/leaderboard").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/donations").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/donations/verify").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/donations/stats").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/donations/leaderboard").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/donations/my").authenticated()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(e -> e

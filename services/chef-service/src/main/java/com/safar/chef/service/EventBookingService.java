@@ -1,6 +1,7 @@
 package com.safar.chef.service;
 
 import com.safar.chef.dto.CreateEventBookingRequest;
+import com.safar.chef.dto.ModifyEventBookingRequest;
 import com.safar.chef.entity.ChefProfile;
 import com.safar.chef.entity.EventBooking;
 import com.safar.chef.entity.enums.EventBookingStatus;
@@ -8,6 +9,8 @@ import com.safar.chef.repository.ChefProfileRepository;
 import com.safar.chef.repository.EventBookingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +30,11 @@ public class EventBookingService {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
+    @Transactional(readOnly = true)
+    public Page<EventBooking> browseEvents(Pageable pageable) {
+        return eventRepo.findAll(pageable);
+    }
+
     private static final long DECORATION_DEFAULT_PAISE = 500000L;  // ₹5,000
     private static final long CAKE_DEFAULT_PAISE = 200000L;        // ₹2,000
     private static final long STAFF_PER_PERSON_PAISE = 150000L;    // ₹1,500
@@ -41,13 +49,16 @@ public class EventBookingService {
 
     @Transactional
     public EventBooking createEventBooking(UUID customerId, CreateEventBookingRequest req) {
-        ChefProfile chef = chefProfileRepo.findById(req.chefId())
-                .orElseThrow(() -> new IllegalArgumentException("Chef not found"));
+        ChefProfile chef = null;
+        if (req.chefId() != null) {
+            chef = chefProfileRepo.findById(req.chefId()).orElse(null);
+        }
 
         int guestCount = req.guestCount() != null ? req.guestCount() : 50;
 
-        // Calculate food cost: use chef's eventMinPlatePaise as default per-plate price
-        long pricePerPlate = chef.getEventMinPlatePaise() != null ? chef.getEventMinPlatePaise() : 0L;
+        // Calculate food cost: use chef's eventMinPlatePaise or default ₹300/plate
+        long pricePerPlate = chef != null && chef.getEventMinPlatePaise() != null
+                ? chef.getEventMinPlatePaise() : 30000L;
         long totalFoodPaise = pricePerPlate * guestCount;
 
         // Add-ons
@@ -64,9 +75,9 @@ public class EventBookingService {
 
         EventBooking event = EventBooking.builder()
                 .bookingRef(generateEventRef())
-                .chefId(chef.getId())
+                .chefId(chef != null ? chef.getId() : null)
                 .customerId(customerId)
-                .chefName(chef.getName())
+                .chefName(chef != null ? chef.getName() : null)
                 .customerName(req.customerName())
                 .customerPhone(req.customerPhone())
                 .customerEmail(req.customerEmail())
@@ -98,7 +109,7 @@ public class EventBookingService {
                 .build();
 
         EventBooking saved = eventRepo.save(event);
-        log.info("Event booking created: {} ref={} chef={} customer={}", saved.getId(), saved.getBookingRef(), chef.getId(), customerId);
+        log.info("Event booking created: {} ref={} chef={} customer={}", saved.getId(), saved.getBookingRef(), chef != null ? chef.getId() : "unassigned", customerId);
         return saved;
     }
 
@@ -246,6 +257,79 @@ public class EventBookingService {
 
         log.info("Event booking rated: {} rating={} chef={}", eventId, rating, event.getChefId());
         return eventRepo.save(event);
+    }
+
+    @Transactional
+    public EventBooking modifyEventBooking(UUID customerId, UUID eventId, ModifyEventBookingRequest req) {
+        EventBooking event = eventRepo.findById(eventId)
+                .orElseThrow(() -> new IllegalArgumentException("Event booking not found"));
+
+        if (!event.getCustomerId().equals(customerId)) {
+            throw new IllegalArgumentException("Not authorized to modify this event");
+        }
+        if (event.getStatus() != EventBookingStatus.INQUIRY && event.getStatus() != EventBookingStatus.QUOTED) {
+            throw new IllegalArgumentException("Event can only be modified in INQUIRY or QUOTED status");
+        }
+
+        // Apply non-null fields
+        if (req.eventDate() != null) event.setEventDate(req.eventDate());
+        if (req.eventTime() != null) event.setEventTime(req.eventTime());
+        if (req.durationHours() != null) event.setDurationHours(req.durationHours());
+        if (req.venueAddress() != null) event.setVenueAddress(req.venueAddress());
+        if (req.city() != null) event.setCity(req.city());
+        if (req.locality() != null) event.setLocality(req.locality());
+        if (req.pincode() != null) event.setPincode(req.pincode());
+        if (req.menuDescription() != null) event.setMenuDescription(req.menuDescription());
+        if (req.cuisinePreferences() != null) event.setCuisinePreferences(req.cuisinePreferences());
+        if (req.specialRequests() != null) event.setSpecialRequests(req.specialRequests());
+
+        // If guest count or add-ons changed, recalculate pricing
+        boolean recalculate = false;
+        if (req.guestCount() != null) { event.setGuestCount(req.guestCount()); recalculate = true; }
+        if (req.decorationRequired() != null) {
+            event.setDecorationPaise(Boolean.TRUE.equals(req.decorationRequired()) ? DECORATION_DEFAULT_PAISE : 0L);
+            recalculate = true;
+        }
+        if (req.cakeRequired() != null) {
+            event.setCakePaise(Boolean.TRUE.equals(req.cakeRequired()) ? CAKE_DEFAULT_PAISE : 0L);
+            recalculate = true;
+        }
+        if (req.staffRequired() != null || req.staffCount() != null) {
+            int staffCount = Boolean.TRUE.equals(req.staffRequired()) && req.staffCount() != null ? req.staffCount() : 0;
+            event.setStaffPaise(staffCount * STAFF_PER_PERSON_PAISE);
+            recalculate = true;
+        }
+
+        if (recalculate) {
+            long totalFoodPaise = event.getPricePerPlatePaise() * event.getGuestCount();
+            event.setTotalFoodPaise(totalFoodPaise);
+
+            long totalAmountPaise = totalFoodPaise + event.getDecorationPaise() + event.getCakePaise()
+                    + event.getStaffPaise() + event.getOtherAddonsPaise();
+            long advanceAmountPaise = totalAmountPaise * 50 / 100;
+            long balanceAmountPaise = totalAmountPaise - advanceAmountPaise;
+            long platformFeePaise = totalAmountPaise * 15 / 100;
+            long chefEarningsPaise = totalAmountPaise - platformFeePaise;
+
+            event.setTotalAmountPaise(totalAmountPaise);
+            event.setAdvanceAmountPaise(advanceAmountPaise);
+            event.setBalanceAmountPaise(balanceAmountPaise);
+            event.setPlatformFeePaise(platformFeePaise);
+            event.setChefEarningsPaise(chefEarningsPaise);
+        }
+
+        // If was QUOTED and customer modifies, reset to INQUIRY so chef re-quotes
+        if (event.getStatus() == EventBookingStatus.QUOTED) {
+            event.setStatus(EventBookingStatus.INQUIRY);
+            event.setQuotedAt(null);
+        }
+
+        event.setModifiedAt(OffsetDateTime.now());
+        event.setModificationCount(event.getModificationCount() != null ? event.getModificationCount() + 1 : 1);
+
+        EventBooking saved = eventRepo.save(event);
+        log.info("Event booking modified: {} by customer={}", eventId, customerId);
+        return saved;
     }
 
     @Transactional(readOnly = true)

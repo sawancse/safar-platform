@@ -1,6 +1,7 @@
 package com.safar.chef.controller;
 
 import com.safar.chef.dto.CreateEventBookingRequest;
+import com.safar.chef.dto.ModifyEventBookingRequest;
 import com.safar.chef.entity.EventBooking;
 import com.safar.chef.service.EventBookingService;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +9,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.UUID;
@@ -19,10 +23,15 @@ public class EventBookingController {
 
     private final EventBookingService eventBookingService;
 
+    @GetMapping
+    public ResponseEntity<Page<EventBooking>> browse(Pageable pageable) {
+        return ResponseEntity.ok(eventBookingService.browseEvents(pageable));
+    }
+
     @PostMapping
     public ResponseEntity<EventBooking> createEvent(Authentication auth,
                                                      @RequestBody CreateEventBookingRequest req) {
-        UUID customerId = UUID.fromString(auth.getName());
+        UUID customerId = auth != null ? UUID.fromString(auth.getName()) : null;
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(eventBookingService.createEventBooking(customerId, req));
     }
@@ -69,6 +78,14 @@ public class EventBookingController {
                                                    @RequestParam(required = false) String comment) {
         UUID customerId = UUID.fromString(auth.getName());
         return ResponseEntity.ok(eventBookingService.rateEvent(customerId, id, rating, comment));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<EventBooking> modifyEvent(Authentication auth,
+                                                     @PathVariable UUID id,
+                                                     @RequestBody ModifyEventBookingRequest req) {
+        UUID customerId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(eventBookingService.modifyEventBooking(customerId, id, req));
     }
 
     @GetMapping("/my")

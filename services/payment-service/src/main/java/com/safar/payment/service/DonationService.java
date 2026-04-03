@@ -124,7 +124,12 @@ public class DonationService {
             donation.getDonorPan() != null ? donation.getDonorPan() : "",
             donation.getDedicatedTo() != null ? donation.getDedicatedTo().replace("\"", "\\\"") : ""
         );
-        kafka.send("donation.captured", donationEvent);
+        try {
+            kafka.send("donation.captured", donationEvent).get();
+        } catch (Exception e) {
+            log.error("CRITICAL: Failed to publish donation.captured for {} (₹{}) — 80G email NOT sent. Manual follow-up needed. Error: {}",
+                    donation.getDonationRef(), donation.getAmountPaise() / 100, e.getMessage());
+        }
         log.info("Donation captured: {} — ₹{} from {}",
                 donation.getDonationRef(),
                 donation.getAmountPaise() / 100,

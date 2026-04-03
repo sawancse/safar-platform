@@ -42,7 +42,7 @@ public class DonationEventConsumer {
                 String email = ctx.getDonorEmail();
                 if (email != null && !email.isBlank()) {
                     String subject = "Thank you for your Aashray donation - 80G Receipt " + ctx.getReceiptNumber();
-                    emailTemplateService.sendHtmlEmail(email, subject, "email/donation-receipt", ctx);
+                    emailTemplateService.sendHtmlEmail(email, subject, "donation-receipt", ctx);
                     log.info("Donation receipt sent to {} for {}", email, ctx.getDonationRef());
                 } else {
                     log.info("Donation {} captured but no email provided - skipping receipt", ctx.getDonationRef());

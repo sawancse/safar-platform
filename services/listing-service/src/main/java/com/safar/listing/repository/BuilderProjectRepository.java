@@ -19,6 +19,8 @@ public interface BuilderProjectRepository extends JpaRepository<BuilderProject, 
 
     List<BuilderProject> findByStatus(BuilderListingStatus status);
 
+    Page<BuilderProject> findByStatus(BuilderListingStatus status, Pageable pageable);
+
     @Query("SELECT bp FROM BuilderProject bp WHERE bp.status = 'ACTIVE' " +
             "AND (:city IS NULL OR bp.city = :city) " +
             "AND (:locality IS NULL OR bp.locality = :locality) " +

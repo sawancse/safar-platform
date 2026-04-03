@@ -133,9 +133,9 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         // Chef event pricing — public read (exclude admin and /me)
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/chef-events/pricing")
                 && !path.contains("/admin") && !path.contains("/me")) return true;
-        // Chef events — public browse only (creating requires auth)
-        if (HttpMethod.GET.equals(method) && (path.equals("/api/v1/chef-events") || path.startsWith("/api/v1/chef-events/"))
-                && !path.contains("/my") && !path.contains("/chef")) return true;
+        // Chef events — public browse and event inquiry (exclude /my and /chef which need auth)
+        if (path.startsWith("/api/v1/chef-events") && !path.contains("/my") && !path.contains("/chef")
+                && !path.contains("/admin")) return true;
         // Chef bookings — public read for single booking detail, tracking & invoices
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/chef-bookings/")
                 && !path.contains("/my") && !path.contains("/chef")) return true;
