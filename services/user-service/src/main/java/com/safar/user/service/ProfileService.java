@@ -89,9 +89,57 @@ public class ProfileService {
                     p.getEmail(),
                     p.getRole(),
                     tier,
+                    null,
+                    p.getAccountStatus() != null ? p.getAccountStatus() : "ACTIVE",
+                    p.getSuspensionReason(),
+                    p.getSuspendedAt(),
                     p.getCreatedAt()
             );
         }).toList();
+    }
+
+    @Transactional
+    public void suspendHost(UUID hostId, UUID adminId, String reason) {
+        UserProfile p = profileRepository.findById(hostId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Host not found: " + hostId));
+        p.setAccountStatus("SUSPENDED");
+        p.setSuspendedAt(java.time.OffsetDateTime.now());
+        p.setSuspensionReason(reason);
+        p.setSuspendedBy(adminId);
+        profileRepository.save(p);
+    }
+
+    @Transactional
+    public void unsuspendHost(UUID hostId) {
+        UserProfile p = profileRepository.findById(hostId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Host not found: " + hostId));
+        p.setAccountStatus("ACTIVE");
+        p.setSuspendedAt(null);
+        p.setSuspensionReason(null);
+        p.setSuspendedBy(null);
+        profileRepository.save(p);
+    }
+
+    @Transactional
+    public void banHost(UUID hostId, UUID adminId, String reason) {
+        UserProfile p = profileRepository.findById(hostId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Host not found: " + hostId));
+        p.setAccountStatus("BANNED");
+        p.setSuspendedAt(java.time.OffsetDateTime.now());
+        p.setSuspensionReason(reason);
+        p.setSuspendedBy(adminId);
+        profileRepository.save(p);
+    }
+
+    public List<AdminHostDto> getSuspendedHosts() {
+        return profileRepository.findAll().stream()
+                .filter(p -> "SUSPENDED".equals(p.getAccountStatus()) || "BANNED".equals(p.getAccountStatus()))
+                .map(p -> new AdminHostDto(
+                        p.getUserId(), p.getName(), p.getPhone(), p.getEmail(),
+                        p.getRole(), null, null,
+                        p.getAccountStatus(), p.getSuspensionReason(), p.getSuspendedAt(),
+                        p.getCreatedAt()
+                )).toList();
     }
 
     @Transactional
@@ -171,6 +219,15 @@ public class ProfileService {
         calculateProfileCompletion(profile);
 
         return avatarUrl;
+    }
+
+    @Transactional
+    public void setAvatarUrl(UUID userId, String avatarUrl) {
+        UserProfile profile = profileRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("Profile not found"));
+        profile.setAvatarUrl(avatarUrl);
+        profileRepository.save(profile);
+        calculateProfileCompletion(profile);
     }
 
     private String getExtension(String filename) {

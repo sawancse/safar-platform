@@ -56,13 +56,31 @@ public class UserProfileController {
         return ResponseEntity.ok(Map.of("avatarUrl", avatarUrl));
     }
 
+    /** Set avatar URL after S3 presigned upload */
+    @PutMapping("/me/avatar-url")
+    public ResponseEntity<Map<String, String>> setAvatarUrl(
+            Authentication auth,
+            @RequestBody Map<String, String> body) {
+        UUID userId = UUID.fromString(auth.getName());
+        String avatarUrl = body.get("avatarUrl");
+        if (avatarUrl == null || avatarUrl.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "avatarUrl required"));
+        }
+        profileService.setAvatarUrl(userId, avatarUrl);
+        return ResponseEntity.ok(Map.of("avatarUrl", avatarUrl));
+    }
+
     @GetMapping("/avatars/{filename}")
     public ResponseEntity<Resource> serveAvatar(@PathVariable String filename) {
+        if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+            return ResponseEntity.badRequest().build();
+        }
         Path file = Path.of("uploads/avatars").resolve(filename);
         Resource resource = new FileSystemResource(file);
         if (!resource.exists()) return ResponseEntity.notFound().build();
+        String contentType = filename.endsWith(".png") ? "image/png" : filename.endsWith(".webp") ? "image/webp" : "image/jpeg";
         return ResponseEntity.ok()
-                .header("Content-Type", "image/jpeg")
+                .header("Content-Type", contentType)
                 .header("Cache-Control", "public, max-age=86400")
                 .body(resource);
     }
