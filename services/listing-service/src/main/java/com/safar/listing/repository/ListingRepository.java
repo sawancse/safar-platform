@@ -15,12 +15,12 @@ import java.util.UUID;
 
 public interface ListingRepository extends JpaRepository<Listing, UUID> {
     List<Listing> findByHostId(UUID hostId);
-    Page<Listing> findByStatusAndCityIgnoreCase(ListingStatus status, String city, Pageable pageable);
+    Page<Listing> findByStatusAndCity(ListingStatus status, String city, Pageable pageable);
     Page<Listing> findByStatus(ListingStatus status, Pageable pageable);
     List<Listing> findByStatus(ListingStatus status);
 
     @Query("SELECT l FROM Listing l WHERE l.status = :status" +
-           " AND (:city IS NULL OR LOWER(l.city) = LOWER(:city))" +
+           " AND (:city IS NULL OR l.city = :city)" +
            " AND (:type IS NULL OR l.type = :type)" +
            " AND (:minPrice IS NULL OR l.basePricePaise >= :minPrice)" +
            " AND (:maxPrice IS NULL OR l.basePricePaise <= :maxPrice)")
