@@ -51,3 +51,4 @@ __pycache__/
 
 # Build
 dist/
+frontend-web-backup.tar.gz
