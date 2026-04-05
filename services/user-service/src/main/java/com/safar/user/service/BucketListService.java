@@ -23,7 +23,7 @@ public class BucketListService {
     private final BucketListRepository bucketListRepository;
     private final RestTemplate restTemplate;
 
-    @Value("${services.listing.url}")
+    @Value("${services.listing-service.url}")
     private String listingServiceUrl;
 
     @Transactional

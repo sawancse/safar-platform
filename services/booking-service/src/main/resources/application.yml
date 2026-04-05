@@ -75,9 +75,11 @@ management:
 
 services:
   listing-service:
-    url: http://${LISTING_SERVICE_HOST:localhost}:8083
+    url: ${LISTING_SERVICE_URL:http://localhost:8083}
   payment-service:
-    url: http://${PAYMENT_SERVICE_HOST:localhost}:8086
+    url: ${PAYMENT_SERVICE_URL:http://localhost:8086}
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8092}
 
 resilience4j:
   circuitbreaker:

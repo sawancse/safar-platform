@@ -2,7 +2,7 @@ server:
   port: 8083
   tomcat:
     threads:
-      max: 50
+      max: 10
       min-spare: 5
     max-connections: 200
     accept-count: 50
@@ -37,7 +37,7 @@ spring:
     schemas: listings
     locations: classpath:db/migration
     baseline-on-migrate: true
-    repair-on-migrate: true
+    validate-on-migrate: false
   servlet:
     multipart:
       max-file-size: 50MB
@@ -85,7 +85,9 @@ management:
 
 services:
   user-service:
-    url: http://${USER_SERVICE_HOST:localhost}:8092
+    url: ${USER_SERVICE_URL:http://localhost:8092}
+  ai-service:
+    url: ${AI_SERVICE_URL:http://localhost:8090}
 
 resilience4j:
   circuitbreaker:

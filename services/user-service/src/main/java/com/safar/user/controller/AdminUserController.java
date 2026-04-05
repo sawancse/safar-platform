@@ -29,10 +29,10 @@ public class AdminUserController {
     private final ProfileRepository profileRepository;
     private final RestTemplate restTemplate;
 
-    @Value("${services.listing.url:http://localhost:8083}")
+    @Value("${services.listing-service.url}")
     private String listingServiceUrl;
 
-    @Value("${services.booking.url:http://localhost:8095}")
+    @Value("${services.booking-service.url}")
     private String bookingServiceUrl;
 
     @GetMapping("/hosts")

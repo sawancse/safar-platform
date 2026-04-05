@@ -62,11 +62,11 @@ spring.kafka:
       max.partition.fetch.bytes: 1048576
 
 services:
-  auth:
+  auth-service:
     url: ${AUTH_SERVICE_URL:http://localhost:8888}
-  listing:
+  listing-service:
     url: ${LISTING_SERVICE_URL:http://localhost:8083}
-  booking:
+  booking-service:
     url: ${BOOKING_SERVICE_URL:http://localhost:8095}
   media-service:
     url: ${MEDIA_SERVICE_URL:http://localhost:8088}

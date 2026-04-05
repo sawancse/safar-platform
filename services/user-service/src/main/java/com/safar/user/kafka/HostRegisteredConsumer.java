@@ -22,7 +22,7 @@ public class HostRegisteredConsumer {
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
 
-    @Value("${services.auth.url}")
+    @Value("${services.auth-service.url}")
     private String authServiceUrl;
 
     @KafkaListener(topics = "host.registered", groupId = "user-service")

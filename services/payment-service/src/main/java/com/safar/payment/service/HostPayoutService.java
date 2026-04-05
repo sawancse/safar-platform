@@ -36,7 +36,7 @@ public class HostPayoutService {
     public HostPayoutService(HostPayoutRepository payoutRepository,
                              KafkaTemplate<String, Object> kafkaTemplate,
                              RestTemplate restTemplate,
-                             @Value("${services.user-service.url:http://localhost:8092}") String userServiceUrl) {
+                             @Value("${services.user-service.url}") String userServiceUrl) {
         this.payoutRepository = payoutRepository;
         this.kafkaTemplate = kafkaTemplate;
         this.restTemplate = restTemplate;

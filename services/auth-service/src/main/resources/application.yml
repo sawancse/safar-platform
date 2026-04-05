@@ -69,12 +69,22 @@ jwt:
 otp:
   expiry-minutes: 10
   max-attempts: 3
+  dev-mode: ${OTP_DEV_MODE:true}
+  provider: ${OTP_PROVIDER:log}  # log | msg91
+
+msg91:
+  auth-key: ${MSG91_AUTH_KEY:505976AYZNwTpOdX8Q69d1afd5P1}
+  template-id: ${MSG91_TEMPLATE_ID:}  # leave empty for default template
+  sender-id: ${MSG91_SENDER_ID:SAFAR}
+  otp-length: 6
+  otp-expiry: 10  # minutes
+  base-url: https://control.msg91.com/api/v5
 
 google:
   client-id: ${GOOGLE_CLIENT_ID:your-google-client-id}
 
 services:
-  user:
+  user-service:
     url: ${USER_SERVICE_URL:http://localhost:8092}
 
 server:

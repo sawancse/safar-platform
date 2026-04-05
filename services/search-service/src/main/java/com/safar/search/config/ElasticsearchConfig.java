@@ -10,7 +10,7 @@ import java.time.Duration;
 @Configuration
 public class ElasticsearchConfig extends ElasticsearchConfiguration {
 
-    @Value("${spring.elasticsearch.uris:http://localhost:9200}")
+    @Value("${spring.elasticsearch.uris}")
     private String esUri;
 
     @Override

@@ -18,7 +18,7 @@ public class HostKycClient {
     private final RestClient restClient;
 
     public HostKycClient(
-            @Value("${services.user-service.url:http://localhost:8092}") String userServiceUrl) {
+            @Value("${services.user-service.url}") String userServiceUrl) {
         this.restClient = RestClient.builder().baseUrl(userServiceUrl).build();
     }
 

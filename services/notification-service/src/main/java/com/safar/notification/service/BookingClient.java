@@ -19,7 +19,7 @@ public class BookingClient {
 
     public BookingClient(RestTemplate restTemplate,
                          ObjectMapper objectMapper,
-                         @Value("${services.booking.url}") String bookingServiceUrl) {
+                         @Value("${services.booking-service.url}") String bookingServiceUrl) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
         this.bookingServiceUrl = bookingServiceUrl;

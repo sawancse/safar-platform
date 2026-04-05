@@ -22,7 +22,7 @@ public class AiServiceClient {
 
     private final RestTemplate restTemplate;
 
-    @Value("${services.ai-service.url:http://localhost:8090}")
+    @Value("${services.ai-service.url}")
     private String aiServiceUrl;
 
     /** Generate scout leads from the Python AI service */

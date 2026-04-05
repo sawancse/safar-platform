@@ -36,7 +36,7 @@ public class AuthService {
     private static final String DEVICE_PREFIX = "trusted:device:";
     private static final long DEVICE_TRUST_DAYS = 90;
 
-    @Value("${services.user.url}")
+    @Value("${services.user-service.url}")
     private String userServiceUrl;
 
     @Transactional

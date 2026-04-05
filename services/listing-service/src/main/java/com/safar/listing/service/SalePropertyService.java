@@ -9,6 +9,7 @@ import com.safar.listing.entity.enums.SalePropertyType;
 import com.safar.listing.repository.ListingRepository;
 import com.safar.listing.repository.SalePriceHistoryRepository;
 import com.safar.listing.repository.SalePropertyRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -33,6 +34,17 @@ public class SalePropertyService {
     private final ListingRepository listingRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final GeocodingService geocodingService;
+    private final org.springframework.core.env.Environment env;
+    private final ObjectMapper objectMapper;
+
+    private String toJson(Object obj) {
+        try {
+            return objectMapper.writeValueAsString(obj);
+        } catch (Exception e) {
+            log.error("Failed to serialize to JSON", e);
+            return "{}";
+        }
+    }
 
     @Transactional
     public SalePropertyResponse create(CreateSalePropertyRequest req, UUID sellerId) {
@@ -204,13 +216,13 @@ public class SalePropertyService {
 
             // Notify buyers who saved this property about price drop
             if (req.askingPricePaise() < oldPrice) {
-                kafkaTemplate.send("sale.property.price-drop", sp.getId().toString(), sp);
+                kafkaTemplate.send("sale.property.price-drop", sp.getId().toString(), toJson(sp));
             }
         }
 
         // Re-index in ES
         if (sp.getStatus() == SalePropertyStatus.ACTIVE) {
-            kafkaTemplate.send("sale.property.indexed", sp.getId().toString(), sp);
+            kafkaTemplate.send("sale.property.indexed", sp.getId().toString(), toJson(sp));
         }
 
         return toResponse(sp);
@@ -236,9 +248,9 @@ public class SalePropertyService {
 
         // Index/deindex in ES
         if (newStatus == SalePropertyStatus.ACTIVE) {
-            kafkaTemplate.send("sale.property.indexed", sp.getId().toString(), sp);
+            kafkaTemplate.send("sale.property.indexed", sp.getId().toString(), toJson(sp));
         } else {
-            kafkaTemplate.send("sale.property.deleted", sp.getId().toString(), sp.getId());
+            kafkaTemplate.send("sale.property.deleted", sp.getId().toString(), sp.getId().toString());
         }
 
         log.info("Sale property {} status changed: {} -> {}", id, old, newStatus);
@@ -270,7 +282,7 @@ public class SalePropertyService {
         }
         sp.setStatus(SalePropertyStatus.EXPIRED);
         salePropertyRepository.save(sp);
-        kafkaTemplate.send("sale.property.deleted", sp.getId().toString(), sp.getId());
+        kafkaTemplate.send("sale.property.deleted", sp.getId().toString(), sp.getId().toString());
     }
 
     // Admin methods
@@ -280,7 +292,7 @@ public class SalePropertyService {
         sp.setVerified(true);
         sp = salePropertyRepository.save(sp);
         if (sp.getStatus() == SalePropertyStatus.ACTIVE) {
-            kafkaTemplate.send("sale.property.indexed", sp.getId().toString(), sp);
+            kafkaTemplate.send("sale.property.indexed", sp.getId().toString(), toJson(sp));
         }
         return toResponse(sp);
     }
@@ -298,7 +310,7 @@ public class SalePropertyService {
                 .orElseThrow(() -> new RuntimeException("Not found: " + id));
         sp.setStatus(SalePropertyStatus.SUSPENDED);
         sp = salePropertyRepository.save(sp);
-        kafkaTemplate.send("sale.property.deleted", sp.getId().toString(), sp.getId());
+        kafkaTemplate.send("sale.property.deleted", sp.getId().toString(), sp.getId().toString());
         return toResponse(sp);
     }
 
@@ -317,20 +329,57 @@ public class SalePropertyService {
         for (SaleProperty sp : expired) {
             sp.setStatus(SalePropertyStatus.EXPIRED);
             salePropertyRepository.save(sp);
-            kafkaTemplate.send("sale.property.deleted", sp.getId().toString(), sp.getId());
+            kafkaTemplate.send("sale.property.deleted", sp.getId().toString(), sp.getId().toString());
         }
         if (!expired.isEmpty()) {
             log.info("Expired {} sale properties", expired.size());
         }
     }
 
-    // Reindex all active for admin use
+    // Reindex all active — called by admin endpoint and on startup
     public int reindexAll() {
         List<SaleProperty> active = salePropertyRepository.findByStatus(SalePropertyStatus.ACTIVE);
         for (SaleProperty sp : active) {
-            kafkaTemplate.send("sale.property.indexed", sp.getId().toString(), sp);
+            try {
+                kafkaTemplate.send("sale.property.indexed", sp.getId().toString(), toJson(sp));
+            } catch (Exception e) {
+                log.warn("Failed to index sale property {}: {}", sp.getId(), e.getMessage());
+            }
         }
+        log.info("Reindexed {} active sale properties", active.size());
         return active.size();
+    }
+
+    @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
+    public void onStartupReindex() {
+        try {
+            int count = reindexAll();
+            log.info("Startup sale property reindex: {} properties", count);
+        } catch (Exception e) {
+            log.warn("Startup sale property reindex failed: {}", e.getMessage());
+        }
+    }
+
+    public java.util.Map<String, String> getSellerContact(UUID propertyId) {
+        SaleProperty sp = salePropertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Property not found"));
+        try {
+            org.springframework.web.client.RestTemplate rt = new org.springframework.web.client.RestTemplate();
+            String userUrl = env.getProperty("services.user-service.url");
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, String> contact = rt.getForObject(
+                    userUrl + "/api/v1/internal/users/" + sp.getSellerId() + "/contact", java.util.Map.class);
+            if (contact != null) {
+                return java.util.Map.of(
+                        "name", contact.getOrDefault("name", ""),
+                        "phone", contact.getOrDefault("phone", "Not available"),
+                        "email", contact.getOrDefault("email", "")
+                );
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch seller contact: {}", e.getMessage());
+        }
+        return java.util.Map.of("name", "", "phone", "Not available", "email", "");
     }
 
     private SalePropertyResponse toResponse(SaleProperty sp) {

@@ -36,7 +36,7 @@ public class ProfileService {
     private final HostSubscriptionRepository hostSubscriptionRepository;
     private final RestTemplate restTemplate;
 
-    @Value("${services.media-service.url:http://localhost:8088}")
+    @Value("${services.media-service.url}")
     private String mediaServiceUrl;
 
     @Cacheable(value = "users", key = "#userId")

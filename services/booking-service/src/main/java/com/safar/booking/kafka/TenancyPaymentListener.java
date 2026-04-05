@@ -27,17 +27,20 @@ public class TenancyPaymentListener {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final RestTemplate restTemplate;
     private final String userServiceUrl;
+    private final String listingServiceUrl;
 
     public TenancyPaymentListener(PgTenancyRepository tenancyRepository,
                                    TenancyInvoiceRepository invoiceRepository,
                                    KafkaTemplate<String, Object> kafkaTemplate,
                                    RestTemplate restTemplate,
-                                   @Value("${services.user-service.url:http://localhost:8092}") String userServiceUrl) {
+                                   @Value("${services.user-service.url}") String userServiceUrl,
+                                   @Value("${services.listing-service.url}") String listingServiceUrl) {
         this.tenancyRepository = tenancyRepository;
         this.invoiceRepository = invoiceRepository;
         this.kafkaTemplate = kafkaTemplate;
         this.restTemplate = restTemplate;
         this.userServiceUrl = userServiceUrl;
+        this.listingServiceUrl = listingServiceUrl;
     }
 
     @KafkaListener(topics = "tenancy.subscription.charged", groupId = "booking-service")
@@ -86,7 +89,7 @@ public class TenancyPaymentListener {
         try {
             @SuppressWarnings("unchecked")
             Map<String, Object> listing = restTemplate.getForObject(
-                    "http://localhost:8083/api/v1/listings/" + listingId, Map.class);
+                    listingServiceUrl + "/api/v1/listings/" + listingId, Map.class);
             if (listing != null && listing.get("hostId") != null) {
                 return UUID.fromString((String) listing.get("hostId"));
             }

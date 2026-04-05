@@ -38,7 +38,7 @@ management:
 
 services:
   listing-service:
-    url: http://${LISTING_SERVICE_HOST:localhost}:8083
+    url: ${LISTING_SERVICE_URL:http://localhost:8083}
 
 resilience4j:
   circuitbreaker:

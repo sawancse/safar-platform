@@ -62,9 +62,9 @@ notification:
   base-url: ${NOTIFICATION_BASE_URL:http://localhost:3000}
 
 services:
-  booking:
+  booking-service:
     url: ${BOOKING_SERVICE_URL:http://localhost:8095}
-  user:
+  user-service:
     url: ${USER_SERVICE_URL:http://localhost:8092}
 
 jwt:

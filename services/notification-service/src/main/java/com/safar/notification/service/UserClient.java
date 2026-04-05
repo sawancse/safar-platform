@@ -19,7 +19,7 @@ public class UserClient {
 
     public UserClient(RestTemplate restTemplate,
                       ObjectMapper objectMapper,
-                      @Value("${services.user.url}") String userServiceUrl) {
+                      @Value("${services.user-service.url}") String userServiceUrl) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
         this.userServiceUrl = userServiceUrl;
