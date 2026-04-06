@@ -1,7 +1,6 @@
 package com.safar.booking.controller;
 
-import com.safar.booking.dto.CreateMaintenanceRequestDto;
-import com.safar.booking.dto.UpdateMaintenanceRequestDto;
+import com.safar.booking.dto.*;
 import com.safar.booking.entity.MaintenanceRequest;
 import com.safar.booking.service.MaintenanceRequestService;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -38,10 +38,11 @@ public class MaintenanceRequestController {
     }
 
     @GetMapping("/{requestId}")
-    public ResponseEntity<MaintenanceRequest> getRequest(
+    public ResponseEntity<TicketDetailResponse> getRequest(
             @PathVariable UUID tenancyId,
             @PathVariable UUID requestId) {
-        return ResponseEntity.ok(maintenanceService.getRequest(requestId));
+        MaintenanceRequest request = maintenanceService.getRequest(requestId);
+        return ResponseEntity.ok(maintenanceService.toDetailResponse(request));
     }
 
     @PutMapping("/{requestId}")
@@ -60,5 +61,41 @@ public class MaintenanceRequestController {
         int rating = ((Number) body.get("rating")).intValue();
         String feedback = (String) body.getOrDefault("feedback", "");
         return ResponseEntity.ok(maintenanceService.rateResolution(requestId, rating, feedback));
+    }
+
+    // ── New endpoints ──────────────────────────────────────────
+
+    @PostMapping("/{requestId}/reopen")
+    public ResponseEntity<TicketDetailResponse> reopenTicket(
+            @PathVariable UUID tenancyId,
+            @PathVariable UUID requestId,
+            @RequestBody ReopenTicketRequest request) {
+        MaintenanceRequest ticket = maintenanceService.reopenTicket(requestId, request.reason());
+        return ResponseEntity.ok(maintenanceService.toDetailResponse(ticket));
+    }
+
+    @PostMapping("/{requestId}/close")
+    public ResponseEntity<TicketDetailResponse> closeTicket(
+            @PathVariable UUID tenancyId,
+            @PathVariable UUID requestId) {
+        MaintenanceRequest ticket = maintenanceService.closeTicket(requestId);
+        return ResponseEntity.ok(maintenanceService.toDetailResponse(ticket));
+    }
+
+    @PostMapping("/{requestId}/comments")
+    public ResponseEntity<TicketCommentResponse> addComment(
+            @PathVariable UUID tenancyId,
+            @PathVariable UUID requestId,
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestBody TicketCommentDto comment) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(maintenanceService.addComment(requestId, userId, "TENANT", comment));
+    }
+
+    @GetMapping("/{requestId}/comments")
+    public ResponseEntity<List<TicketCommentResponse>> getComments(
+            @PathVariable UUID tenancyId,
+            @PathVariable UUID requestId) {
+        return ResponseEntity.ok(maintenanceService.getComments(requestId));
     }
 }

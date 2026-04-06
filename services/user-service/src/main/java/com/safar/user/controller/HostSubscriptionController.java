@@ -21,7 +21,11 @@ public class HostSubscriptionController {
     @GetMapping
     public ResponseEntity<HostSubscriptionDto> getSubscription(Authentication auth) {
         UUID hostId = UUID.fromString(auth.getName());
-        return ResponseEntity.ok(hostSubscriptionService.getSubscription(hostId));
+        try {
+            return ResponseEntity.ok(hostSubscriptionService.getSubscription(hostId));
+        } catch (java.util.NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @PostMapping("/trial")

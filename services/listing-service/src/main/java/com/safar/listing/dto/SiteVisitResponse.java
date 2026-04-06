@@ -17,6 +17,7 @@ public record SiteVisitResponse(
         String buyerFeedback,
         String sellerFeedback,
         Integer rating,
+        String notes,
         // Denormalized
         String propertyTitle,
         String propertyLocality,

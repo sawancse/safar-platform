@@ -10,6 +10,7 @@ import com.safar.listing.entity.enums.VisitStatus;
 import com.safar.listing.repository.PropertyInquiryRepository;
 import com.safar.listing.repository.SalePropertyRepository;
 import com.safar.listing.repository.SiteVisitRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -31,19 +32,51 @@ public class SiteVisitService {
     private final SalePropertyRepository salePropertyRepository;
     private final PropertyInquiryRepository inquiryRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ObjectMapper objectMapper;
+
+    private String toJson(Object obj) {
+        try {
+            return objectMapper.writeValueAsString(obj);
+        } catch (Exception e) {
+            log.error("Failed to serialize to JSON", e);
+            return "{}";
+        }
+    }
 
     @Transactional
-    public SiteVisitResponse schedule(ScheduleVisitRequest req, UUID buyerId) {
+    public SiteVisitResponse schedule(ScheduleVisitRequest req, UUID userId) {
         SaleProperty sp = salePropertyRepository.findById(req.salePropertyId())
                 .orElseThrow(() -> new RuntimeException("Sale property not found"));
+
+        // Determine buyer/seller based on who's calling
+        UUID sellerId;
+        UUID buyerId;
+        boolean callerIsSeller = sp.getSellerId().equals(userId);
+
+        if (callerIsSeller) {
+            sellerId = userId;
+            // Get buyer from inquiry if available
+            if (req.inquiryId() != null) {
+                PropertyInquiry inq = inquiryRepository.findById(req.inquiryId()).orElse(null);
+                buyerId = inq != null ? inq.getBuyerId() : null;
+            } else {
+                buyerId = null; // Seller-initiated open visit slot
+            }
+        } else {
+            // Buyer is scheduling the visit
+            buyerId = userId;
+            sellerId = sp.getSellerId();
+        }
 
         SiteVisit visit = SiteVisit.builder()
                 .inquiryId(req.inquiryId())
                 .salePropertyId(req.salePropertyId())
                 .buyerId(buyerId)
-                .sellerId(sp.getSellerId())
+                .sellerId(sellerId)
                 .scheduledAt(req.scheduledAt())
                 .durationMinutes(req.durationMinutes() != null ? req.durationMinutes() : 30)
+                .notes(req.notes())
+                .status(callerIsSeller ? VisitStatus.CONFIRMED : VisitStatus.REQUESTED)
                 .build();
 
         visit = visitRepository.save(visit);
@@ -56,8 +89,9 @@ public class SiteVisitService {
             });
         }
 
-        kafkaTemplate.send("sale.visit.scheduled", visit.getId().toString(), visit);
-        log.info("Site visit {} scheduled for property {} at {}", visit.getId(), sp.getId(), req.scheduledAt());
+        kafkaTemplate.send("sale.visit.scheduled", visit.getId().toString(), toJson(visit));
+        log.info("Site visit {} scheduled for property {} at {} by {}", visit.getId(), sp.getId(), req.scheduledAt(),
+                callerIsSeller ? "seller" : "buyer");
         return toResponse(visit, sp);
     }
 
@@ -80,7 +114,7 @@ public class SiteVisitService {
         }
 
         if (status == VisitStatus.CANCELLED) {
-            kafkaTemplate.send("sale.visit.cancelled", visit.getId().toString(), visit);
+            kafkaTemplate.send("sale.visit.cancelled", visit.getId().toString(), toJson(visit));
         }
         return toResponseWithProperty(visit);
     }
@@ -133,6 +167,7 @@ public class SiteVisitService {
                 v.getBuyerId(), v.getSellerId(),
                 v.getScheduledAt(), v.getDurationMinutes(), v.getStatus(),
                 v.getBuyerFeedback(), v.getSellerFeedback(), v.getRating(),
+                v.getNotes(),
                 sp != null ? sp.getTitle() : null,
                 sp != null ? sp.getLocality() : null,
                 sp != null ? sp.getCity() : null,

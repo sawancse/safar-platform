@@ -1,8 +1,6 @@
 package com.safar.booking.controller;
 
-import com.safar.booking.dto.AddDeductionRequest;
-import com.safar.booking.dto.InitiateSettlementRequest;
-import com.safar.booking.dto.SettlementResponse;
+import com.safar.booking.dto.*;
 import com.safar.booking.entity.SettlementDeduction;
 import com.safar.booking.entity.TenancySettlement;
 import com.safar.booking.service.TenancySettlementService;
@@ -11,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -88,5 +87,66 @@ public class TenancySettlementController {
             @RequestParam(required = false) String razorpayRefundId) {
         TenancySettlement settlement = settlementService.markSettled(tenancyId, razorpayRefundId);
         return ResponseEntity.ok(settlementService.toResponse(settlement));
+    }
+
+    // ── Inspection Checklist ──────────────────────────────────
+
+    @PostMapping("/checklist")
+    public ResponseEntity<InspectionChecklistItemResponse> addChecklistItem(
+            @PathVariable UUID tenancyId,
+            @RequestBody InspectionChecklistItemDto item) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(settlementService.addChecklistItem(tenancyId, item));
+    }
+
+    @GetMapping("/checklist")
+    public ResponseEntity<List<InspectionChecklistItemResponse>> getChecklist(
+            @PathVariable UUID tenancyId) {
+        return ResponseEntity.ok(settlementService.getChecklistItems(tenancyId));
+    }
+
+    @DeleteMapping("/checklist/{itemId}")
+    public ResponseEntity<Void> removeChecklistItem(
+            @PathVariable UUID tenancyId,
+            @PathVariable UUID itemId) {
+        settlementService.removeChecklistItem(tenancyId, itemId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ── Dispute ──────────────────────────────────────────────
+
+    @PostMapping("/deductions/{deductionId}/dispute")
+    public ResponseEntity<Void> disputeDeduction(
+            @PathVariable UUID tenancyId,
+            @PathVariable UUID deductionId,
+            @RequestBody DisputeDeductionRequest request) {
+        settlementService.disputeDeduction(tenancyId, deductionId, request.reason());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/dispute")
+    public ResponseEntity<Void> disputeSettlement(
+            @PathVariable UUID tenancyId,
+            @RequestBody DisputeDeductionRequest request) {
+        settlementService.disputeSettlement(tenancyId, request.reason());
+        return ResponseEntity.ok().build();
+    }
+
+    // ── Bank Details ──────────────────────────────────────────
+
+    @PostMapping("/bank-details")
+    public ResponseEntity<Void> saveBankDetails(
+            @PathVariable UUID tenancyId,
+            @RequestBody TenantBankDetailsRequest request) {
+        settlementService.saveBankDetails(tenancyId, request);
+        return ResponseEntity.ok().build();
+    }
+
+    // ── Timeline ──────────────────────────────────────────────
+
+    @GetMapping("/timeline")
+    public ResponseEntity<List<SettlementTimelineResponse>> getTimeline(
+            @PathVariable UUID tenancyId) {
+        return ResponseEntity.ok(settlementService.getTimeline(tenancyId));
     }
 }

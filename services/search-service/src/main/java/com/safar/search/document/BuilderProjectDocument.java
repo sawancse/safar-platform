@@ -100,6 +100,6 @@ public class BuilderProjectDocument {
     @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSSXXX||uuuu-MM-dd'T'HH:mm:ssXXX||epoch_millis")
     private String possessionDate;
 
-    @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSSXXX||uuuu-MM-dd'T'HH:mm:ssXXX||epoch_millis")
-    private String indexedAt;
+    @Field(type = FieldType.Date, format = DateFormat.epoch_millis)
+    private Long indexedAt;
 }

@@ -28,6 +28,19 @@ public class EventBookingController {
         return ResponseEntity.ok(eventBookingService.browseEvents(pageable));
     }
 
+    // ── Admin ─────────────────────────────────────────────────
+
+    @GetMapping("/admin/all")
+    public ResponseEntity<Page<EventBooking>> adminListAll(Pageable pageable) {
+        return ResponseEntity.ok(eventBookingService.browseEvents(pageable));
+    }
+
+    @PostMapping("/admin/{id}/assign")
+    public ResponseEntity<EventBooking> adminAssignChef(@PathVariable UUID id,
+                                                         @RequestParam UUID chefId) {
+        return ResponseEntity.ok(eventBookingService.adminAssignChef(id, chefId));
+    }
+
     @PostMapping
     public ResponseEntity<EventBooking> createEvent(Authentication auth,
                                                      @RequestBody CreateEventBookingRequest req) {

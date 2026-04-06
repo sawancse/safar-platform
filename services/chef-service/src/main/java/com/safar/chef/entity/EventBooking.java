@@ -25,7 +25,7 @@ public class EventBooking {
     @Column(name = "booking_ref", unique = true, length = 20)
     private String bookingRef;
 
-    @Column(name = "chef_id", nullable = false)
+    @Column(name = "chef_id")
     private UUID chefId;
 
     @Column(name = "customer_id", nullable = false)

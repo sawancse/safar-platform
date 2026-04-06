@@ -172,26 +172,44 @@ public class ExperienceService {
 
     @Transactional
     public ExperienceBooking bookExperience(UUID guestId, ExperienceBookingRequest req) {
-        ExperienceSession session = sessionRepository.findById(req.sessionId())
-                .orElseThrow(() -> new NoSuchElementException("Session not found: " + req.sessionId()));
+        ExperienceSession session = null;
+        Experience experience;
 
-        if (session.getStatus() == SessionStatus.FULL) {
-            throw new IllegalStateException("Session is full");
-        }
-        if (session.getStatus() == SessionStatus.CANCELLED) {
-            throw new IllegalStateException("Session is cancelled");
-        }
+        if (req.sessionId() != null) {
+            // Session-based booking
+            ExperienceSession found = sessionRepository.findById(req.sessionId())
+                    .orElseThrow(() -> new NoSuchElementException("Session not found: " + req.sessionId()));
+            session = found;
 
-        int spotsAfter = session.getBookedSpots() + req.numGuests();
-        if (spotsAfter > session.getAvailableSpots()) {
-            throw new IllegalStateException(
-                    String.format("Not enough spots: %d available, %d requested",
-                            session.getAvailableSpots() - session.getBookedSpots(), req.numGuests()));
-        }
+            if (found.getStatus() == SessionStatus.FULL) {
+                throw new IllegalStateException("Session is full");
+            }
+            if (found.getStatus() == SessionStatus.CANCELLED) {
+                throw new IllegalStateException("Session is cancelled");
+            }
 
-        Experience experience = experienceRepository.findById(session.getExperienceId())
-                .orElseThrow(() -> new NoSuchElementException(
-                        "Experience not found: " + session.getExperienceId()));
+            int spotsAfter = found.getBookedSpots() + req.numGuests();
+            if (spotsAfter > found.getAvailableSpots()) {
+                throw new IllegalStateException(
+                        String.format("Not enough spots: %d available, %d requested",
+                                found.getAvailableSpots() - found.getBookedSpots(), req.numGuests()));
+            }
+
+            experience = experienceRepository.findById(found.getExperienceId())
+                    .orElseThrow(() -> new NoSuchElementException(
+                            "Experience not found: " + found.getExperienceId()));
+        } else {
+            // Direct/instant booking without session
+            experience = experienceRepository.findById(req.experienceId())
+                    .orElseThrow(() -> new NoSuchElementException(
+                            "Experience not found: " + req.experienceId()));
+
+            if (req.numGuests() > experience.getMaxGuests()) {
+                throw new IllegalStateException(
+                        String.format("Max %d guests allowed, %d requested",
+                                experience.getMaxGuests(), req.numGuests()));
+            }
+        }
 
         long totalPaise = experience.getPricePaise() * req.numGuests();
 
@@ -207,9 +225,10 @@ public class ExperienceService {
 
         ExperienceBooking booking = ExperienceBooking.builder()
                 .experienceId(experience.getId())
-                .sessionId(session.getId())
+                .sessionId(session != null ? session.getId() : null)
                 .guestId(guestId)
                 .propertyBookingId(req.propertyBookingId())
+                .requestedDate(req.requestedDate())
                 .numGuests(req.numGuests())
                 .totalPaise(totalPaise)
                 .platformFeePaise(platformFee)
@@ -220,11 +239,14 @@ public class ExperienceService {
 
         ExperienceBooking saved = bookingRepository.save(booking);
 
-        session.setBookedSpots(spotsAfter);
-        if (spotsAfter >= session.getAvailableSpots()) {
-            session.setStatus(SessionStatus.FULL);
+        if (session != null) {
+            int spotsAfter = session.getBookedSpots() + req.numGuests();
+            session.setBookedSpots(spotsAfter);
+            if (spotsAfter >= session.getAvailableSpots()) {
+                session.setStatus(SessionStatus.FULL);
+            }
+            sessionRepository.save(session);
         }
-        sessionRepository.save(session);
 
         String payload = String.format(
                 "{\"bookingId\":\"%s\",\"experienceId\":\"%s\",\"guestId\":\"%s\",\"hostId\":\"%s\",\"ref\":\"%s\",\"totalPaise\":%d}",

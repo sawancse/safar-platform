@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -22,8 +23,11 @@ public class ExperienceBooking {
     @Column(name = "experience_id", nullable = false)
     private UUID experienceId;
 
-    @Column(name = "session_id", nullable = false)
+    @Column(name = "session_id")
     private UUID sessionId;
+
+    @Column(name = "requested_date")
+    private LocalDate requestedDate;
 
     @Column(name = "guest_id", nullable = false)
     private UUID guestId;

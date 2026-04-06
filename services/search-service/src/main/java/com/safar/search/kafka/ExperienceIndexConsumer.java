@@ -73,7 +73,7 @@ public class ExperienceIndexConsumer {
                 .rating(j.has("rating") && !j.get("rating").isNull() ? j.get("rating").asDouble() : null)
                 .reviewCount(j.has("reviewCount") ? j.get("reviewCount").asInt() : 0)
                 .hostId(j.has("hostId") ? j.get("hostId").asText() : null)
-                .indexedAt(OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+                .indexedAt(System.currentTimeMillis())
                 .build();
     }
 }

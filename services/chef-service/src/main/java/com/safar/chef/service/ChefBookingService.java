@@ -333,6 +333,24 @@ public class ChefBookingService {
     }
 
     @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<ChefBooking> adminListAll(org.springframework.data.domain.Pageable pageable) {
+        return bookingRepo.findAll(pageable);
+    }
+
+    @Transactional
+    public ChefBooking adminAssignChef(UUID bookingId, UUID chefId) {
+        ChefBooking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+        ChefProfile chef = chefProfileRepo.findById(chefId)
+                .orElseThrow(() -> new IllegalArgumentException("Chef not found"));
+
+        booking.setChefId(chef.getId());
+        booking.setChefName(chef.getName());
+        log.info("Admin assigned chef {} to booking {}", chefId, bookingId);
+        return bookingRepo.save(booking);
+    }
+
+    @Transactional(readOnly = true)
     public List<ChefBooking> getMyBookings(UUID customerId) {
         return bookingRepo.findByCustomerId(customerId);
     }

@@ -1,0 +1,18 @@
+
+  ┌─────┬────────────────────────────────┬────────────────────────────────┬───────────────────────────────────┐
+  │  #  │             Topic              │            Producer            │              Purpose              │           ├─────┼────────────────────────────────┼────────────────────────────────┼───────────────────────────────────┤
+  │ 1   │ chef.booking.created           │ ChefBookingService             │ New booking placed                │           ├─────┼────────────────────────────────┼────────────────────────────────┼───────────────────────────────────┤
+  │ 2   │ chef.booking.confirmed         │ ChefBookingService             │ Chef accepts booking              │
+  ├─────┼────────────────────────────────┼────────────────────────────────┼───────────────────────────────────┤
+  │ 3   │ chef.booking.cancelled         │ ChefBookingService + Scheduler │ Booking cancelled or auto-expired │
+  ├─────┼────────────────────────────────┼────────────────────────────────┼───────────────────────────────────┤
+  │ 4   │ chef.booking.completed         │ ChefBookingService             │ Booking marked done               │
+  ├─────┼────────────────────────────────┼────────────────────────────────┼───────────────────────────────────┤
+  │ 5   │ chef.booking.payment.confirmed │ ChefBookingService             │ Payment verified                  │
+  ├─────┼────────────────────────────────┼────────────────────────────────┼───────────────────────────────────┤
+  │ 6   │ chef.booking.modified          │ ChefBookingService             │ Booking details updated           │
+  ├─────┼────────────────────────────────┼────────────────────────────────┼───────────────────────────────────┤
+  │ 7   │ chef.booking.reminder          │ ChefBookingScheduler           │ 24hr reminder before service      │
+  └─────┴────────────────────────────────┴────────────────────────────────┴───────────────────────────────────┘
+builder.project.indexed
+builder.construction.update

@@ -11,7 +11,8 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.UUID;
 
-public interface BuilderProjectRepository extends JpaRepository<BuilderProject, UUID> {
+public interface BuilderProjectRepository extends JpaRepository<BuilderProject, UUID>,
+        org.springframework.data.jpa.repository.JpaSpecificationExecutor<BuilderProject> {
 
     Page<BuilderProject> findByBuilderId(UUID builderId, Pageable pageable);
 
@@ -20,6 +21,10 @@ public interface BuilderProjectRepository extends JpaRepository<BuilderProject, 
     List<BuilderProject> findByStatus(BuilderListingStatus status);
 
     Page<BuilderProject> findByStatus(BuilderListingStatus status, Pageable pageable);
+
+    Page<BuilderProject> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    Page<BuilderProject> findByStatusOrderByCreatedAtDesc(BuilderListingStatus status, Pageable pageable);
 
     @Query("SELECT bp FROM BuilderProject bp WHERE bp.status = 'ACTIVE' " +
             "AND (:city IS NULL OR bp.city = :city) " +

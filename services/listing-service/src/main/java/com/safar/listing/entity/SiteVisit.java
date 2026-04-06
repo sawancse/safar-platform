@@ -27,11 +27,13 @@ public class SiteVisit {
     @Column(nullable = false)
     private UUID salePropertyId;
 
-    @Column(nullable = false)
     private UUID buyerId;
 
     @Column(nullable = false)
     private UUID sellerId;
+
+    @Column(columnDefinition = "TEXT")
+    private String notes;
 
     @Column(nullable = false)
     private OffsetDateTime scheduledAt;

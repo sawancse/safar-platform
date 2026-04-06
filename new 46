@@ -1,0 +1,62 @@
+  /btw what are topicspending to create
+
+    3. payout.completed
+    4. payout.reversed
+    5. payout.failed
+    6. host.payout.completed
+    7. host.payout.failed
+    8. tenancy.subscription.created
+    9. tenancy.subscription.authenticated
+    10. tenancy.subscription.charged
+    11. tenancy.subscription.halted
+
+    The ones confirmed failing are donation.captured and tenancy.rent.collected. The others may also be unauthorized
+    since they were all added after the March 25 deployment.
+
+    The existing topics that already work (created before March 25):
+    - payment.captured
+    - payment.refunded
+    - payment.failed
+
+    You'll need to either:
+    - Create these topics manually on MSK and grant IAM access to the payment-service task role
+    - Or update the MSK cluster policy to allow auto-topic creation for the ECS task role
+Topics produced but NOT declared:
+  - concierge.daily (user-service) — NOT declared
+  - nomad_prime.subscribed (user-service) — NOT declared
+  
+ ===============
+ 1). lets say if review is already submitted disable the button or say review already submitted instead of Write Review
+ SAF-BKG-KR452N
+Completed
+Srinivasm PG
+Guest: Sawan Kumar
+
+₹19,500
+
+30 nights
+
+Check-in
+2026-04-02
+Check-out
+2026-05-02
+Guests
+2
+Base: ₹10,000
+Insurance: ₹1,500
+GST: ₹0
+Write Review
+
+2). if event date is mandatory do validation of page
+
+
+google-site-verification: google7ac54db601261c41.html
+
+google-site-verification: google7ac54db601261c41.html
+
+<meta name="google-site-verification" content="ihAn2Blazat810vtBxw4DjN5n1qjSJxh6epX5jryCv8" />
+
+3). if some booking came for chef . chef is unable to see booking and seems no notification. chef when click on register then it shows something.
+
+there should be some option under profile
+4). prfile pic upload is not wokring still

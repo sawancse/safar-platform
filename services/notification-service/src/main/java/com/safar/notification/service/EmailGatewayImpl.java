@@ -33,7 +33,7 @@ public class EmailGatewayImpl implements EmailGateway {
             helper.setFrom(fromEmail, fromName);
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(body);
+            helper.setText(body, true);
             mailSender.send(message);
             log.info("Email sent to {} | subject: {}", to, subject);
         } catch (Exception e) {

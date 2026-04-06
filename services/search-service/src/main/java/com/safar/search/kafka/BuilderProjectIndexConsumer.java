@@ -1,5 +1,6 @@
 package com.safar.search.kafka;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.safar.search.document.BuilderProjectDocument;
 import com.safar.search.document.SalePropertyDocument;
 import com.safar.search.service.BuilderProjectSearchService;
@@ -19,10 +20,18 @@ import java.util.Map;
 public class BuilderProjectIndexConsumer {
 
     private final BuilderProjectSearchService searchService;
+    private final ObjectMapper objectMapper;
 
     @KafkaListener(topics = "builder.project.indexed", groupId = "search-service")
     @SuppressWarnings("unchecked")
-    public void onProjectIndexed(Map<String, Object> payload) {
+    public void onProjectIndexed(String message) {
+        Map<String, Object> payload;
+        try {
+            payload = objectMapper.readValue(message, Map.class);
+        } catch (Exception e) {
+            log.error("Failed to parse builder project message: {}", e.getMessage());
+            return;
+        }
         try {
             List<String> photos = payload.get("photos") != null ? (List<String>) payload.get("photos") : List.of();
             SalePropertyDocument.GeoPoint location = null;
@@ -59,7 +68,7 @@ public class BuilderProjectIndexConsumer {
                     .primaryPhotoUrl(photos.isEmpty() ? null : photos.get(0))
                     .verified(toBool(payload.get("verified")))
                     .viewsCount(toInt(payload.get("viewsCount")))
-                    .indexedAt(OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+                    .indexedAt(System.currentTimeMillis())
                     .build();
 
             searchService.index(doc);

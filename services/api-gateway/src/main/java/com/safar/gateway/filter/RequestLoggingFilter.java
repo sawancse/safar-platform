@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -20,14 +21,34 @@ public class RequestLoggingFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         long start = System.currentTimeMillis();
 
-        log.info("→ {} {}", request.getMethod(), request.getPath());
+        String query = request.getURI().getRawQuery();
+        String path = request.getPath().value() + (query != null ? "?" + query : "");
+        String userId = request.getHeaders().getFirst("X-User-Id");
+        String userAgent = request.getHeaders().getFirst(HttpHeaders.USER_AGENT);
 
-        return chain.filter(exchange).doFinally(signal ->
-                log.info("← {} {} {}ms",
-                        exchange.getResponse().getStatusCode(),
-                        request.getPath(),
-                        System.currentTimeMillis() - start)
-        );
+        log.info("→ {} {} userId={} ua={}",
+                request.getMethod(), path,
+                userId != null ? userId : "-",
+                userAgent != null ? truncate(userAgent, 80) : "-");
+
+        return chain.filter(exchange).doFinally(signal -> {
+            long duration = System.currentTimeMillis() - start;
+            String responseUserId = exchange.getRequest().getHeaders().getFirst("X-User-Id");
+            log.info("← {} {} {} {}ms userId={}",
+                    exchange.getResponse().getStatusCode(),
+                    request.getMethod(),
+                    request.getPath(),
+                    duration,
+                    responseUserId != null ? responseUserId : "-");
+
+            if (duration > 5000) {
+                log.warn("SLOW {} {} {}ms", request.getMethod(), request.getPath(), duration);
+            }
+        });
+    }
+
+    private static String truncate(String s, int max) {
+        return s.length() <= max ? s : s.substring(0, max) + "…";
     }
 
     @Override

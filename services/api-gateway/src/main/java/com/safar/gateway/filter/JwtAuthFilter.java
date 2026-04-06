@@ -56,6 +56,8 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 
         // Attempt JWT processing — propagate user identity even on public paths
         List<String> authHeaders = request.getHeaders().get(HttpHeaders.AUTHORIZATION);
+        log.info("AUTH HEADER present={}, value={}", authHeaders != null && !authHeaders.isEmpty(),
+                authHeaders != null && !authHeaders.isEmpty() ? authHeaders.get(0).substring(0, Math.min(30, authHeaders.get(0).length())) + "..." : "NONE");
         if (authHeaders != null && !authHeaders.isEmpty()) {
             String bearer = authHeaders.get(0);
             if (bearer.startsWith("Bearer ")) {
@@ -67,6 +69,7 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
                             .build();
                     return chain.filter(exchange.mutate().request(mutated).build());
                 } catch (JwtException e) {
+                    log.warn("JWT validation failed for {} {}: {}", method, path, e.getMessage());
                     if (!publicPath) {
                         return onError(exchange, HttpStatus.UNAUTHORIZED);
                     }
@@ -86,7 +89,11 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         if (PUBLIC_PATHS.contains(path)) return true;
         if (path.startsWith("/api/v1/auth/")
                 && !path.equals("/api/v1/auth/password/set")
-                && !path.equals("/api/v1/auth/password/change")) return true;
+                && !path.equals("/api/v1/auth/password/change")
+                && !path.equals("/api/v1/auth/pin/set")
+                && !path.equals("/api/v1/auth/pin/change")
+                && !path.equals("/api/v1/auth/pin/reset")
+                && !(path.equals("/api/v1/auth/pin") && HttpMethod.DELETE.equals(method))) return true;
         // Public read access for listing search/browse (exclude auth-required paths)
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/listings")
                 && !path.contains("/mine")
@@ -141,6 +148,21 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
                 && !path.contains("/my") && !path.contains("/chef")) return true;
         // Experience reviews — public read
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/reviews/experience")) return true;
+        // Broker profiles — public search and view (exclude /me and /admin)
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/brokers")
+                && !path.contains("/me") && !path.contains("/admin")) return true;
+        // VAS: Agreement templates & stamp duty calculator — public
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/agreements/templates")) return true;
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/agreements/stamp-duty")) return true;
+        // VAS: Home loan — banks, EMI calculator, eligibility are public reads
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/homeloan/banks")) return true;
+        if (HttpMethod.POST.equals(method) && path.equals("/api/v1/homeloan/emi/calculate")) return true;
+        // VAS: Legal packages & advocates — public browse
+        if (HttpMethod.GET.equals(method) && path.equals("/api/v1/legal/packages")) return true;
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/legal/advocates")) return true;
+        // VAS: Interior designers & material catalog — public browse
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/interiors/designers")) return true;
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/interiors/materials/catalog")) return true;
         // Internal service-to-service endpoints — no user auth
         if (path.startsWith("/api/v1/internal/")) return true;
         return false;

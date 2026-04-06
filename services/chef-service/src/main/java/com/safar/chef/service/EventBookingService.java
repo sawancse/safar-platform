@@ -121,8 +121,13 @@ public class EventBookingService {
         ChefProfile chef = chefProfileRepo.findByUserId(chefId)
                 .orElseThrow(() -> new IllegalArgumentException("Chef profile not found"));
 
-        if (!event.getChefId().equals(chef.getId())) {
+        if (event.getChefId() != null && !event.getChefId().equals(chef.getId())) {
             throw new IllegalArgumentException("Not authorized to quote this event");
+        }
+        // If no chef assigned yet (inquiry), assign this chef
+        if (event.getChefId() == null) {
+            event.setChefId(chef.getId());
+            event.setChefName(chef.getName());
         }
         if (event.getStatus() != EventBookingStatus.INQUIRY) {
             throw new IllegalArgumentException("Event must be in INQUIRY status to quote");
@@ -186,7 +191,7 @@ public class EventBookingService {
         ChefProfile chef = chefProfileRepo.findByUserId(chefId)
                 .orElseThrow(() -> new IllegalArgumentException("Chef profile not found"));
 
-        if (!event.getChefId().equals(chef.getId())) {
+        if (event.getChefId() == null || !event.getChefId().equals(chef.getId())) {
             throw new IllegalArgumentException("Not authorized to complete this event");
         }
         if (event.getStatus() != EventBookingStatus.ADVANCE_PAID && event.getStatus() != EventBookingStatus.IN_PROGRESS) {
@@ -210,7 +215,7 @@ public class EventBookingService {
                 .orElseThrow(() -> new IllegalArgumentException("Event booking not found"));
 
         ChefProfile chefProfile = chefProfileRepo.findByUserId(userId).orElse(null);
-        boolean isChef = chefProfile != null && event.getChefId().equals(chefProfile.getId());
+        boolean isChef = chefProfile != null && event.getChefId() != null && event.getChefId().equals(chefProfile.getId());
         boolean isCustomer = event.getCustomerId().equals(userId);
 
         if (!isChef && !isCustomer) {
@@ -330,6 +335,34 @@ public class EventBookingService {
         EventBooking saved = eventRepo.save(event);
         log.info("Event booking modified: {} by customer={}", eventId, customerId);
         return saved;
+    }
+
+    @Transactional
+    public EventBooking adminAssignChef(UUID eventId, UUID chefId) {
+        EventBooking event = eventRepo.findById(eventId)
+                .orElseThrow(() -> new IllegalArgumentException("Event booking not found"));
+        ChefProfile chef = chefProfileRepo.findById(chefId)
+                .orElseThrow(() -> new IllegalArgumentException("Chef not found"));
+
+        event.setChefId(chef.getId());
+        event.setChefName(chef.getName());
+
+        // Recalculate with chef's plate price if available
+        if (chef.getEventMinPlatePaise() != null) {
+            event.setPricePerPlatePaise(chef.getEventMinPlatePaise());
+            long totalFoodPaise = chef.getEventMinPlatePaise() * event.getGuestCount();
+            event.setTotalFoodPaise(totalFoodPaise);
+            long totalAmountPaise = totalFoodPaise + event.getDecorationPaise() + event.getCakePaise()
+                    + event.getStaffPaise() + event.getOtherAddonsPaise();
+            event.setTotalAmountPaise(totalAmountPaise);
+            event.setAdvanceAmountPaise(totalAmountPaise * 50 / 100);
+            event.setBalanceAmountPaise(totalAmountPaise - event.getAdvanceAmountPaise());
+            event.setPlatformFeePaise(totalAmountPaise * 15 / 100);
+            event.setChefEarningsPaise(totalAmountPaise - event.getPlatformFeePaise());
+        }
+
+        log.info("Admin assigned chef {} to event {}", chefId, eventId);
+        return eventRepo.save(event);
     }
 
     @Transactional(readOnly = true)

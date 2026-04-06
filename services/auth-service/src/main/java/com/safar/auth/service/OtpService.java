@@ -18,6 +18,7 @@ public class OtpService {
 
     private final StringRedisTemplate redis;
     private final JavaMailSender mailSender;
+    private final Msg91Client msg91Client;
 
     @Value("${otp.expiry-minutes:10}")
     private int otpExpiryMinutes;
@@ -27,6 +28,9 @@ public class OtpService {
 
     @Value("${otp.dev-mode:true}")
     private boolean devMode;
+
+    @Value("${otp.provider:log}")
+    private String otpProvider; // "log" | "msg91"
 
     private static final String OTP_PREFIX    = "otp:";
     private static final String RATE_PREFIX   = "otp:rate:";
@@ -43,12 +47,21 @@ public class OtpService {
                 Duration.ofMinutes(otpExpiryMinutes)
         );
 
-        // In production: send via SMS provider (Twilio / AWS SNS)
-        // SMS template for production (Android SMS Retriever compatible):
-        // "<#> Your Safar verification code is: {otp}. Valid for {otpExpiryMinutes} minutes.\n{APP_HASH}"
-        // The APP_HASH is generated from your app's signing certificate
-        // In dev: log the OTP
-        log.info("OTP for {}: {} (dev mode — remove in prod)", phone, otp);
+        if ("msg91".equalsIgnoreCase(otpProvider)) {
+            boolean sent = msg91Client.sendOtp(phone, otp);
+            if (sent) {
+                log.info("OTP sent to {} via MSG91", maskPhone(phone));
+            } else {
+                log.warn("MSG91 delivery failed for {}, OTP still stored in Redis", maskPhone(phone));
+            }
+        } else {
+            log.info("OTP for {}: {} (provider=log)", phone, otp);
+        }
+    }
+
+    private String maskPhone(String phone) {
+        if (phone == null || phone.length() < 6) return "***";
+        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 3);
     }
 
     public void sendEmailOtp(String email) {

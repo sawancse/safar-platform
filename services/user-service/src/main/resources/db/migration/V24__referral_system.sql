@@ -21,7 +21,7 @@ CREATE INDEX idx_referrals_code ON users.referrals(referral_code);
 CREATE INDEX idx_referrals_status ON users.referrals(status);
 
 -- Add referral_code to user_profiles for quick lookup
-ALTER TABLE users.user_profiles ADD COLUMN IF NOT EXISTS referral_code VARCHAR(12) UNIQUE;
-ALTER TABLE users.user_profiles ADD COLUMN IF NOT EXISTS referred_by_code VARCHAR(12);
-ALTER TABLE users.user_profiles ADD COLUMN IF NOT EXISTS total_referrals INT DEFAULT 0;
-ALTER TABLE users.user_profiles ADD COLUMN IF NOT EXISTS referral_earnings_paise BIGINT DEFAULT 0;
+ALTER TABLE users.profiles ADD COLUMN IF NOT EXISTS referral_code VARCHAR(12) UNIQUE;
+ALTER TABLE users.profiles ADD COLUMN IF NOT EXISTS referred_by_code VARCHAR(12);
+ALTER TABLE users.profiles ADD COLUMN IF NOT EXISTS total_referrals INT DEFAULT 0;
+ALTER TABLE users.profiles ADD COLUMN IF NOT EXISTS referral_earnings_paise BIGINT DEFAULT 0;

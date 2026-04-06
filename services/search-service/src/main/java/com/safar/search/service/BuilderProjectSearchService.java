@@ -45,7 +45,7 @@ public class BuilderProjectSearchService {
         }
 
         if (city != null) {
-            bool.filter(Query.of(q -> q.term(t -> t.field("city").value(city))));
+            bool.filter(Query.of(q -> q.match(m -> m.field("city").query(city))));
         }
         if (locality != null) {
             bool.filter(Query.of(q -> q.match(m -> m.field("locality").query(locality))));
@@ -105,6 +105,32 @@ public class BuilderProjectSearchService {
         result.put("page", page);
         result.put("size", size);
         return result;
+    }
+
+    public List<Map<String, String>> autocomplete(String q) {
+        if (q == null || q.isBlank()) return List.of();
+
+        NativeQuery query = NativeQuery.builder()
+                .withQuery(Query.of(qr -> qr.multiMatch(m -> m
+                        .query(q)
+                        .fields("projectName^3", "builderName^2", "city^2", "locality^2")
+                        .fuzziness("AUTO")
+                        .type(co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType.BestFields)
+                )))
+                .withPageable(PageRequest.of(0, 8))
+                .build();
+
+        SearchHits<BuilderProjectDocument> hits = esOps.search(query, BuilderProjectDocument.class);
+        return hits.getSearchHits().stream().map(h -> {
+            BuilderProjectDocument d = h.getContent();
+            return Map.of(
+                    "id", d.getId() != null ? d.getId() : "",
+                    "projectName", d.getProjectName() != null ? d.getProjectName() : "",
+                    "builderName", d.getBuilderName() != null ? d.getBuilderName() : "",
+                    "city", d.getCity() != null ? d.getCity() : "",
+                    "locality", d.getLocality() != null ? d.getLocality() : ""
+            );
+        }).toList();
     }
 
     public void index(BuilderProjectDocument doc) {

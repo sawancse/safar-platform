@@ -185,6 +185,9 @@ public class SalePropertySearchService {
             )));
         }
 
+        // Always match all documents (so should clauses are optional boosters, not required)
+        bool.must(Query.of(q -> q.matchAll(m -> m)));
+
         // Boost featured
         bool.should(Query.of(q -> q.term(t -> t.field("featured").value(true).boost(3.0f))));
 

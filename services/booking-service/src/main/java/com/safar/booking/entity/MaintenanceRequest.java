@@ -12,6 +12,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -28,6 +30,9 @@ public class MaintenanceRequest {
 
     @Column(name = "tenancy_id", nullable = false)
     private UUID tenancyId;
+
+    @Column(name = "listing_id")
+    private UUID listingId;
 
     @Column(name = "request_number", unique = true, length = 20)
     private String requestNumber;
@@ -72,6 +77,35 @@ public class MaintenanceRequest {
 
     @Column(name = "tenant_feedback", length = 500)
     private String tenantFeedback;
+
+    // SLA & Escalation fields (Zolo-style)
+    @Column(name = "sla_deadline_at")
+    private OffsetDateTime slaDeadlineAt;
+
+    @Column(name = "sla_breached", nullable = false)
+    @Builder.Default
+    private boolean slaBreached = false;
+
+    @Column(name = "escalation_level", nullable = false)
+    @Builder.Default
+    private int escalationLevel = 1;
+
+    @Column(name = "escalated_at")
+    private OffsetDateTime escalatedAt;
+
+    @Column(name = "reopened_at")
+    private OffsetDateTime reopenedAt;
+
+    @Column(name = "reopen_count", nullable = false)
+    @Builder.Default
+    private int reopenCount = 0;
+
+    @Column(name = "closed_at")
+    private OffsetDateTime closedAt;
+
+    @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<TicketComment> comments = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

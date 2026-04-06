@@ -266,6 +266,11 @@ public class SearchController {
                 lat, lng, radiusKm, sort, page, size));
     }
 
+    @GetMapping("/builder-projects/autocomplete")
+    public ResponseEntity<List<Map<String, String>>> builderProjectAutocomplete(@RequestParam String q) {
+        return ResponseEntity.ok(builderSearchService.autocomplete(q));
+    }
+
     // ── Experience Search ──
 
     @GetMapping("/experiences")

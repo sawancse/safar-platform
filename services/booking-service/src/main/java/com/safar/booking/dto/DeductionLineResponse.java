@@ -7,5 +7,11 @@ public record DeductionLineResponse(
         String category,
         String description,
         long amountPaise,
-        String evidenceUrl
+        String evidenceUrl,
+        boolean disputed,
+        String disputeReason,
+        boolean disputeResolved,
+        String adminDecision,
+        Long adminAdjustedPaise,
+        String adminNotes
 ) {}

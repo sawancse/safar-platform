@@ -10,6 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +23,19 @@ import java.util.UUID;
 public class ChefBookingController {
 
     private final ChefBookingService chefBookingService;
+
+    // ── Admin ─────────────────────────────────────────────────
+
+    @GetMapping("/admin/all")
+    public ResponseEntity<Page<ChefBooking>> adminListAll(Pageable pageable) {
+        return ResponseEntity.ok(chefBookingService.adminListAll(pageable));
+    }
+
+    @PostMapping("/admin/{id}/assign")
+    public ResponseEntity<ChefBooking> adminAssignChef(@PathVariable UUID id,
+                                                        @RequestParam UUID chefId) {
+        return ResponseEntity.ok(chefBookingService.adminAssignChef(id, chefId));
+    }
 
     @PostMapping
     public ResponseEntity<ChefBooking> createBooking(Authentication auth,

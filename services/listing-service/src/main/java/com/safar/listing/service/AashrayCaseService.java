@@ -1,5 +1,6 @@
 package com.safar.listing.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.safar.listing.entity.AashrayCase;
 import com.safar.listing.entity.enums.CasePriority;
 import com.safar.listing.entity.enums.CaseStatus;
@@ -24,6 +25,16 @@ public class AashrayCaseService {
     private final AashrayCaseRepository caseRepository;
     private final AashrayMatchingService matchingService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ObjectMapper objectMapper;
+
+    private String toJson(Object obj) {
+        try {
+            return objectMapper.writeValueAsString(obj);
+        } catch (Exception e) {
+            log.error("Failed to serialize to JSON", e);
+            return "{}";
+        }
+    }
 
     private static long caseCounter = 1000;
 
@@ -40,7 +51,7 @@ public class AashrayCaseService {
         }
 
         AashrayCase saved = caseRepository.save(aashrayCase);
-        kafkaTemplate.send("aashray.case.created", saved.getId().toString(), saved);
+        kafkaTemplate.send("aashray.case.created", saved.getId().toString(), toJson(saved));
         log.info("Aashray case created: {}", saved.getCaseNumber());
         return saved;
     }
@@ -85,7 +96,7 @@ public class AashrayCaseService {
         AashrayCase saved = caseRepository.save(aashrayCase);
 
         if (newStatus == CaseStatus.HOUSED) {
-            kafkaTemplate.send("aashray.case.housed", saved.getId().toString(), saved);
+            kafkaTemplate.send("aashray.case.housed", saved.getId().toString(), toJson(saved));
         }
         return saved;
     }
@@ -96,7 +107,7 @@ public class AashrayCaseService {
         aashrayCase.setMatchedListingId(listingId);
         aashrayCase.setStatus(CaseStatus.MATCHED);
         AashrayCase saved = caseRepository.save(aashrayCase);
-        kafkaTemplate.send("aashray.case.matched", saved.getId().toString(), saved);
+        kafkaTemplate.send("aashray.case.matched", saved.getId().toString(), toJson(saved));
         log.info("Case {} matched to listing {}", saved.getCaseNumber(), listingId);
         return saved;
     }

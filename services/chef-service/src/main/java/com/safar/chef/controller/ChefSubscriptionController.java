@@ -10,6 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -19,6 +22,13 @@ import java.util.UUID;
 public class ChefSubscriptionController {
 
     private final ChefSubscriptionService subscriptionService;
+
+    // ── Admin ─────────────────────────────────────────────────
+
+    @GetMapping("/admin/all")
+    public ResponseEntity<Page<ChefSubscription>> adminListAll(Pageable pageable) {
+        return ResponseEntity.ok(subscriptionService.adminListAll(pageable));
+    }
 
     @PostMapping
     public ResponseEntity<ChefSubscription> create(Authentication auth,

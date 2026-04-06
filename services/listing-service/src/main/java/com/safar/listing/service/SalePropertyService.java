@@ -21,8 +21,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -314,11 +313,76 @@ public class SalePropertyService {
         return toResponse(sp);
     }
 
-    public Page<SalePropertyResponse> adminList(SalePropertyStatus status, Pageable pageable) {
-        if (status != null) {
-            return salePropertyRepository.findByStatus(status, pageable).map(this::toResponse);
+    public Page<Map<String, Object>> adminList(SalePropertyStatus status, Pageable pageable) {
+        Page<SaleProperty> properties = (status != null)
+                ? salePropertyRepository.findByStatus(status, pageable)
+                : salePropertyRepository.findAll(pageable);
+
+        Set<UUID> sellerIds = new HashSet<>();
+        properties.forEach(sp -> sellerIds.add(sp.getSellerId()));
+        Map<UUID, Map<String, String>> contacts = fetchUserContacts(sellerIds);
+
+        return properties.map(sp -> {
+            SalePropertyResponse resp = toResponse(sp);
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("id", resp.id());
+            map.put("sellerId", resp.sellerId());
+            map.put("sellerType", resp.sellerType());
+            map.put("title", resp.title());
+            map.put("description", resp.description());
+            map.put("salePropertyType", resp.salePropertyType());
+            map.put("transactionType", resp.transactionType());
+            map.put("locality", resp.locality());
+            map.put("city", resp.city());
+            map.put("state", resp.state());
+            map.put("pincode", resp.pincode());
+            map.put("askingPricePaise", resp.askingPricePaise());
+            map.put("pricePerSqftPaise", resp.pricePerSqftPaise());
+            map.put("priceNegotiable", resp.priceNegotiable());
+            map.put("carpetAreaSqft", resp.carpetAreaSqft());
+            map.put("builtUpAreaSqft", resp.builtUpAreaSqft());
+            map.put("bedrooms", resp.bedrooms());
+            map.put("bathrooms", resp.bathrooms());
+            map.put("floorNumber", resp.floorNumber());
+            map.put("totalFloors", resp.totalFloors());
+            map.put("facing", resp.facing());
+            map.put("furnishing", resp.furnishing());
+            map.put("possessionStatus", resp.possessionStatus());
+            map.put("builderName", resp.builderName());
+            map.put("projectName", resp.projectName());
+            map.put("reraId", resp.reraId());
+            map.put("reraVerified", resp.reraVerified());
+            map.put("status", resp.status());
+            map.put("verified", resp.verified());
+            map.put("viewsCount", resp.viewsCount());
+            map.put("inquiriesCount", resp.inquiriesCount());
+            map.put("createdAt", resp.createdAt());
+            map.put("updatedAt", resp.updatedAt());
+            // Enriched seller contact
+            Map<String, String> contact = contacts.getOrDefault(sp.getSellerId(), Map.of());
+            map.put("sellerName", contact.getOrDefault("name", ""));
+            map.put("sellerPhone", contact.getOrDefault("phone", ""));
+            map.put("sellerEmail", contact.getOrDefault("email", ""));
+            return map;
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<UUID, Map<String, String>> fetchUserContacts(Set<UUID> userIds) {
+        Map<UUID, Map<String, String>> result = new HashMap<>();
+        String userUrl = env.getProperty("services.user-service.url");
+        if (userUrl == null || userIds.isEmpty()) return result;
+        org.springframework.web.client.RestTemplate rt = new org.springframework.web.client.RestTemplate();
+        for (UUID uid : userIds) {
+            try {
+                Map<String, String> contact = rt.getForObject(
+                        userUrl + "/api/v1/internal/users/" + uid + "/contact", Map.class);
+                if (contact != null) result.put(uid, contact);
+            } catch (Exception e) {
+                log.debug("Failed to fetch contact for user {}: {}", uid, e.getMessage());
+            }
         }
-        return salePropertyRepository.findAll(pageable).map(this::toResponse);
+        return result;
     }
 
     // Scheduled: expire old properties

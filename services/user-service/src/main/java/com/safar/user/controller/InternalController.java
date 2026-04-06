@@ -45,6 +45,20 @@ public class InternalController {
         }
     }
 
+    @GetMapping("/users/{userId}/contact")
+    public ResponseEntity<java.util.Map<String, String>> getUserContact(@PathVariable UUID userId) {
+        try {
+            var profile = profileService.getMyProfile(userId);
+            return ResponseEntity.ok(java.util.Map.of(
+                    "name", profile.name() != null ? profile.name() : "",
+                    "phone", profile.phone() != null ? profile.phone() : "",
+                    "email", profile.email() != null ? profile.email() : ""
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.ok(java.util.Map.of("name", "", "phone", "", "email", ""));
+        }
+    }
+
     @GetMapping("/hosts/{hostId}/kyc-status")
     public ResponseEntity<Map<String, Object>> getHostKycStatus(@PathVariable UUID hostId) {
         var kyc = kycRepository.findByUserId(hostId).orElse(null);

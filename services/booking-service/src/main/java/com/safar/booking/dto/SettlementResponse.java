@@ -28,5 +28,15 @@ public record SettlementResponse(
         String razorpayRefundId,
         List<DeductionLineResponse> deductions,
         String settlementPdfUrl,
+        // New fields
+        LocalDate refundDeadlineDate,
+        int refundDeadlineDays,
+        boolean isOverdue,
+        String disputeReason,
+        OffsetDateTime disputeRaisedAt,
+        String adminOverrideNotes,
+        String tenantUpiId,
+        String refundProofUrl,
+        List<InspectionChecklistItemResponse> checklistItems,
         OffsetDateTime createdAt
 ) {}

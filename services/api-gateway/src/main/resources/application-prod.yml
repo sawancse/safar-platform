@@ -304,12 +304,12 @@ spring:
         - id: property-inquiries
           uri: http://${LISTING_SERVICE_HOST}:8083
           predicates:
-            - Path=/api/v1/inquiries/**
+            - Path=/api/v1/inquiries,/api/v1/inquiries/**
 
         - id: site-visits
           uri: http://${LISTING_SERVICE_HOST}:8083
           predicates:
-            - Path=/api/v1/site-visits/**
+            - Path=/api/v1/site-visits,/api/v1/site-visits/**
 
         - id: buyer-profile
           uri: http://${LISTING_SERVICE_HOST}:8083
@@ -347,4 +347,5 @@ jwt:
 logging:
   level:
     com.safar.gateway: INFO
-    org.springframework.cloud.gateway: WARN
+    org.springframework.cloud.gateway: INFO
+    reactor.netty.http.server: INFO

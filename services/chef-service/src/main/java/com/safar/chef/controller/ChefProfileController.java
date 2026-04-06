@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Pageable;
+
 import java.util.UUID;
 
 @RestController
@@ -19,6 +21,13 @@ import java.util.UUID;
 public class ChefProfileController {
 
     private final ChefProfileService chefProfileService;
+
+    @GetMapping
+    public ResponseEntity<Page<ChefProfile>> browseChefs(
+            @RequestParam(required = false) String city,
+            Pageable pageable) {
+        return ResponseEntity.ok(chefProfileService.browseChefs(city, pageable));
+    }
 
     @PostMapping
     public ResponseEntity<ChefProfile> registerChef(Authentication auth,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Table, Tag, Typography, Tabs, Card, Row, Col, Statistic, Spin, Input, Avatar, Button, Space, message, Popconfirm } from 'antd';
+import { Table, Tag, Typography, Tabs, Card, Row, Col, Statistic, Spin, Input, Avatar, Button, Space, message, Popconfirm, Modal, Select } from 'antd';
 import { FireOutlined, CalendarOutlined, TeamOutlined, SearchOutlined, UserOutlined, CheckCircleOutlined, CloseCircleOutlined, StopOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { adminApi } from '../lib/api';
@@ -8,7 +8,7 @@ const { Title } = Typography;
 const INR = (paise: number) => `₹${(paise / 100).toLocaleString('en-IN')}`;
 
 const bookingStatusColor: Record<string, string> = {
-  PENDING: 'orange', CONFIRMED: 'blue', IN_PROGRESS: 'cyan',
+  PENDING: 'orange', PENDING_PAYMENT: 'gold', CONFIRMED: 'blue', IN_PROGRESS: 'cyan',
   COMPLETED: 'green', CANCELLED: 'red', NO_SHOW: 'volcano',
 };
 const eventStatusColor: Record<string, string> = {
@@ -30,20 +30,25 @@ export default function CooksPage() {
   const [subs, setSubs]           = useState<any[]>([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState('');
+  const [assignModal, setAssignModal] = useState<{ visible: boolean; type: 'booking' | 'event'; id: string } | null>(null);
+  const [selectedChef, setSelectedChef] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadData = () => {
+    setLoading(true);
     Promise.all([
       adminApi.getChefs(token).then((d: any) => d?.content || []),
-      adminApi.getChefBookings(token),
-      adminApi.getChefEvents(token),
-      adminApi.getChefSubscriptions(token),
+      adminApi.getChefBookings(token).then((d: any) => d?.content || d || []),
+      adminApi.getChefEvents(token).then((d: any) => d?.content || d || []),
+      adminApi.getChefSubscriptions(token).then((d: any) => d?.content || d || []),
     ]).then(([c, b, e, s]) => {
       setChefs(Array.isArray(c) ? c : []);
       setBookings(Array.isArray(b) ? b : []);
       setEvents(Array.isArray(e) ? e : []);
       setSubs(Array.isArray(s) ? s : []);
     }).finally(() => setLoading(false));
-  }, [token]);
+  };
+
+  useEffect(() => { loadData(); }, [token]);
 
   const reload = () => {
     adminApi.getChefs(token).then((d: any) => setChefs(d?.content || []));
@@ -72,6 +77,23 @@ export default function CooksPage() {
       reload();
     } catch { message.error('Failed to suspend'); }
   };
+
+  const handleAssign = async () => {
+    if (!assignModal || !selectedChef) return;
+    try {
+      if (assignModal.type === 'booking') {
+        await adminApi.assignChefToBooking(assignModal.id, selectedChef, token);
+      } else {
+        await adminApi.assignChefToEvent(assignModal.id, selectedChef, token);
+      }
+      message.success('Chef assigned successfully');
+      setAssignModal(null);
+      setSelectedChef(null);
+      loadData();
+    } catch { message.error('Failed to assign chef'); }
+  };
+
+  const verifiedChefs = chefs.filter(c => c.verificationStatus === 'VERIFIED' && c.available);
 
   const filteredChefs = chefs.filter(c => {
     if (!search) return true;
@@ -135,7 +157,8 @@ export default function CooksPage() {
 
   const bookingCols: ColumnsType<any> = [
     { title: 'Ref', dataIndex: 'bookingRef', width: 110 },
-    { title: 'Chef', dataIndex: 'chefName', width: 140, ellipsis: true },
+    { title: 'Chef', dataIndex: 'chefName', width: 140, ellipsis: true,
+      render: (v: string) => v || <Tag color="red">Unassigned</Tag> },
     { title: 'Customer', dataIndex: 'customerName', width: 140, ellipsis: true },
     { title: 'Date', dataIndex: 'serviceDate', width: 100 },
     { title: 'Meal', dataIndex: 'mealType', width: 80 },
@@ -143,11 +166,20 @@ export default function CooksPage() {
     { title: 'Amount', dataIndex: 'totalAmountPaise', width: 100, render: (v: number) => v ? INR(v) : '—' },
     { title: 'Status', dataIndex: 'status', width: 110,
       render: (s: string) => <Tag color={bookingStatusColor[s] ?? 'default'}>{s}</Tag> },
+    { title: 'Actions', width: 120, fixed: 'right' as const,
+      render: (_: any, r: any) => (
+        <Button size="small" type="primary"
+          onClick={() => { setAssignModal({ visible: true, type: 'booking', id: r.id }); setSelectedChef(r.chefId || null); }}>
+          {r.chefName ? 'Reassign' : 'Assign'} Cook
+        </Button>
+      ),
+    },
   ];
 
   const eventCols: ColumnsType<any> = [
     { title: 'Ref', dataIndex: 'bookingRef', width: 110 },
-    { title: 'Chef', dataIndex: 'chefName', width: 130, ellipsis: true },
+    { title: 'Chef', dataIndex: 'chefName', width: 130, ellipsis: true,
+      render: (v: string) => v || <Tag color="red">Unassigned</Tag> },
     { title: 'Customer', dataIndex: 'customerName', width: 130, ellipsis: true },
     { title: 'Event', dataIndex: 'eventType', width: 100, render: (t: string) => <Tag>{t}</Tag> },
     { title: 'Date', dataIndex: 'eventDate', width: 100 },
@@ -156,6 +188,14 @@ export default function CooksPage() {
     { title: 'Advance', dataIndex: 'advanceAmountPaise', width: 100, render: (v: number) => v ? INR(v) : '—' },
     { title: 'Status', dataIndex: 'status', width: 110,
       render: (s: string) => <Tag color={eventStatusColor[s] ?? 'default'}>{s}</Tag> },
+    { title: 'Actions', width: 120, fixed: 'right' as const,
+      render: (_: any, r: any) => (
+        <Button size="small" type="primary"
+          onClick={() => { setAssignModal({ visible: true, type: 'event', id: r.id }); setSelectedChef(r.chefId || null); }}>
+          {r.chefName ? 'Reassign' : 'Assign'} Cook
+        </Button>
+      ),
+    },
   ];
 
   const subCols: ColumnsType<any> = [
@@ -195,20 +235,43 @@ export default function CooksPage() {
         },
         {
           key: 'bookings', label: `Bookings (${bookings.length})`,
-          children: <Table columns={bookingCols} dataSource={bookings} rowKey="id" scroll={{ x: 900 }}
-            pagination={{ pageSize: 20 }} locale={{ emptyText: 'No bookings' }} />,
+          children: <Table columns={bookingCols} dataSource={bookings} rowKey="id" scroll={{ x: 1020 }}
+            pagination={{ pageSize: 20 }} locale={{ emptyText: 'No bookings yet' }} />,
         },
         {
           key: 'events', label: `Events (${events.length})`,
-          children: <Table columns={eventCols} dataSource={events} rowKey="id" scroll={{ x: 1000 }}
-            pagination={{ pageSize: 20 }} locale={{ emptyText: 'No events' }} />,
+          children: <Table columns={eventCols} dataSource={events} rowKey="id" scroll={{ x: 1120 }}
+            pagination={{ pageSize: 20 }} locale={{ emptyText: 'No events yet' }} />,
         },
         {
           key: 'subscriptions', label: `Subscriptions (${subs.length})`,
           children: <Table columns={subCols} dataSource={subs} rowKey="id" scroll={{ x: 900 }}
-            pagination={{ pageSize: 20 }} locale={{ emptyText: 'No subscriptions' }} />,
+            pagination={{ pageSize: 20 }} locale={{ emptyText: 'No subscriptions yet' }} />,
         },
       ]} />
+
+      <Modal
+        title={`Assign Cook to ${assignModal?.type === 'booking' ? 'Booking' : 'Event'}`}
+        open={!!assignModal?.visible}
+        onOk={handleAssign}
+        onCancel={() => { setAssignModal(null); setSelectedChef(null); }}
+        okText="Assign"
+        okButtonProps={{ disabled: !selectedChef }}
+      >
+        <div style={{ marginBottom: 8, color: '#6b7280' }}>Select a verified, available cook:</div>
+        <Select
+          showSearch
+          style={{ width: '100%' }}
+          placeholder="Search and select a cook"
+          value={selectedChef}
+          onChange={setSelectedChef}
+          optionFilterProp="label"
+          options={verifiedChefs.map(c => ({
+            value: c.id,
+            label: `${c.name} — ${c.city || '?'} — ${c.cuisines || 'N/A'} — ${c.rating ? c.rating.toFixed(1) + '★' : 'New'}`,
+          }))}
+        />
+      </Modal>
     </div>
   );
 }

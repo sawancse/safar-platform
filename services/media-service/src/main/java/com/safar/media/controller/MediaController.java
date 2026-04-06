@@ -60,4 +60,17 @@ public class MediaController {
         String publicUrl = uploadUrl.split("\\?")[0];
         return ResponseEntity.ok(Map.of("uploadUrl", uploadUrl, "publicUrl", publicUrl, "key", key));
     }
+
+    /** Generic presign for builder projects, sale properties, etc. */
+    @PostMapping("/upload/generic-presign")
+    public ResponseEntity<Map<String, String>> genericPresign(
+            @RequestParam String folder,
+            @RequestParam String contentType,
+            @RequestHeader("X-User-Id") UUID userId) {
+        String ext = contentType.contains("/") ? contentType.split("/")[1] : "jpg";
+        String key = folder + "/" + userId + "/" + System.currentTimeMillis() + "." + ext;
+        String uploadUrl = s3Gateway.generatePresignedUrl(key, contentType);
+        String publicUrl = uploadUrl.split("\\?")[0];
+        return ResponseEntity.ok(Map.of("uploadUrl", uploadUrl, "publicUrl", publicUrl, "key", key));
+    }
 }

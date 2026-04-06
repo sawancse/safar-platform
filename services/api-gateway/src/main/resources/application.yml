@@ -297,6 +297,18 @@ spring:
           predicates:
             - Path=/api/v1/admin/hosts,/api/v1/admin/hosts/**,/api/v1/admin/analytics/**,/api/v1/admin/cohost/**
 
+        # ── Admin: PG ticket & settlement management (booking-service) ────────
+        - id: admin-pg-service
+          uri: ${BOOKING_SERVICE_URL:http://localhost:8095}
+          predicates:
+            - Path=/api/v1/admin/pg/**
+
+        # ── Host: ticket management by listing (booking-service) ─────────────
+        - id: host-tickets-service
+          uri: ${BOOKING_SERVICE_URL:http://localhost:8095}
+          predicates:
+            - Path=/api/v1/listings/*/tickets,/api/v1/listings/*/tickets/**
+
         # ── Admin: cleaning (booking-service) ────────────────────────────────
         - id: admin-cleaning-service
           uri: ${BOOKING_SERVICE_URL:http://localhost:8095}

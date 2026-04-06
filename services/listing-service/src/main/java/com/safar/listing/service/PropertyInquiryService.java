@@ -9,6 +9,7 @@ import com.safar.listing.entity.enums.InquiryStatus;
 import com.safar.listing.repository.BuilderProjectRepository;
 import com.safar.listing.repository.PropertyInquiryRepository;
 import com.safar.listing.repository.SalePropertyRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -28,6 +29,16 @@ public class PropertyInquiryService {
     private final SalePropertyRepository salePropertyRepository;
     private final BuilderProjectRepository builderProjectRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ObjectMapper objectMapper;
+
+    private String toJson(Object obj) {
+        try {
+            return objectMapper.writeValueAsString(obj);
+        } catch (Exception e) {
+            log.error("Failed to serialize to JSON", e);
+            return "{}";
+        }
+    }
 
     @Transactional
     public InquiryResponse create(CreateInquiryRequest req, UUID buyerId) {
@@ -68,7 +79,7 @@ public class PropertyInquiryService {
         sp.setInquiriesCount(sp.getInquiriesCount() + 1);
         salePropertyRepository.save(sp);
 
-        kafkaTemplate.send("sale.inquiry.new", inquiry.getId().toString(), inquiry);
+        kafkaTemplate.send("sale.inquiry.new", inquiry.getId().toString(), toJson(inquiry));
         log.info("Inquiry {} created for property {} by buyer {}", inquiry.getId(), sp.getId(), buyerId);
         return toResponse(inquiry, sp);
     }
@@ -93,7 +104,7 @@ public class PropertyInquiryService {
                 .build();
 
         inquiry = inquiryRepository.save(inquiry);
-        kafkaTemplate.send("sale.inquiry.new", inquiry.getId().toString(), inquiry);
+        kafkaTemplate.send("sale.inquiry.new", inquiry.getId().toString(), toJson(inquiry));
         log.info("Inquiry {} created for builder project {} by buyer {}", inquiry.getId(), bp.getId(), buyerId);
         return toResponse(inquiry, null);
     }
@@ -138,7 +149,25 @@ public class PropertyInquiryService {
     }
 
     private InquiryResponse toResponseWithProperty(PropertyInquiry inq) {
-        SaleProperty sp = salePropertyRepository.findById(inq.getSalePropertyId()).orElse(null);
+        SaleProperty sp = inq.getSalePropertyId() != null
+                ? salePropertyRepository.findById(inq.getSalePropertyId()).orElse(null)
+                : null;
+        // For builder inquiries, fill property title from builder project
+        if (sp == null && inq.getBuilderProjectId() != null) {
+            BuilderProject bp = builderProjectRepository.findById(inq.getBuilderProjectId()).orElse(null);
+            if (bp != null) {
+                return new InquiryResponse(
+                        inq.getId(), inq.getSalePropertyId(), inq.getBuyerId(), inq.getSellerId(),
+                        inq.getStatus(), inq.getMessage(),
+                        inq.getBuyerName(), inq.getBuyerPhone(), inq.getBuyerEmail(),
+                        inq.getPreferredVisitDate(), inq.getPreferredVisitTime(),
+                        inq.getFinancingType(), inq.getBudgetMinPaise(), inq.getBudgetMaxPaise(),
+                        inq.getNotes(),
+                        bp.getProjectName(), bp.getLocality(), bp.getCity(), null,
+                        inq.getCreatedAt(), inq.getUpdatedAt()
+                );
+            }
+        }
         return toResponse(inq, sp);
     }
 

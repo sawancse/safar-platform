@@ -4,6 +4,7 @@ import com.safar.auth.dto.*;
 import com.safar.auth.service.AuthService;
 import com.safar.auth.service.OtpService;
 import com.safar.auth.service.PasswordService;
+import com.safar.auth.service.PinService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ public class AuthController {
     private final OtpService      otpService;
     private final AuthService     authService;
     private final PasswordService passwordService;
+    private final PinService      pinService;
 
     @PostMapping("/otp/send")
     public ResponseEntity<Void> sendOtp(
@@ -148,6 +150,52 @@ public class AuthController {
     public ResponseEntity<CheckMethodResponse> checkMethod(
             @RequestParam String email) {
         return ResponseEntity.ok(passwordService.checkMethod(email));
+    }
+
+    // ── PIN-based quick login (HDFC-style) ──────────────────────────────
+
+    @PostMapping("/pin/set")
+    public ResponseEntity<Void> setPin(
+            @RequestHeader("X-User-Id") UUID userId,
+            @Valid @RequestBody SetPinRequest request) {
+        pinService.setPin(userId, request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/pin/change")
+    public ResponseEntity<Void> changePin(
+            @RequestHeader("X-User-Id") UUID userId,
+            @Valid @RequestBody ChangePinRequest request) {
+        pinService.changePin(userId, request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/pin/signin")
+    public ResponseEntity<AuthResponse> pinSignIn(
+            @Valid @RequestBody PinSignInRequest request) {
+        return ResponseEntity.ok(pinService.signInWithPin(request));
+    }
+
+    @PostMapping("/pin/reset")
+    public ResponseEntity<Void> resetPin(
+            @RequestHeader("X-User-Id") UUID userId,
+            @Valid @RequestBody SetPinRequest request) {
+        pinService.resetPinAfterOtp(userId, request);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/pin")
+    public ResponseEntity<Void> removePin(
+            @RequestHeader("X-User-Id") UUID userId) {
+        pinService.removePin(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/pin/check")
+    public ResponseEntity<Map<String, Object>> checkPinStatus(
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) String email) {
+        return ResponseEntity.ok(pinService.checkPinStatus(phone, email));
     }
 
     // ── Admin impersonation (login as user for support) ────────────────

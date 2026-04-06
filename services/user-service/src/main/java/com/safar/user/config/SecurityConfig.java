@@ -34,6 +34,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/users/avatars/**").permitAll()
                         .requestMatchers("/api/v1/users/hosts/**").permitAll()
                         .requestMatchers("/api/v1/aashray/organizations").permitAll()
+                        .requestMatchers("/api/v1/brokers/search").permitAll()
+                        .requestMatchers("/api/v1/brokers/{id}").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(e -> e

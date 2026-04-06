@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -115,6 +116,20 @@ public class BuilderProjectController {
     }
 
     // ── Admin ─────────────────────────────────────────────────
+
+    @GetMapping("/admin/list")
+    public ResponseEntity<Page<Map<String, Object>>> adminList(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String locality,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean verified,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo,
+            Pageable pageable) {
+        return ResponseEntity.ok(projectService.adminList(status, city, state, locality, search, verified, dateFrom, dateTo, pageable));
+    }
 
     @PostMapping("/{id}/verify")
     public ResponseEntity<BuilderProjectResponse> adminVerify(@PathVariable UUID id) {

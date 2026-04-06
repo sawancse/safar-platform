@@ -16,6 +16,10 @@ import {
   FireOutlined,
   HeartOutlined,
   ExperimentOutlined,
+  FileTextOutlined,
+  FormatPainterOutlined,
+  BuildOutlined,
+  ToolOutlined,
 } from '@ant-design/icons';
 
 const { Header, Sider, Content } = Layout;
@@ -31,10 +35,16 @@ const menuItems = [
   { key: '/payouts',         icon: <BankOutlined />,      label: 'Payouts' },
   { key: '/channel-manager', icon: <ApiOutlined />,       label: 'Channel Manager' },
   { key: '/sale-properties', icon: <ShopOutlined />,     label: 'Sale Properties' },
+  { key: '/builder-projects', icon: <BuildOutlined />,   label: 'Builder Projects' },
   { key: '/room-occupancy', icon: <AppstoreOutlined />,  label: 'Room Occupancy' },
   { key: '/cooks',          icon: <FireOutlined />,       label: 'Safar Cooks' },
   { key: '/donors',         icon: <HeartOutlined />,      label: 'Donors' },
   { key: '/experiences',    icon: <ExperimentOutlined />, label: 'Experiences' },
+  { key: '/agreements',     icon: <FileTextOutlined />,      label: 'Agreements' },
+  { key: '/home-loans',     icon: <BankOutlined />,          label: 'Home Loans' },
+  { key: '/legal-cases',    icon: <SafetyOutlined />,        label: 'Legal Cases' },
+  { key: '/interiors',      icon: <FormatPainterOutlined />, label: 'Interiors' },
+  { key: '/pg-management', icon: <ToolOutlined />,           label: 'PG Management' },
 ];
 
 export default function AdminLayout() {

@@ -61,6 +61,24 @@ public class User {
 
     private OffsetDateTime lockedUntil;
 
+    // PIN-based quick login (HDFC-style)
+    private String pinHash;
+
+    private OffsetDateTime pinSetAt;
+
+    @Builder.Default
+    private int pinFailedAttempts = 0;
+
+    private OffsetDateTime pinLockedUntil;
+
+    public boolean hasPin() {
+        return pinHash != null && !pinHash.isBlank();
+    }
+
+    public boolean isPinLocked() {
+        return pinLockedUntil != null && pinLockedUntil.isAfter(OffsetDateTime.now());
+    }
+
     @Column(nullable = false, length = 10)
     @Builder.Default
     private String language = "en";

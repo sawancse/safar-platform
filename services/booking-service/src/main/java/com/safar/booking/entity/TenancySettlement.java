@@ -81,7 +81,7 @@ public class TenancySettlement {
     private long additionalDuePaise = 0;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 30)
     @Builder.Default
     private SettlementStatus status = SettlementStatus.INITIATED;
 
@@ -100,9 +100,55 @@ public class TenancySettlement {
     @Column(name = "settlement_pdf_url", length = 500)
     private String settlementPdfUrl;
 
+    // Refund deadline tracking
+    @Column(name = "refund_deadline_date")
+    private LocalDate refundDeadlineDate;
+
+    @Column(name = "refund_deadline_days", nullable = false)
+    @Builder.Default
+    private int refundDeadlineDays = 21;
+
+    @Column(name = "is_overdue", nullable = false)
+    @Builder.Default
+    private boolean isOverdue = false;
+
+    // Dispute fields
+    @Column(name = "dispute_reason", columnDefinition = "TEXT")
+    private String disputeReason;
+
+    @Column(name = "dispute_raised_at")
+    private OffsetDateTime disputeRaisedAt;
+
+    // Admin override
+    @Column(name = "admin_override_at")
+    private OffsetDateTime adminOverrideAt;
+
+    @Column(name = "admin_override_by")
+    private UUID adminOverrideBy;
+
+    @Column(name = "admin_override_notes", columnDefinition = "TEXT")
+    private String adminOverrideNotes;
+
+    // Tenant bank details for refund
+    @Column(name = "tenant_bank_account", length = 30)
+    private String tenantBankAccount;
+
+    @Column(name = "tenant_ifsc", length = 15)
+    private String tenantIfsc;
+
+    @Column(name = "tenant_upi_id", length = 100)
+    private String tenantUpiId;
+
+    @Column(name = "refund_proof_url", length = 500)
+    private String refundProofUrl;
+
     @OneToMany(mappedBy = "settlement", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<SettlementDeduction> deductions = new ArrayList<>();
+
+    @OneToMany(mappedBy = "settlement", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<InspectionChecklistItem> checklistItems = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

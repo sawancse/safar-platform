@@ -16,6 +16,12 @@ import RoomOccupancyPage from './pages/RoomOccupancyPage';
 import CooksPage from './pages/CooksPage';
 import DonorsPage from './pages/DonorsPage';
 import ExperiencesPage from './pages/ExperiencesPage';
+import AgreementsPage from './pages/AgreementsPage';
+import HomeLoanPage from './pages/HomeLoanPage';
+import LegalCasesPage from './pages/LegalCasesPage';
+import InteriorsPage from './pages/InteriorsPage';
+import BuilderProjectsPage from './pages/BuilderProjectsPage';
+import PgManagementPage from './pages/PgManagementPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('admin_token');
@@ -47,10 +53,16 @@ export default function App() {
         <Route path="payouts" element={<PayoutsPage />} />
         <Route path="channel-manager" element={<ChannelManagerPage />} />
         <Route path="sale-properties" element={<SalePropertiesPage />} />
+        <Route path="builder-projects" element={<BuilderProjectsPage />} />
         <Route path="room-occupancy" element={<RoomOccupancyPage />} />
         <Route path="cooks" element={<CooksPage />} />
         <Route path="donors" element={<DonorsPage />} />
         <Route path="experiences" element={<ExperiencesPage />} />
+        <Route path="agreements" element={<AgreementsPage />} />
+        <Route path="home-loans" element={<HomeLoanPage />} />
+        <Route path="legal-cases" element={<LegalCasesPage />} />
+        <Route path="interiors" element={<InteriorsPage />} />
+        <Route path="pg-management" element={<PgManagementPage />} />
       </Route>
     </Routes>
   );

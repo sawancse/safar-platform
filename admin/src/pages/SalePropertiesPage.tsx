@@ -100,8 +100,14 @@ export default function SalePropertiesPage() {
       render: (a: number) => a ? `${a} sqft` : '—',
     },
     {
-      title: 'Seller', dataIndex: 'sellerType', key: 'seller',
-      render: (t: string) => <Tag>{t}</Tag>,
+      title: 'Seller', key: 'seller',
+      render: (_: any, r: any) => (
+        <div style={{ fontSize: 12 }}>
+          <div>{r.sellerName || r.sellerType}</div>
+          {r.sellerPhone && <div>{r.sellerPhone}</div>}
+          {r.sellerEmail && <div style={{ color: '#888' }}>{r.sellerEmail}</div>}
+        </div>
+      ),
     },
     {
       title: 'Status', dataIndex: 'status', key: 'status',
@@ -112,13 +118,14 @@ export default function SalePropertiesPage() {
       render: (_: any, r: any) => (
         <Space>
           {r.verified && <Tag color="green">Verified</Tag>}
-          {r.reraVerified && <Tag color="blue">RERA ✓</Tag>}
+          {r.reraVerified && <Tag color="blue">RERA</Tag>}
         </Space>
       ),
     },
     {
-      title: 'Stats', key: 'stats',
-      render: (_: any, r: any) => `${r.viewsCount} views · ${r.inquiriesCount} inquiries`,
+      title: 'Created', dataIndex: 'createdAt', key: 'created',
+      render: (d: string) => d ? new Date(d).toLocaleDateString('en-IN') : '--',
+      sorter: (a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     },
     {
       title: 'Actions', key: 'actions',
@@ -200,8 +207,11 @@ export default function SalePropertiesPage() {
                     <Col span={8}><strong>Facing:</strong> {detailModal.facing || '—'}</Col>
                     <Col span={8}><strong>Furnishing:</strong> {detailModal.furnishing || '—'}</Col>
                     <Col span={8}><strong>Possession:</strong> {detailModal.possessionStatus}</Col>
-                    <Col span={8}><strong>Seller:</strong> {detailModal.sellerType}</Col>
+                    <Col span={8}><strong>Seller:</strong> {detailModal.sellerName || detailModal.sellerType}</Col>
                     <Col span={8}><strong>Transaction:</strong> {detailModal.transactionType}</Col>
+                    <Col span={8}><strong>Seller Phone:</strong> {detailModal.sellerPhone || '--'}</Col>
+                    <Col span={8}><strong>Seller Email:</strong> {detailModal.sellerEmail || '--'}</Col>
+                    <Col span={8}><strong>Created:</strong> {detailModal.createdAt ? new Date(detailModal.createdAt).toLocaleDateString('en-IN') : '--'}</Col>
                   </Row>
                   <h4 style={{ marginTop: 16 }}>Location</h4>
                   <p>{detailModal.addressLine1} {detailModal.addressLine2}, {detailModal.locality}, {detailModal.city}, {detailModal.state} - {detailModal.pincode}</p>

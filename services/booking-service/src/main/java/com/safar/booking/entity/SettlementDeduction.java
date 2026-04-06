@@ -40,6 +40,27 @@ public class SettlementDeduction {
     @Column(name = "evidence_url", length = 500)
     private String evidenceUrl;
 
+    // Dispute fields
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean disputed = false;
+
+    @Column(name = "dispute_reason", length = 500)
+    private String disputeReason;
+
+    @Column(name = "dispute_resolved", nullable = false)
+    @Builder.Default
+    private boolean disputeResolved = false;
+
+    @Column(name = "admin_decision", length = 20)
+    private String adminDecision;
+
+    @Column(name = "admin_adjusted_paise")
+    private Long adminAdjustedPaise;
+
+    @Column(name = "admin_notes", length = 500)
+    private String adminNotes;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

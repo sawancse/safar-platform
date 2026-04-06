@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -72,6 +73,13 @@ public class SalePropertyController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/{id}/contact")
+    public ResponseEntity<java.util.Map<String, String>> getSellerContact(
+            @PathVariable UUID id,
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(salePropertyService.getSellerContact(id));
+    }
+
     @GetMapping("/{id}/similar")
     public ResponseEntity<List<SalePropertyResponse>> getSimilar(@PathVariable UUID id) {
         return ResponseEntity.ok(salePropertyService.getSimilarProperties(id));
@@ -94,7 +102,7 @@ public class SalePropertyController {
     }
 
     @GetMapping("/admin/list")
-    public ResponseEntity<Page<SalePropertyResponse>> adminList(
+    public ResponseEntity<Page<Map<String, Object>>> adminList(
             @RequestParam(required = false) SalePropertyStatus status,
             Pageable pageable) {
         return ResponseEntity.ok(salePropertyService.adminList(status, pageable));

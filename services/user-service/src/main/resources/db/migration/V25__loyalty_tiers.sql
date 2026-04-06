@@ -1,8 +1,8 @@
 -- V25: Traveler loyalty tiers (Booking.com Genius-style)
-ALTER TABLE users.user_profiles ADD COLUMN IF NOT EXISTS loyalty_tier VARCHAR(10) DEFAULT 'BRONZE';
-ALTER TABLE users.user_profiles ADD COLUMN IF NOT EXISTS completed_stays INT DEFAULT 0;
-ALTER TABLE users.user_profiles ADD COLUMN IF NOT EXISTS loyalty_points BIGINT DEFAULT 0;
-ALTER TABLE users.user_profiles ADD COLUMN IF NOT EXISTS tier_upgraded_at TIMESTAMPTZ;
+ALTER TABLE users.profiles ADD COLUMN IF NOT EXISTS loyalty_tier VARCHAR(10) DEFAULT 'BRONZE';
+ALTER TABLE users.profiles ADD COLUMN IF NOT EXISTS completed_stays INT DEFAULT 0;
+ALTER TABLE users.profiles ADD COLUMN IF NOT EXISTS loyalty_points BIGINT DEFAULT 0;
+ALTER TABLE users.profiles ADD COLUMN IF NOT EXISTS tier_upgraded_at TIMESTAMPTZ;
 
 -- Loyalty transaction log
 CREATE TABLE users.loyalty_transactions (

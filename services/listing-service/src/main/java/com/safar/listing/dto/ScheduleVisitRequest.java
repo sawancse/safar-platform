@@ -9,5 +9,6 @@ public record ScheduleVisitRequest(
         @NotNull UUID salePropertyId,
         UUID inquiryId,
         @NotNull OffsetDateTime scheduledAt,
-        Integer durationMinutes
+        Integer durationMinutes,
+        String notes
 ) {}

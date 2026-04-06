@@ -139,6 +139,11 @@ public class ChefSubscriptionService {
     }
 
     @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<ChefSubscription> adminListAll(org.springframework.data.domain.Pageable pageable) {
+        return subscriptionRepo.findAll(pageable);
+    }
+
+    @Transactional(readOnly = true)
     public List<ChefSubscription> getMySubscriptions(UUID customerId) {
         return subscriptionRepo.findByCustomerId(customerId);
     }

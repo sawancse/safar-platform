@@ -334,9 +334,12 @@ export const adminApi = {
   },
 
   // ── Builder Projects (Admin) ────────────────────────────────────────────
-  getBuilderProjects(token: string, status?: string) {
-    const qs = status ? `?status=${status}&size=200&sort=createdAt,desc` : '?size=200&sort=createdAt,desc';
-    return axios.get(`${BASE}/builder-projects/admin/list${qs}`, { headers: authHeaders(token) }).then(r => r.data).catch(() => ({ content: [] }));
+  getBuilderProjects(token: string, params?: Record<string, any>) {
+    const qs = new URLSearchParams();
+    qs.set('size', '200');
+    qs.set('sort', 'createdAt,desc');
+    if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); });
+    return axios.get(`${BASE}/builder-projects/admin/list?${qs}`, { headers: authHeaders(token) }).then(r => r.data).catch(() => ({ content: [] }));
   },
 
   verifyBuilderProject(id: string, token: string) {
@@ -351,7 +354,7 @@ export const adminApi = {
   getAgreements(token: string, params?: any) {
     const qs = new URLSearchParams();
     if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)); });
-    return axios.get(`${BASE}/agreements/my?${qs}`, { headers: authHeaders(token) });
+    return axios.get(`${BASE}/agreements/admin/list?${qs}`, { headers: authHeaders(token) });
   },
   getAgreement(id: string, token: string) {
     return axios.get(`${BASE}/agreements/${id}`, { headers: authHeaders(token) });

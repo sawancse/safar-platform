@@ -1,5 +1,6 @@
 package com.safar.listing.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.safar.listing.entity.Listing;
 import com.safar.listing.entity.SeekerProfile;
 import com.safar.listing.entity.enums.*;
@@ -24,6 +25,16 @@ public class SeekerProfileService {
     private final SeekerProfileRepository seekerRepository;
     private final ListingRepository listingRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ObjectMapper objectMapper;
+
+    private String toJson(Object obj) {
+        try {
+            return objectMapper.writeValueAsString(obj);
+        } catch (Exception e) {
+            log.error("Failed to serialize to JSON", e);
+            return "{}";
+        }
+    }
 
     public record SeekerMatchResult(UUID listingId, String title, String city, long pricePaise,
                                      int matchScore, List<String> matchReasons) {}
@@ -33,7 +44,7 @@ public class SeekerProfileService {
         profile.setStatus(ProfileStatus.ACTIVE);
         profile.setMatchCount(0);
         SeekerProfile saved = seekerRepository.save(profile);
-        kafkaTemplate.send("seeker.profile.created", saved.getId().toString(), saved);
+        kafkaTemplate.send("seeker.profile.created", saved.getId().toString(), toJson(saved));
         log.info("Seeker profile created: {} in {}", saved.getName(), saved.getPreferredCity());
         return saved;
     }

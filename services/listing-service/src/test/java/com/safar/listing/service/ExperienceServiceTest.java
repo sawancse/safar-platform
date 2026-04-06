@@ -81,7 +81,7 @@ class ExperienceServiceTest {
         });
         when(sessionRepository.save(any(ExperienceSession.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        ExperienceBookingRequest req = new ExperienceBookingRequest(sessionId, 4, null);
+        ExperienceBookingRequest req = new ExperienceBookingRequest(sessionId, experienceId, 4, null, null);
         experienceService.bookExperience(guestId, req);
 
         // bookedSpots should go from 3 to 7
@@ -126,7 +126,7 @@ class ExperienceServiceTest {
         });
         when(sessionRepository.save(any(ExperienceSession.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        ExperienceBookingRequest req = new ExperienceBookingRequest(sessionId, 2, null);
+        ExperienceBookingRequest req = new ExperienceBookingRequest(sessionId, experienceId, 2, null, null);
         experienceService.bookExperience(guestId, req);
 
         // 3 + 2 = 5 = available, so FULL
@@ -171,7 +171,7 @@ class ExperienceServiceTest {
         });
         when(sessionRepository.save(any(ExperienceSession.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        ExperienceBookingRequest req = new ExperienceBookingRequest(sessionId, 3, null);
+        ExperienceBookingRequest req = new ExperienceBookingRequest(sessionId, experienceId, 3, null, null);
         ExperienceBooking result = experienceService.bookExperience(guestId, req);
 
         // total = 200_000 * 3 = 600_000

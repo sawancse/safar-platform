@@ -74,6 +74,12 @@
             <artifactId>aws-msk-iam-auth</artifactId>
             <version>2.0.3</version>
         </dependency>
+        <!-- PDF generation for legal reports -->
+        <dependency>
+            <groupId>com.openhtmltopdf</groupId>
+            <artifactId>openhtmltopdf-pdfbox</artifactId>
+            <version>1.0.10</version>
+        </dependency>
     </dependencies>
 
     <build>

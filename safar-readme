@@ -267,7 +267,8 @@ notification.host.demand_alert
  All 56 tests pass (42 user-service + 14 auth-service). Here's what was implemented:
 
   Summary of Changes
-                                                                                                                                                                                      Backend
+                                                                                                                                              otp : pass 9861
+																																			  Backend
                                                                                                                                                                                       ┌──────────────────────────┬─────────────────────────────────────────────────────────────────────────────────┐
   │           File           │                                     Change                                      │
   ├──────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
@@ -362,7 +363,7 @@ notification.host.demand_alert
 ● Session saved to _bmad-output/brainstorming/brainstorming-session-2026-03-11-1730.md. You can resume anytime with /bmad-brainstorming — it will detect the existing session and
   pick up where we left off (Red Hat, then Yellow/Black/Green/Blue, then Morphological Analysis, then Reverse Brainstorming).
   
-
+curl -X POST http://localhost:8083/api/v1/builder-projects/admin/reindex
 > how to do reindex
 ● Bash(curl -s -X POST http://localhost:8084/api/v1/search/reindex-all --max-time 30)                                                                                        ⎿  Running… (6s · timeout 35s)
      ctrl+b to run in background
@@ -450,4 +451,151 @@ booking.checked-in
   ├────────────────────┼────────────────────────────────┤                                                                 │ Calendar Optimizer │ services/calendar_optimizer.py │
   └────────────────────┴────────────────────────────────┘                                                               
   Interactive API docs (once running): http://localhost:8090/docs — FastAPI's auto-generated Swagger UI where you can     test all endpoints directly.
-                                                                                                                        ✻ Worked for 46s
+                                                                                         @04/04/2026
+-----------------
+rm -rf .next
+
+cd services/search-service && mvn clean spring-boot:run                                                               
+Then in another terminal:                                                                                             
+curl -X POST http://localhost:8083/api/v1/sale-properties/admin/reindex
+curl -X POST http://localhost:8083/api/v1/builder-projects/admin/reindex
+
+
+ Run these one by one in your terminal:
+
+  ! net stop winnat                                                                                                     
+  ! net start winnat                                                                                                    
+  This requires Admin privileges.
+  
+  
+docker compose -f C:/Users/Win-10/safar-platform/docker-compose.yml up -d zookeeper kafka
+
+  This starts only safar-zookeeper and safar-kafka on localhost:9092.                                                   
+  Verify with:                                                                                                          
+  docker ps --filter name=safar-kafka --filter name=safar-zookeeper
+
+> for elastic search                                                                                                    
+docker compose -f C:/Users/Win-10/safar-platform/docker-compose.yml up -d elasticsearch
+
+  This starts safar-elasticsearch on localhost:9200. Verify with:
+curl http://localhost:9200/_cluster/health		
+
+
+● docker compose -f C:/Users/Win-10/safar-platform/docker-compose.yml up -d elasticsearch
+
+  This starts safar-elasticsearch on localhost:9200. Verify with:
+                                                                                                                          
+curl http://localhost:9200/_cluster/health																	 
+																														
+http://localhost:3000/projects/8482d2d8-a8be-48a9-afff-8d1aec648e20
+
+curl -s "http://localhost:9200/builder_projects/_search?q=smart+city&pretty&size=1
+
+
+curl --location --request POST
+  'https://control.msg91.com/api/v5/widget/verifyAccessToken'
+  --header 'Content-Type: application/json'
+  --data-raw '{
+  "authkey": "{Your MSG91 AuthKey}",
+  "access-token": "{jwt_token_from_otp_widget}"
+}'
+
+To DO:
+Here are the environment variables to set for production:
+
+    # ── OTP / SMS ──────────────────────────────────
+    OTP_DEV_MODE=false
+    OTP_PROVIDER=msg91
+
+    # ── MSG91 ──────────────────────────────────────
+    MSG91_AUTH_KEY=505976AYZNwTpOdX8Q69d1afd5P1
+    MSG91_TEMPLATE_ID=<your-template-id-from-msg91-dashboard>
+    MSG91_SENDER_ID=SAFAR
+
+    Add these to your .env file or ECS task definition environment variables. The MSG91_TEMPLATE_ID is the one you
+    create in MSG91 dashboard with the OTP variable {{otp}}.
+
+ To switch to production: just set OTP_PROVIDER=msg91 env var. Everything else works with defaults.
+ In Google Cloud Console → OAuth 2.0 Client ID:                                                                        
+  ┌───────────────────────────────┬───────────────────────┐                                                               │             Field             │         Value         │
+  ├───────────────────────────────┼───────────────────────┤
+  │ Authorized JavaScript origins │ http://localhost:3000 │
+  ├───────────────────────────────┼───────────────────────┤
+  │ Authorized redirect URIs      │ http://localhost:3000 │
+  └───────────────────────────────┴───────────────────────┘
+
+  For production, also add:
+
+  ┌───────────────────────────────┬────────────────────┐
+  │             Field             │       Value        │
+  ├───────────────────────────────┼────────────────────┤
+  │ Authorized JavaScript origins │ https://ysafar.com │
+  ├───────────────────────────────┼────────────────────┤
+  │ Authorized redirect URIs      │ https://ysafar.com │
+  └───────────────────────────────┴────────────────────┘
+
+  Also make sure NEXT_PUBLIC_GOOGLE_CLIENT_ID is set in your .env.local (not the placeholder 'GOOGLE_CLIENT_ID' fallback
+   at line 216).
+1). clear1 filtername
+2). search box : border
+3). first tab: safar sgould come in evry page
+
+4). http://localhost:3000/buy/12c4a592-e817-4c8b-88e9-031577413e12  iincluding msg system for communication.
+5).  also currently select room type is radio button can we have multiple room selecte and accordingly billing and
+  payment
+────────────
+
+s3 bucket cors policy:
+
+---------------------------------
+ No CORS config at all. Let me add it.
+
+● Bash(aws s3api put-bucket-cors --bucket safar-media-dev --cors-configuration '{
+        "CORSRules": [
+          {
+            "AllowedOrigins": ["http://localhost:3000", "http://localhost:3001", "https://ysafar.com", "https://www.ysafar.com"],
+            "AllowedMethods": ["GET", "PUT", "POST", "HEAD"],
+            "AllowedHeaders": ["*"],
+            "ExposeHeaders": ["ETag"],
+            "MaxAgeSeconds": 3600
+          }
+        ]
+      }' 2>&1)
+  ⎿  (No output)
+
+● Bash(aws s3api get-bucket-cors --bucket safar-media-dev 2>&1)
+  ⎿  {
+         "CORSRules": [
+             {
+                 "AllowedHeaders": [
+     "*"
+                 ],
+                 "AllowedMethods": [
+                     "GET",
+                     "PUT",
+                     "POST",
+     "HEAD"
+                 ],
+                 "AllowedOrigins": [
+                     "http://localhost:3000",
+                     "http://localhost:3001",
+                     "https://ysafar.com",
+     "https://www.ysafar.com"
+                 ],
+                 "ExposeHeaders": [
+     "ETag"
+                 ],
+                 "MaxAgeSeconds": 3600
+             }
+         ]
+     }
+
+                                                                                                                                                             12:16 AM claude-opus-4-6
+● Fixed. S3 bucket safar-media-dev now has CORS configured for:
+  - localhost:3000 (web dev)
+  - localhost:3001 (admin dev)
+  - ysafar.com (production)
+
+  Allowed methods: GET, PUT, POST, HEAD. Try the photo upload again — it should work now.
+  
+  

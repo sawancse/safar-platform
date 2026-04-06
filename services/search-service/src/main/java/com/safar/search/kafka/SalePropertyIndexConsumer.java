@@ -22,8 +22,10 @@ public class SalePropertyIndexConsumer {
     private final ObjectMapper objectMapper;
 
     @KafkaListener(topics = "sale.property.indexed", groupId = "search-service")
-    public void onSalePropertyIndexed(Map<String, Object> payload) {
+    @SuppressWarnings("unchecked")
+    public void onSalePropertyIndexed(String message) {
         try {
+            Map<String, Object> payload = objectMapper.readValue(message, Map.class);
             SalePropertyDocument doc = mapToDocument(payload);
             searchService.index(doc);
             log.info("Indexed sale property: {}", doc.getId());
@@ -46,11 +48,9 @@ public class SalePropertyIndexConsumer {
 
     @SuppressWarnings("unchecked")
     private SalePropertyDocument mapToDocument(Map<String, Object> p) {
-        String address = String.join(" ",
-                p.getOrDefault("addressLine1", "").toString(),
-                p.getOrDefault("addressLine2", "").toString(),
-                p.getOrDefault("locality", "").toString()
-        ).trim();
+        String address = java.util.stream.Stream.of(
+                p.get("addressLine1"), p.get("addressLine2"), p.get("locality")
+        ).filter(java.util.Objects::nonNull).map(Object::toString).collect(java.util.stream.Collectors.joining(" ")).trim();
 
         List<String> photos = p.get("photos") != null ? (List<String>) p.get("photos") : List.of();
         String primaryPhoto = photos.isEmpty() ? null : photos.get(0);
@@ -110,7 +110,7 @@ public class SalePropertyIndexConsumer {
                 .verified(toBool(p.get("verified")))
                 .featured(toBool(p.get("featured")))
                 .viewsCount(toInt(p.get("viewsCount")))
-                .indexedAt(OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+                .indexedAt(System.currentTimeMillis())
                 .build();
     }
 

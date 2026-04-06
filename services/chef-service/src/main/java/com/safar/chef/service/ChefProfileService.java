@@ -93,6 +93,18 @@ public class ChefProfileService {
     }
 
     @Transactional(readOnly = true)
+    public Page<ChefProfile> browseChefs(String city, org.springframework.data.domain.Pageable pageable) {
+        Specification<ChefProfile> spec = Specification.where(null);
+        spec = spec.and((root, query, cb) -> cb.equal(root.get("available"), true));
+        spec = spec.and((root, query, cb) -> cb.equal(root.get("verificationStatus"), VerificationStatus.VERIFIED));
+        if (city != null && !city.isBlank()) {
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(cb.lower(root.get("city")), city.toLowerCase()));
+        }
+        return chefProfileRepo.findAll(spec, pageable);
+    }
+
+    @Transactional(readOnly = true)
     public ChefProfile getProfile(UUID chefId) {
         return chefProfileRepo.findById(chefId)
                 .orElseThrow(() -> new IllegalArgumentException("Chef not found"));

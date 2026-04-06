@@ -8,16 +8,18 @@ import com.safar.listing.entity.enums.BuilderListingStatus;
 import com.safar.listing.repository.BuilderProjectRepository;
 import com.safar.listing.repository.ConstructionUpdateRepository;
 import com.safar.listing.repository.ProjectUnitTypeRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +31,8 @@ public class BuilderProjectService {
     private final ConstructionUpdateRepository updateRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final GeocodingService geocodingService;
+    private final ObjectMapper objectMapper;
+    private final Environment env;
 
     // ── Project CRUD ──────────────────────────────────────────
 
@@ -81,8 +85,18 @@ public class BuilderProjectService {
             }
         }
 
+        // Auto-publish: set ACTIVE so it appears in search
+        project.setStatus(BuilderListingStatus.ACTIVE);
         project = projectRepository.save(project);
-        log.info("Builder project created: {} by builder {}", project.getId(), builderId);
+        log.info("Builder project created and published: {} by builder {}", project.getId(), builderId);
+
+        // Index in Elasticsearch
+        try {
+            kafkaTemplate.send("builder.project.indexed", project.getId().toString(), toJson(project));
+        } catch (Exception e) {
+            log.warn("Failed to index builder project: {}", e.getMessage());
+        }
+
         return toResponse(project);
     }
 
@@ -133,7 +147,7 @@ public class BuilderProjectService {
 
         p = projectRepository.save(p);
         if (p.getStatus() == BuilderListingStatus.ACTIVE) {
-            kafkaTemplate.send("builder.project.indexed", p.getId().toString(), p);
+            kafkaTemplate.send("builder.project.indexed", p.getId().toString(), toJson(p));
         }
         return toResponse(p);
     }
@@ -145,7 +159,7 @@ public class BuilderProjectService {
         if (!p.getBuilderId().equals(builderId)) throw new RuntimeException("Not authorized");
         p.setStatus(BuilderListingStatus.ACTIVE);
         p = projectRepository.save(p);
-        kafkaTemplate.send("builder.project.indexed", p.getId().toString(), p);
+        kafkaTemplate.send("builder.project.indexed", p.getId().toString(), toJson(p));
         return toResponse(p);
     }
 
@@ -267,7 +281,7 @@ public class BuilderProjectService {
             projectRepository.save(project);
         }
 
-        kafkaTemplate.send("builder.construction.update", projectId.toString(), update);
+        kafkaTemplate.send("builder.construction.update", projectId.toString(), toJson(update));
         return toUpdateResponse(update);
     }
 
@@ -277,6 +291,124 @@ public class BuilderProjectService {
     }
 
     // ── Admin ─────────────────────────────────────────────────
+
+    public Page<Map<String, Object>> adminList(String status, String city, String state,
+                                                String locality, String search, Boolean verified,
+                                                String dateFrom, String dateTo, Pageable pageable) {
+        org.springframework.data.jpa.domain.Specification<BuilderProject> spec =
+                org.springframework.data.jpa.domain.Specification.where(null);
+
+        if (status != null && !status.isBlank()) {
+            BuilderListingStatus s = BuilderListingStatus.valueOf(status);
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("status"), s));
+        }
+        if (city != null && !city.isBlank()) {
+            spec = spec.and((root, q, cb) -> cb.equal(cb.lower(root.get("city")), city.toLowerCase()));
+        }
+        if (state != null && !state.isBlank()) {
+            spec = spec.and((root, q, cb) -> cb.equal(cb.lower(root.get("state")), state.toLowerCase()));
+        }
+        if (locality != null && !locality.isBlank()) {
+            spec = spec.and((root, q, cb) -> cb.like(cb.lower(root.get("locality")), "%" + locality.toLowerCase() + "%"));
+        }
+        if (search != null && !search.isBlank()) {
+            String s = "%" + search.toLowerCase() + "%";
+            spec = spec.and((root, q, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("projectName")), s),
+                    cb.like(cb.lower(root.get("builderName")), s)));
+        }
+        if (verified != null) {
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("verified"), verified));
+        }
+        try {
+            if (dateFrom != null && !dateFrom.isBlank()) {
+                java.time.OffsetDateTime dt = java.time.LocalDate.parse(dateFrom).atStartOfDay().atOffset(java.time.ZoneOffset.UTC);
+                spec = spec.and((root, q, cb) -> cb.greaterThanOrEqualTo(root.get("createdAt"), dt));
+            }
+            if (dateTo != null && !dateTo.isBlank()) {
+                java.time.OffsetDateTime dt = java.time.LocalDate.parse(dateTo).plusDays(1).atStartOfDay().atOffset(java.time.ZoneOffset.UTC);
+                spec = spec.and((root, q, cb) -> cb.lessThan(root.get("createdAt"), dt));
+            }
+        } catch (Exception e) {
+            log.warn("Invalid date filter: from={} to={}", dateFrom, dateTo);
+        }
+
+        Page<BuilderProject> projects = projectRepository.findAll(spec, pageable);
+
+        // Batch-fetch builder contacts
+        Set<UUID> builderIds = new HashSet<>();
+        projects.forEach(p -> builderIds.add(p.getBuilderId()));
+        Map<UUID, Map<String, String>> contacts = fetchUserContacts(builderIds);
+
+        return projects.map(p -> {
+            Map<String, Object> map = new LinkedHashMap<>();
+            BuilderProjectResponse resp = toResponse(p);
+            map.put("id", resp.id());
+            map.put("builderId", resp.builderId());
+            map.put("builderName", resp.builderName());
+            map.put("builderLogoUrl", resp.builderLogoUrl());
+            map.put("projectName", resp.projectName());
+            map.put("tagline", resp.tagline());
+            map.put("description", resp.description());
+            map.put("reraId", resp.reraId());
+            map.put("reraVerified", resp.reraVerified());
+            map.put("city", resp.city());
+            map.put("state", resp.state());
+            map.put("locality", resp.locality());
+            map.put("pincode", resp.pincode());
+            map.put("address", resp.address());
+            map.put("totalUnits", resp.totalUnits());
+            map.put("availableUnits", resp.availableUnits());
+            map.put("totalTowers", resp.totalTowers());
+            map.put("totalFloorsMax", resp.totalFloorsMax());
+            map.put("projectStatus", resp.projectStatus());
+            map.put("launchDate", resp.launchDate());
+            map.put("possessionDate", resp.possessionDate());
+            map.put("constructionProgressPercent", resp.constructionProgressPercent());
+            map.put("amenities", resp.amenities());
+            map.put("bankApprovals", resp.bankApprovals());
+            map.put("minPricePaise", resp.minPricePaise());
+            map.put("maxPricePaise", resp.maxPricePaise());
+            map.put("minBhk", resp.minBhk());
+            map.put("maxBhk", resp.maxBhk());
+            map.put("minAreaSqft", resp.minAreaSqft());
+            map.put("maxAreaSqft", resp.maxAreaSqft());
+            map.put("status", resp.status());
+            map.put("verified", resp.verified());
+            map.put("viewsCount", resp.viewsCount());
+            map.put("inquiriesCount", resp.inquiriesCount());
+            map.put("unitTypes", resp.unitTypes());
+            map.put("createdAt", resp.createdAt());
+            map.put("updatedAt", resp.updatedAt());
+            // Enriched contact
+            Map<String, String> contact = contacts.getOrDefault(p.getBuilderId(), Map.of());
+            map.put("hostName", contact.getOrDefault("name", ""));
+            map.put("builderPhone", contact.getOrDefault("phone", ""));
+            map.put("builderEmail", contact.getOrDefault("email", ""));
+            return map;
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<UUID, Map<String, String>> fetchUserContacts(Set<UUID> userIds) {
+        Map<UUID, Map<String, String>> result = new HashMap<>();
+        String userUrl = env.getProperty("services.user-service.url");
+        if (userUrl == null || userUrl.isBlank() || userIds.isEmpty()) {
+            log.warn("Cannot fetch user contacts: userServiceUrl={}, userIds={}", userUrl, userIds.size());
+            return result;
+        }
+        RestTemplate rt = new RestTemplate();
+        for (UUID uid : userIds) {
+            try {
+                Map<String, String> contact = rt.getForObject(
+                        userUrl + "/api/v1/internal/users/" + uid + "/contact", Map.class);
+                if (contact != null) result.put(uid, contact);
+            } catch (Exception e) {
+                log.warn("Failed to fetch contact for user {}: {}", uid, e.getMessage());
+            }
+        }
+        return result;
+    }
 
     public BuilderProjectResponse adminVerify(UUID id) {
         BuilderProject p = projectRepository.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
@@ -294,11 +426,37 @@ public class BuilderProjectService {
 
     public int reindexAll() {
         List<BuilderProject> active = projectRepository.findByStatus(BuilderListingStatus.ACTIVE);
-        active.forEach(p -> kafkaTemplate.send("builder.project.indexed", p.getId().toString(), p));
+        active.forEach(p -> {
+            try {
+                kafkaTemplate.send("builder.project.indexed", p.getId().toString(), toJson(p));
+            } catch (Exception e) {
+                log.warn("Failed to index builder project {}: {}", p.getId(), e.getMessage());
+            }
+        });
+        log.info("Reindexed {} active builder projects", active.size());
         return active.size();
     }
 
+    @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
+    public void onStartupReindex() {
+        try {
+            int count = reindexAll();
+            log.info("Startup builder project reindex: {} projects", count);
+        } catch (Exception e) {
+            log.warn("Startup builder project reindex failed: {}", e.getMessage());
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────
+
+    private String toJson(Object obj) {
+        try {
+            return objectMapper.writeValueAsString(obj);
+        } catch (Exception e) {
+            log.error("Failed to serialize to JSON", e);
+            return "{}";
+        }
+    }
 
     private void recomputeProjectPriceRange(UUID projectId) {
         List<ProjectUnitType> units = unitTypeRepository.findByProjectIdOrderByBhkAscBasePricePaiseAsc(projectId);
