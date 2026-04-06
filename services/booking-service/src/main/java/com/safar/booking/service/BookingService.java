@@ -27,6 +27,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -84,8 +86,29 @@ public class BookingService {
         Integer maxGuestsPerRoom;
         Integer maxRoomsAvailable;
 
-        if (req.roomTypeId() != null) {
-            // Use room-type-specific limits (not listing-level)
+        if (req.roomSelections() != null && !req.roomSelections().isEmpty()) {
+            // Multi-room: validate each room type's availability separately
+            // count = total guests (rooms × guestsPerRoom for PG)
+            // guests field or derive rooms from count and maxGuests
+            for (var sel : req.roomSelections()) {
+                Map<String, Object> rtAvail = listingClient.checkRoomTypeAvailability(
+                        sel.roomTypeId(), checkInDate, checkOutDate);
+                int minAvailable = rtAvail.get("minAvailable") instanceof Number
+                        ? ((Number) rtAvail.get("minAvailable")).intValue() : 0;
+                int rtMaxGuests = rtAvail.get("maxGuests") instanceof Number
+                        ? ((Number) rtAvail.get("maxGuests")).intValue() : 1;
+                // Derive actual rooms from count: for PG, count=guests, rooms = ceil(count/maxGuests)
+                int actualRooms = rtMaxGuests > 0 ? (int) Math.ceil((double) sel.count() / rtMaxGuests) : sel.count();
+                if (actualRooms > minAvailable) {
+                    String rtName = listingClient.getRoomTypeName(req.listingId(), sel.roomTypeId());
+                    throw new IllegalArgumentException(
+                            "Only " + minAvailable + " rooms available for " + rtName + ", requested " + actualRooms);
+                }
+            }
+            maxGuestsPerRoom = null; // per-type validation done above
+            maxRoomsAvailable = null;
+        } else if (req.roomTypeId() != null) {
+            // Single room type: validate against available count
             Map<String, Object> rtAvail = listingClient.checkRoomTypeAvailability(
                     req.roomTypeId(), checkInDate, checkOutDate);
 
@@ -108,15 +131,17 @@ public class BookingService {
                     ? ((Number) availInfo.get("totalRooms")).intValue() : null;
         }
 
-        // ── Step 4: Validate guest count ──
-        if (maxGuestsPerRoom != null && req.guestsCount() > maxGuestsPerRoom * rooms) {
+        // ── Step 4: Validate guest count (skip for multi-room — already validated per type in step 3) ──
+        if (maxGuestsPerRoom != null && (req.roomSelections() == null || req.roomSelections().isEmpty())
+                && req.guestsCount() > maxGuestsPerRoom * rooms) {
             throw new IllegalArgumentException(
                     "Guest count " + req.guestsCount() + " exceeds maximum "
                     + (maxGuestsPerRoom * rooms) + " (" + maxGuestsPerRoom + " per room × " + rooms + " rooms)");
         }
 
-        // ── Step 5: Validate room count against total ──
-        if (maxRoomsAvailable != null && rooms > maxRoomsAvailable) {
+        // ── Step 5: Validate room count against total (skip for multi-room — already validated per type) ──
+        if (maxRoomsAvailable != null && (req.roomSelections() == null || req.roomSelections().isEmpty())
+                && rooms > maxRoomsAvailable) {
             throw new IllegalArgumentException(
                     "Requested rooms " + rooms + " exceeds available " + maxRoomsAvailable);
         }
@@ -240,9 +265,30 @@ public class BookingService {
         if (isPgColiving) {
             noticePeriodDays = req.noticePeriodDays() != null
                     ? req.noticePeriodDays() : listingClient.getNoticePeriodDays(req.listingId());
-            securityDepositPaise = req.securityDepositPaise() != null
-                    ? req.securityDepositPaise() : listingClient.getSecurityDepositPaise(req.listingId());
-            securityDepositStatus = securityDepositPaise != null ? "PENDING" : null;
+            Long listingDeposit = listingClient.getSecurityDepositPaise(req.listingId());
+
+            if (req.securityDepositPaise() != null) {
+                // Frontend sends pre-calculated total deposit
+                securityDepositPaise = req.securityDepositPaise();
+            } else if (req.roomSelections() != null && !req.roomSelections().isEmpty()) {
+                // Multi-room: sum each room type's deposit × count
+                long totalDeposit = 0;
+                for (var sel : req.roomSelections()) {
+                    Long rtDeposit = listingClient.getRoomTypeSecurityDepositPaise(sel.roomTypeId());
+                    long perBed = (rtDeposit != null && rtDeposit > 0) ? rtDeposit
+                            : (listingDeposit != null ? listingDeposit : 0L);
+                    totalDeposit += perBed * sel.count();
+                }
+                securityDepositPaise = totalDeposit > 0 ? totalDeposit : null;
+            } else if (req.roomTypeId() != null) {
+                Long rtDeposit = listingClient.getRoomTypeSecurityDepositPaise(req.roomTypeId());
+                long perBed = (rtDeposit != null && rtDeposit > 0) ? rtDeposit
+                        : (listingDeposit != null ? listingDeposit : 0L);
+                securityDepositPaise = perBed * rooms;
+            } else {
+                securityDepositPaise = listingDeposit != null ? listingDeposit * rooms : null;
+            }
+            securityDepositStatus = securityDepositPaise != null && securityDepositPaise > 0 ? "PENDING" : null;
         }
         long insurancePaise = Math.min(INSURANCE_PER_NIGHT_PAISE * nights, INSURANCE_CAP_PAISE);
 
@@ -301,14 +347,18 @@ public class BookingService {
             }
         }
 
+        // PG/Co-living billing: price is per-bed, room count already represents beds/persons.
+        // For multi-room selections: each selection's count = beds booked for that type.
+        // For single room type: rooms count = beds booked.
+        // NO separate adults multiplier — the count IS the number of adults.
+        // Deposit: per-bed, already multiplied by room count in the selection loop or by rooms.
+
         // GST: exempt for residential monthly rent (Indian tax law)
         boolean isCommercialType = "COMMERCIAL".equals(listingType);
         long gstPaise = (isCommercialType || !"MONTH".equals(pricingUnit))
                 ? Math.round(basePaise * GST_RATE) : 0L;
-        // PG/Co-living: deposit is per bed (per adult), multiply by adults count
-        int depositMultiplier = isPgColiving && req.adultsCount() != null && req.adultsCount() > 1
-                ? req.adultsCount() : 1;
-        long depositPaise = securityDepositPaise != null ? securityDepositPaise * depositMultiplier : 0L;
+        // Deposit already computed as total (per-bed × beds) above for PG, or single amount otherwise
+        long depositPaise = securityDepositPaise != null ? securityDepositPaise : 0L;
         long totalPaise = basePaise + cleaningFee + insurancePaise + gstPaise + inclusionsTotalPaise + depositPaise;
 
         // Feature 2: Pay at Property
@@ -509,11 +559,19 @@ public class BookingService {
             listingClient.blockDates(req.listingId(), checkInDate, checkOutDate);
         }
 
-        try {
-            kafka.send("booking.created", saved.getId() != null ? saved.getId().toString() : "");
-        } catch (Exception e) {
-            log.warn("Failed to send Kafka event for created booking {}: {}", saved.getBookingRef(), e.getMessage());
-        }
+        // Send Kafka event AFTER transaction commits so notification-service can find the booking
+        final UUID savedId = saved.getId();
+        final String savedRef = saved.getBookingRef();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                try {
+                    kafka.send("booking.created", savedId != null ? savedId.toString() : "");
+                } catch (Exception e) {
+                    log.warn("Failed to send Kafka event for created booking {}: {}", savedRef, e.getMessage());
+                }
+            }
+        });
 
         // Publish medical-specific Kafka event
         if ("MEDICAL".equals(req.bookingType())) {
@@ -951,6 +1009,7 @@ public class BookingService {
                 b.getId(), b.getBookingRef(),
                 b.getGuestId(), b.getHostId(), b.getListingId(),
                 b.getListingTitle(),
+                b.getListingPhotoUrl(), b.getListingCity(), b.getListingType(),
                 b.getCheckIn(), b.getCheckOut(), b.getGuestsCount(),
                 b.getAdultsCount(), b.getChildrenCount(), b.getInfantsCount(), b.getPetsCount(),
                 b.getRoomsCount(),
@@ -1129,6 +1188,60 @@ public class BookingService {
 
         log.info("Admin cancelled booking {} (ref: {})", bookingId, booking.getBookingRef());
         return toResponse(cancelled);
+    }
+
+    // ── Admin: deposit refund (bypasses host ownership check) ───────────────
+
+    @Transactional
+    public BookingResponse adminRefundDeposit(UUID bookingId, String refundType,
+                                               Long deductionPaise, String deductionReason) {
+        Booking booking = getBookingById(bookingId);
+        if (booking.getSecurityDepositPaise() == null || booking.getSecurityDepositPaise() <= 0) {
+            throw new IllegalStateException("No deposit to refund");
+        }
+        if ("REFUNDED".equals(booking.getSecurityDepositStatus())) {
+            throw new IllegalStateException("Deposit already refunded");
+        }
+
+        long depositAmount = booking.getSecurityDepositPaise();
+        long refundAmount;
+        if ("PARTIAL".equals(refundType) && deductionPaise != null && deductionPaise > 0) {
+            refundAmount = Math.max(0, depositAmount - deductionPaise);
+            booking.setSecurityDepositStatus("PARTIAL_REFUND");
+        } else {
+            refundAmount = depositAmount;
+            booking.setSecurityDepositStatus("REFUNDED");
+        }
+
+        Booking saved = bookingRepo.save(booking);
+        log.info("Admin deposit refund for booking {}: {} of {} (deduction: {} - {})",
+                booking.getBookingRef(), refundAmount, depositAmount,
+                deductionPaise != null ? deductionPaise : 0,
+                deductionReason != null ? deductionReason : "none");
+
+        try {
+            kafka.send("deposit.refunded", Map.of(
+                    "bookingId", bookingId.toString(),
+                    "bookingRef", booking.getBookingRef(),
+                    "guestId", booking.getGuestId().toString(),
+                    "depositPaise", String.valueOf(depositAmount),
+                    "refundPaise", String.valueOf(refundAmount),
+                    "deductionPaise", String.valueOf(deductionPaise != null ? deductionPaise : 0),
+                    "reason", deductionReason != null ? deductionReason : ""
+            ).toString());
+        } catch (Exception e) {
+            log.warn("Failed to send deposit.refunded Kafka event: {}", e.getMessage());
+        }
+
+        return toResponse(saved);
+    }
+
+    // ── Admin: list bookings with pending deposits ───────────���──────────────
+
+    public Page<BookingResponse> getBookingsWithPendingDeposits(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt"));
+        return bookingRepo.findBySecurityDepositStatusIn(
+                List.of("PENDING", "COLLECTED"), pageable).map(this::toResponse);
     }
 
     // ── Host calendar ───────────────────────────────────────────────────────

@@ -57,4 +57,7 @@ public interface ListingServiceClient {
 
     // Room type info (sharingType, count, totalBeds etc.)
     default Map<String, Object> getRoomTypeInfo(UUID roomTypeId) { return Map.of(); }
+
+    // Room type security deposit (PG/Co-living per-bed deposit from room type)
+    default Long getRoomTypeSecurityDepositPaise(UUID roomTypeId) { return null; }
 }

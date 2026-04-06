@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
   Table, Tag, Typography, Card, Row, Col, Statistic, Select, DatePicker, Input, Button,
-  Popconfirm, Modal, message, Descriptions, Spin,
+  Popconfirm, Modal, message, Descriptions, Spin, Tabs, Radio,
 } from 'antd';
 import {
   CalendarOutlined, CheckCircleOutlined, CloseCircleOutlined,
   DollarOutlined, LoginOutlined, LogoutOutlined, RollbackOutlined, SearchOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { adminApi } from '../lib/api';
@@ -18,6 +19,10 @@ const INR = (paise: number) => `₹${(paise / 100).toLocaleString('en-IN')}`;
 const statusColor: Record<string, string> = {
   DRAFT: 'default', PENDING_PAYMENT: 'orange', CONFIRMED: 'blue',
   CHECKED_IN: 'cyan', COMPLETED: 'green', CANCELLED: 'red', NO_SHOW: 'volcano',
+};
+
+const depositStatusColor: Record<string, string> = {
+  PENDING: 'orange', COLLECTED: 'blue', REFUNDED: 'green', PARTIAL_REFUND: 'cyan',
 };
 
 const STATUSES = ['', 'DRAFT', 'PENDING_PAYMENT', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'CANCELLED', 'NO_SHOW'];
@@ -35,12 +40,26 @@ export default function BookingsPage() {
   const [refundReason, setRefundReason] = useState('');
   const [refundLoading, setRefundLoading] = useState(false);
 
+  // Deposit refund modal
+  const [depositModal, setDepositModal] = useState<{ open: boolean; booking: any }>({ open: false, booking: null });
+  const [depositRefundType, setDepositRefundType] = useState<'FULL' | 'PARTIAL'>('FULL');
+  const [depositDeduction, setDepositDeduction] = useState('');
+  const [depositReason, setDepositReason] = useState('');
+  const [depositLoading, setDepositLoading] = useState(false);
+
+  // Pending deposits tab
+  const [pendingDeposits, setPendingDeposits] = useState<any[]>([]);
+  const [pendingTotal, setPendingTotal] = useState(0);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [pendingPage, setPendingPage] = useState(0);
+
   // Filters
   const [status, setStatus]     = useState('');
   const [search, setSearch]     = useState('');
   const [dateRange, setDateRange] = useState<[string, string] | null>(null);
   const [page, setPage]         = useState(0);
   const [pageSize, setPageSize] = useState(20);
+  const [activeTab, setActiveTab] = useState('bookings');
 
   const load = () => {
     setLoading(true);
@@ -58,10 +77,53 @@ export default function BookingsPage() {
       .finally(() => setLoading(false));
   };
 
+  const loadPendingDeposits = () => {
+    setPendingLoading(true);
+    adminApi.getPendingDeposits(pendingPage, 20, token)
+      .then((data: any) => {
+        setPendingDeposits(data.content || []);
+        setPendingTotal(data.totalElements || 0);
+      })
+      .catch(() => { setPendingDeposits([]); setPendingTotal(0); })
+      .finally(() => setPendingLoading(false));
+  };
+
   useEffect(() => { load(); }, [page, pageSize, status]);
   useEffect(() => { adminApi.getBookingStats(token).then(setStats); }, []);
+  useEffect(() => { if (activeTab === 'deposits') loadPendingDeposits(); }, [activeTab, pendingPage]);
 
   const handleSearch = () => { setPage(0); load(); };
+
+  const openDepositRefund = (booking: any) => {
+    setDepositModal({ open: true, booking });
+    setDepositRefundType('FULL');
+    setDepositDeduction('');
+    setDepositReason('');
+  };
+
+  const handleDepositRefund = async () => {
+    const b = depositModal.booking;
+    if (!b) return;
+    if (depositRefundType === 'PARTIAL' && !depositDeduction) {
+      message.warning('Enter deduction amount'); return;
+    }
+    setDepositLoading(true);
+    try {
+      await adminApi.adminDepositRefund(
+        b.id,
+        depositRefundType,
+        depositRefundType === 'PARTIAL' ? Math.round(Number(depositDeduction) * 100) : null,
+        depositReason.trim(),
+        token
+      );
+      message.success('Deposit refund processed');
+      setDepositModal({ open: false, booking: null });
+      load();
+      if (activeTab === 'deposits') loadPendingDeposits();
+    } catch (e: any) {
+      message.error(e?.response?.data?.detail || 'Deposit refund failed');
+    } finally { setDepositLoading(false); }
+  };
 
   const columns: ColumnsType<any> = [
     { title: 'Ref', dataIndex: 'bookingRef', width: 120, ellipsis: true,
@@ -85,7 +147,7 @@ export default function BookingsPage() {
     { title: 'Created', dataIndex: 'createdAt', width: 105,
       render: (d) => d ? new Date(d).toLocaleDateString('en-IN') : '—' },
     {
-      title: 'Action', width: 180, fixed: 'right',
+      title: 'Action', width: 220, fixed: 'right',
       render: (_, r) => (
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
           {(r.status === 'CONFIRMED' || r.status === 'CHECKED_IN') && (
@@ -115,6 +177,49 @@ export default function BookingsPage() {
               <Button size="small" icon={<DollarOutlined />}>Settle</Button>
             </Popconfirm>
           )}
+          {r.securityDepositPaise > 0 && r.securityDepositStatus !== 'REFUNDED' &&
+           (r.status === 'CANCELLED' || r.status === 'COMPLETED') && (
+            <Button size="small" icon={<SafetyOutlined />} type="primary" ghost
+              onClick={() => openDepositRefund(r)}>
+              Deposit
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  const depositColumns: ColumnsType<any> = [
+    { title: 'Ref', dataIndex: 'bookingRef', width: 120, ellipsis: true,
+      render: (ref, r) => (
+        <a onClick={() => setDetail(r)} style={{ fontFamily: 'monospace' }}>{ref || r.id?.substring(0, 8)}</a>
+      ),
+    },
+    { title: 'Guest', width: 150,
+      render: (_, r) => `${r.guestFirstName || ''} ${r.guestLastName || ''}`.trim() || '—' },
+    { title: 'Listing', dataIndex: 'listingTitle', width: 180, ellipsis: true },
+    { title: 'Booking Status', dataIndex: 'status', width: 120,
+      render: (s) => <Tag color={statusColor[s] ?? 'default'}>{s}</Tag> },
+    { title: 'Deposit', dataIndex: 'securityDepositPaise', width: 110,
+      render: (v) => v ? INR(v) : '—' },
+    { title: 'Deposit Status', dataIndex: 'securityDepositStatus', width: 130,
+      render: (s) => s ? <Tag color={depositStatusColor[s] ?? 'default'}>{s}</Tag> : '—' },
+    { title: 'Check-out', dataIndex: 'checkOut', width: 105,
+      render: (d) => d ? new Date(d).toLocaleDateString('en-IN') : '—' },
+    {
+      title: 'Action', width: 160, fixed: 'right',
+      render: (_, r) => (
+        <div style={{ display: 'flex', gap: 4 }}>
+          {r.securityDepositStatus !== 'REFUNDED' && (r.status === 'CANCELLED' || r.status === 'COMPLETED') ? (
+            <Button size="small" type="primary" icon={<RollbackOutlined />}
+              onClick={() => openDepositRefund(r)}>
+              Refund Deposit
+            </Button>
+          ) : r.securityDepositStatus !== 'REFUNDED' ? (
+            <Tag color="orange">Booking in progress</Tag>
+          ) : (
+            <Tag color="green">Already refunded</Tag>
+          )}
         </div>
       ),
     },
@@ -136,33 +241,69 @@ export default function BookingsPage() {
         <Col span={4}><Card size="small"><Statistic title="Revenue" value={stats?.totalRevenuePaise ? INR(stats.totalRevenuePaise) : '₹0'} /></Card></Col>
       </Row>
 
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <Select placeholder="Status" value={status || undefined} onChange={v => { setStatus(v || ''); setPage(0); }}
-          allowClear style={{ width: 160 }}>
-          {STATUSES.filter(Boolean).map(s => <Select.Option key={s} value={s}>{s}</Select.Option>)}
-        </Select>
-        <RangePicker onChange={(_, ds) => setDateRange(ds[0] ? [ds[0], ds[1]] : null)} />
-        <Input prefix={<SearchOutlined />} placeholder="Search ref, guest, listing..."
-          value={search} onChange={e => setSearch(e.target.value)}
-          onPressEnter={handleSearch} style={{ width: 260 }} allowClear />
-        <Button type="primary" onClick={handleSearch}>Search</Button>
-      </div>
+      <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
+        {
+          key: 'bookings',
+          label: 'All Bookings',
+          children: (
+            <>
+              {/* Filters */}
+              <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+                <Select placeholder="Status" value={status || undefined} onChange={v => { setStatus(v || ''); setPage(0); }}
+                  allowClear style={{ width: 160 }}>
+                  {STATUSES.filter(Boolean).map(s => <Select.Option key={s} value={s}>{s}</Select.Option>)}
+                </Select>
+                <RangePicker onChange={(_, ds) => setDateRange(ds[0] ? [ds[0], ds[1]] : null)} />
+                <Input prefix={<SearchOutlined />} placeholder="Search ref, guest, listing..."
+                  value={search} onChange={e => setSearch(e.target.value)}
+                  onPressEnter={handleSearch} style={{ width: 260 }} allowClear />
+                <Button type="primary" onClick={handleSearch}>Search</Button>
+              </div>
 
-      {/* Table */}
-      <Table
-        columns={columns}
-        dataSource={bookings}
-        rowKey="id"
-        loading={loading}
-        scroll={{ x: 1100 }}
-        pagination={{
-          current: page + 1, pageSize, total,
-          onChange: (p, ps) => { setPage(p - 1); setPageSize(ps); },
-          showSizeChanger: true, showTotal: (t) => `${t} bookings`,
-        }}
-        locale={{ emptyText: 'No bookings found' }}
-      />
+              {/* Table */}
+              <Table
+                columns={columns}
+                dataSource={bookings}
+                rowKey="id"
+                loading={loading}
+                scroll={{ x: 1200 }}
+                pagination={{
+                  current: page + 1, pageSize, total,
+                  onChange: (p, ps) => { setPage(p - 1); setPageSize(ps); },
+                  showSizeChanger: true, showTotal: (t) => `${t} bookings`,
+                }}
+                locale={{ emptyText: 'No bookings found' }}
+              />
+            </>
+          ),
+        },
+        {
+          key: 'deposits',
+          label: (
+            <span><SafetyOutlined /> Pending Deposits</span>
+          ),
+          children: (
+            <>
+              <p style={{ marginBottom: 16, color: '#666' }}>
+                Bookings with security deposits pending refund. Refund deposits for cancelled or completed bookings.
+              </p>
+              <Table
+                columns={depositColumns}
+                dataSource={pendingDeposits}
+                rowKey="id"
+                loading={pendingLoading}
+                scroll={{ x: 1100 }}
+                pagination={{
+                  current: pendingPage + 1, pageSize: 20, total: pendingTotal,
+                  onChange: (p) => setPendingPage(p - 1),
+                  showTotal: (t) => `${t} pending deposits`,
+                }}
+                locale={{ emptyText: 'No pending deposits' }}
+              />
+            </>
+          ),
+        },
+      ]} />
 
       {/* Detail modal */}
       <Modal open={!!detail} onCancel={() => setDetail(null)} width={640}
@@ -175,6 +316,11 @@ export default function BookingsPage() {
                 setRefundAmount(String(detail.totalAmountPaise / 100));
                 setRefundReason('');
               }}>Initiate Refund</Button>
+            )}
+            {detail.securityDepositPaise > 0 && detail.securityDepositStatus !== 'REFUNDED' &&
+             (detail.status === 'CANCELLED' || detail.status === 'COMPLETED') && (
+              <Button icon={<SafetyOutlined />} type="primary" ghost
+                onClick={() => openDepositRefund(detail)}>Refund Deposit</Button>
             )}
             {detail.status === 'COMPLETED' && (
               <Popconfirm title="Process settlement for this booking?" onConfirm={async () => {
@@ -207,6 +353,16 @@ export default function BookingsPage() {
             <Descriptions.Item label="Total Amount">{detail.totalAmountPaise ? INR(detail.totalAmountPaise) : '—'}</Descriptions.Item>
             <Descriptions.Item label="Payment Mode">{detail.paymentMode || '—'}</Descriptions.Item>
             <Descriptions.Item label="Payment ID">{detail.razorpayPaymentId || '—'}</Descriptions.Item>
+            {detail.securityDepositPaise > 0 && (
+              <>
+                <Descriptions.Item label="Security Deposit">{INR(detail.securityDepositPaise)}</Descriptions.Item>
+                <Descriptions.Item label="Deposit Status">
+                  <Tag color={depositStatusColor[detail.securityDepositStatus] ?? 'default'}>
+                    {detail.securityDepositStatus || 'N/A'}
+                  </Tag>
+                </Descriptions.Item>
+              </>
+            )}
             <Descriptions.Item label="Has Review">{detail.hasReview ? <Tag color="green">Yes</Tag> : 'No'}</Descriptions.Item>
             <Descriptions.Item label="Created">{detail.createdAt ? new Date(detail.createdAt).toLocaleString('en-IN') : '—'}</Descriptions.Item>
             {detail.cancellationReason && (
@@ -256,6 +412,64 @@ export default function BookingsPage() {
               <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Reason</label>
               <Input.TextArea rows={2} value={refundReason} onChange={e => setRefundReason(e.target.value)}
                 placeholder="Reason for refund" />
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Deposit refund modal */}
+      <Modal open={depositModal.open} title="Refund Security Deposit"
+        onCancel={() => setDepositModal({ open: false, booking: null })}
+        confirmLoading={depositLoading}
+        onOk={handleDepositRefund}>
+        {depositModal.booking && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Descriptions column={1} size="small" bordered>
+              <Descriptions.Item label="Booking">{depositModal.booking.bookingRef}</Descriptions.Item>
+              <Descriptions.Item label="Guest">
+                {depositModal.booking.guestFirstName} {depositModal.booking.guestLastName}
+              </Descriptions.Item>
+              <Descriptions.Item label="Deposit Amount">
+                <strong>{INR(depositModal.booking.securityDepositPaise)}</strong>
+              </Descriptions.Item>
+              <Descriptions.Item label="Current Status">
+                <Tag color={depositStatusColor[depositModal.booking.securityDepositStatus] ?? 'default'}>
+                  {depositModal.booking.securityDepositStatus}
+                </Tag>
+              </Descriptions.Item>
+            </Descriptions>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Refund Type</label>
+              <Radio.Group value={depositRefundType} onChange={e => setDepositRefundType(e.target.value)}>
+                <Radio.Button value="FULL">Full Refund</Radio.Button>
+                <Radio.Button value="PARTIAL">Partial (with deductions)</Radio.Button>
+              </Radio.Group>
+            </div>
+
+            {depositRefundType === 'PARTIAL' && (
+              <div>
+                <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Deduction Amount (INR)</label>
+                <Input type="number" value={depositDeduction} onChange={e => setDepositDeduction(e.target.value)}
+                  prefix="₹" placeholder="Amount to deduct from deposit" />
+                {depositDeduction && Number(depositDeduction) > 0 && (
+                  <p style={{ marginTop: 4, color: '#52c41a', fontSize: 12 }}>
+                    Refund to guest: {INR((depositModal.booking.securityDepositPaise) - Math.round(Number(depositDeduction) * 100))}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {depositRefundType === 'FULL' && (
+              <p style={{ color: '#52c41a' }}>
+                Full deposit of <strong>{INR(depositModal.booking.securityDepositPaise)}</strong> will be refunded to the guest.
+              </p>
+            )}
+
+            <div>
+              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Reason (optional)</label>
+              <Input.TextArea rows={2} value={depositReason} onChange={e => setDepositReason(e.target.value)}
+                placeholder="e.g. Property damage deduction, cleaning charges, etc." />
             </div>
           </div>
         )}

@@ -103,7 +103,19 @@ public class SearchService {
         String textQuery = req.query();
         String cityFilter = req.city();
         String localityFilter = null;
-        List<String> typeFilter = req.type() != null ? new java.util.ArrayList<>(req.type()) : new java.util.ArrayList<>();
+        // Handle both ?type=PG&type=HOTEL and ?type=PG,HOTEL formats
+        List<String> typeFilter = new java.util.ArrayList<>();
+        if (req.type() != null) {
+            for (String t : req.type()) {
+                if (t.contains(",")) {
+                    for (String part : t.split(",")) {
+                        if (!part.isBlank()) typeFilter.add(part.trim());
+                    }
+                } else {
+                    typeFilter.add(t);
+                }
+            }
+        }
 
         if (StringUtils.hasText(textQuery)) {
             SmartQueryParser.ParsedQuery parsed = SmartQueryParser.parse(textQuery);

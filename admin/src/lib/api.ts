@@ -242,6 +242,18 @@ export const adminApi = {
     return axios.post(`${BASE}/payments/refund`, data, { headers: authHeaders(token) });
   },
 
+  // ── Deposit Refund ──────────────────────────────────────────────────────
+  getPendingDeposits(page: number, size: number, token: string) {
+    return axios.get(`${BASE}/admin/bookings/pending-deposits`, { params: { page, size }, headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  adminDepositRefund(bookingId: string, refundType: string, deductionPaise: number | null, deductionReason: string, token: string) {
+    const params: any = { refundType };
+    if (refundType === 'PARTIAL' && deductionPaise) params.deductionPaise = deductionPaise;
+    if (deductionReason) params.deductionReason = deductionReason;
+    return axios.post(`${BASE}/admin/bookings/${bookingId}/deposit-refund`, null, { params, headers: authHeaders(token) });
+  },
+
   getRefunds(bookingId: string, token: string) {
     return axios.get(`${BASE}/payments/refunds/${bookingId}`, { headers: authHeaders(token) }).then(r => r.data).catch(() => []);
   },
@@ -288,15 +300,23 @@ export const adminApi = {
   },
 
   getChefBookings(token: string) {
-    return axios.get(`${BASE}/chef-bookings/chef`, { headers: authHeaders(token) }).then(r => r.data).catch(() => []);
+    return axios.get(`${BASE}/chef-bookings/admin/all?size=200&sort=createdAt,desc`, { headers: authHeaders(token) }).then(r => r.data).catch(() => ({ content: [] }));
   },
 
   getChefEvents(token: string) {
-    return axios.get(`${BASE}/chef-events/chef`, { headers: authHeaders(token) }).then(r => r.data).catch(() => []);
+    return axios.get(`${BASE}/chef-events/admin/all?size=200&sort=createdAt,desc`, { headers: authHeaders(token) }).then(r => r.data).catch(() => ({ content: [] }));
   },
 
   getChefSubscriptions(token: string) {
-    return axios.get(`${BASE}/chef-subscriptions/chef`, { headers: authHeaders(token) }).then(r => r.data).catch(() => []);
+    return axios.get(`${BASE}/chef-subscriptions/admin/all?size=200&sort=createdAt,desc`, { headers: authHeaders(token) }).then(r => r.data).catch(() => ({ content: [] }));
+  },
+
+  assignChefToBooking(bookingId: string, chefId: string, token: string) {
+    return axios.post(`${BASE}/chef-bookings/admin/${bookingId}/assign?chefId=${chefId}`, null, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  assignChefToEvent(eventId: string, chefId: string, token: string) {
+    return axios.post(`${BASE}/chef-events/admin/${eventId}/assign?chefId=${chefId}`, null, { headers: authHeaders(token) }).then(r => r.data);
   },
 
   // ── Experiences (Admin) ────────────────────────────────────────────────
@@ -311,5 +331,122 @@ export const adminApi = {
 
   updateExperienceStatus(id: string, status: string, token: string) {
     return axios.patch(`${BASE}/admin/experiences/${id}/status`, { status }, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  // ── Builder Projects (Admin) ────────────────────────────────────────────
+  getBuilderProjects(token: string, status?: string) {
+    const qs = status ? `?status=${status}&size=200&sort=createdAt,desc` : '?size=200&sort=createdAt,desc';
+    return axios.get(`${BASE}/builder-projects/admin/list${qs}`, { headers: authHeaders(token) }).then(r => r.data).catch(() => ({ content: [] }));
+  },
+
+  verifyBuilderProject(id: string, token: string) {
+    return axios.post(`${BASE}/builder-projects/${id}/verify`, {}, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  verifyBuilderRera(id: string, token: string) {
+    return axios.post(`${BASE}/builder-projects/${id}/verify-rera`, {}, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  // ══ VAS: Agreements ══
+  getAgreements(token: string, params?: any) {
+    const qs = new URLSearchParams();
+    if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)); });
+    return axios.get(`${BASE}/agreements/my?${qs}`, { headers: authHeaders(token) });
+  },
+  getAgreement(id: string, token: string) {
+    return axios.get(`${BASE}/agreements/${id}`, { headers: authHeaders(token) });
+  },
+  updateAgreementStatus(id: string, status: string, token: string) {
+    return axios.patch(`${BASE}/agreements/${id}/status`, null, { params: { status }, headers: authHeaders(token) });
+  },
+
+  // ══ VAS: Home Loan ══
+  getLoanApplications(token: string, params?: any) {
+    const qs = new URLSearchParams();
+    if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)); });
+    return axios.get(`${BASE}/homeloan/applications/my?${qs}`, { headers: authHeaders(token) });
+  },
+  getLoanApplication(id: string, token: string) {
+    return axios.get(`${BASE}/homeloan/applications/${id}`, { headers: authHeaders(token) });
+  },
+  updateLoanStatus(id: string, status: string, token: string) {
+    return axios.patch(`${BASE}/homeloan/applications/${id}/status`, null, { params: { status }, headers: authHeaders(token) });
+  },
+  getPartnerBanks(token: string) {
+    return axios.get(`${BASE}/homeloan/banks`, { headers: authHeaders(token) });
+  },
+
+  // ══ VAS: Legal ══
+  getLegalCases(token: string, params?: any) {
+    const qs = new URLSearchParams();
+    if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)); });
+    return axios.get(`${BASE}/legal/cases?${qs}`, { headers: authHeaders(token) });
+  },
+  getLegalCase(id: string, token: string) {
+    return axios.get(`${BASE}/legal/cases/${id}`, { headers: authHeaders(token) });
+  },
+  updateLegalCaseStatus(id: string, status: string, token: string) {
+    return axios.patch(`${BASE}/legal/cases/${id}/status`, null, { params: { status }, headers: authHeaders(token) });
+  },
+  assignAdvocate(caseId: string, advocateId: string, token: string) {
+    return axios.post(`${BASE}/legal/cases/${caseId}/assign`, null, { params: { advocateId }, headers: authHeaders(token) });
+  },
+  generateLegalReport(caseId: string, token: string) {
+    return axios.post(`${BASE}/legal/cases/${caseId}/generate-report`, null, { headers: authHeaders(token) });
+  },
+  getAdvocates(token: string) {
+    return axios.get(`${BASE}/legal/advocates`, { headers: authHeaders(token) });
+  },
+
+  // ══ VAS: Interiors ══
+  getInteriorProjects(token: string, params?: any) {
+    const qs = new URLSearchParams();
+    if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)); });
+    return axios.get(`${BASE}/interiors/admin/projects?${qs}`, { headers: authHeaders(token) });
+  },
+  getInteriorProject(id: string, token: string) {
+    return axios.get(`${BASE}/interiors/projects/${id}`, { headers: authHeaders(token) });
+  },
+  updateInteriorStatus(id: string, status: string, token: string) {
+    return axios.patch(`${BASE}/interiors/projects/${id}/status`, null, { params: { status }, headers: authHeaders(token) });
+  },
+  assignDesigner(projectId: string, designerId: string, token: string) {
+    return axios.post(`${BASE}/interiors/projects/${projectId}/designer`, null, { params: { designerId }, headers: authHeaders(token) });
+  },
+  getDesigners(token: string) {
+    return axios.get(`${BASE}/interiors/designers`, { headers: authHeaders(token) });
+  },
+  getInteriorMilestones(projectId: string, token: string) {
+    return axios.get(`${BASE}/interiors/projects/${projectId}/milestones`, { headers: authHeaders(token) });
+  },
+  getQualityChecks(projectId: string, token: string) {
+    return axios.get(`${BASE}/interiors/projects/${projectId}/quality-checks`, { headers: authHeaders(token) });
+  },
+  addInteriorMilestone(projectId: string, params: { name: string; description?: string; scheduledDate: string; paymentAmountPaise?: number }, token: string) {
+    return axios.post(`${BASE}/interiors/projects/${projectId}/milestones`, null, { params, headers: authHeaders(token) });
+  },
+  completeMilestone(milestoneId: string, token: string) {
+    return axios.post(`${BASE}/interiors/milestones/${milestoneId}/complete`, null, { headers: authHeaders(token) });
+  },
+  addRoomDesign(projectId: string, body: { roomType: string; areaSqft?: number; designStyle?: string }, token: string) {
+    return axios.post(`${BASE}/interiors/projects/${projectId}/rooms`, body, { headers: authHeaders(token) });
+  },
+  getRoomDesigns(projectId: string, token: string) {
+    return axios.get(`${BASE}/interiors/projects/${projectId}/rooms`, { headers: authHeaders(token) });
+  },
+  approveRoomDesign(projectId: string, roomId: string, token: string) {
+    return axios.post(`${BASE}/interiors/projects/${projectId}/rooms/${roomId}/approve`, null, { headers: authHeaders(token) });
+  },
+  generateInteriorQuote(projectId: string, token: string) {
+    return axios.post(`${BASE}/interiors/projects/${projectId}/quote`, null, { headers: authHeaders(token) });
+  },
+  addQualityCheck(projectId: string, params: { checkpointName: string; category?: string; status?: string; notes?: string; milestoneId?: string }, token: string) {
+    return axios.post(`${BASE}/interiors/projects/${projectId}/quality-checks`, null, { params, headers: authHeaders(token) });
+  },
+  addMaterialSelection(projectId: string, body: { roomDesignId?: string; catalogItemId?: string; category: string; materialName: string; brand?: string; quantity: number; unit?: string; unitPricePaise: number }, token: string) {
+    return axios.post(`${BASE}/interiors/projects/${projectId}/materials`, body, { headers: authHeaders(token) });
+  },
+  getMaterials(projectId: string, token: string) {
+    return axios.get(`${BASE}/interiors/projects/${projectId}/materials`, { headers: authHeaders(token) });
   },
 };

@@ -463,6 +463,15 @@ public class ListingServiceClientImpl implements ListingServiceClient {
         return rt != null ? rt : Map.of();
     }
 
+    @Override
+    public Long getRoomTypeSecurityDepositPaise(UUID roomTypeId) {
+        Map<String, Object> rt = fetchRoomType(roomTypeId);
+        if (rt == null) return null;
+        Object val = rt.get("securityDepositPaise");
+        if (val instanceof Number) return ((Number) val).longValue();
+        return null;
+    }
+
     @SuppressWarnings("unchecked")
     private Map<String, Object> fetchRoomType(UUID roomTypeId) {
         try {

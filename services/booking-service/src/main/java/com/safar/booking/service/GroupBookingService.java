@@ -148,6 +148,7 @@ public class GroupBookingService {
                 b.getId(), b.getBookingRef(),
                 b.getGuestId(), b.getHostId(), b.getListingId(),
                 b.getListingTitle(),
+                b.getListingPhotoUrl(), b.getListingCity(), b.getListingType(),
                 b.getCheckIn(), b.getCheckOut(), b.getGuestsCount(),
                 b.getAdultsCount(), b.getChildrenCount(), b.getInfantsCount(), b.getPetsCount(),
                 b.getRoomsCount(),

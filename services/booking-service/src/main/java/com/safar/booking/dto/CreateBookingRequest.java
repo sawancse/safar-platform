@@ -58,7 +58,9 @@ public record CreateBookingRequest(
         // Guest list
         List<GuestInfo> guests
 ) {
-    public record RoomSelection(UUID roomTypeId, int count) {}
+    // count = rooms for Hotel, beds/guests for PG
+    // guests = total guests in this room type (PG: same as count; Hotel: guests per room × count)
+    public record RoomSelection(UUID roomTypeId, int count, Integer guests) {}
     public record GuestInfo(
             String fullName, String email, String phone,
             Integer age, String idType, String idNumber,

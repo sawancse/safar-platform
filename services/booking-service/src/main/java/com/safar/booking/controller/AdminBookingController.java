@@ -82,6 +82,30 @@ public class AdminBookingController {
         return ResponseEntity.ok(bookingService.adminCancelBooking(id, reason));
     }
 
+    // ── Admin deposit refund ──────────────────────────────────────────────────
+
+    @PostMapping("/bookings/{id}/deposit-refund")
+    public ResponseEntity<BookingResponse> adminDepositRefund(
+            Authentication auth,
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "FULL") String refundType,
+            @RequestParam(required = false) Long deductionPaise,
+            @RequestParam(required = false) String deductionReason) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(bookingService.adminRefundDeposit(id, refundType, deductionPaise, deductionReason));
+    }
+
+    // ── Bookings with pending deposits ──────────────────────────────────────
+
+    @GetMapping("/bookings/pending-deposits")
+    public ResponseEntity<Page<BookingResponse>> getPendingDeposits(
+            Authentication auth,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(bookingService.getBookingsWithPendingDeposits(page, size));
+    }
+
     // ── Stats for dashboard ──────────────────────────────────────────────────
 
     @GetMapping("/bookings/stats")
