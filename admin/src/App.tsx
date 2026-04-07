@@ -22,6 +22,7 @@ import LegalCasesPage from './pages/LegalCasesPage';
 import InteriorsPage from './pages/InteriorsPage';
 import BuilderProjectsPage from './pages/BuilderProjectsPage';
 import PgManagementPage from './pages/PgManagementPage';
+import UsersPage from './pages/UsersPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('admin_token');
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="legal-cases" element={<LegalCasesPage />} />
         <Route path="interiors" element={<InteriorsPage />} />
         <Route path="pg-management" element={<PgManagementPage />} />
+        <Route path="users" element={<UsersPage />} />
       </Route>
     </Routes>
   );

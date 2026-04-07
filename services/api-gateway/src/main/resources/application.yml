@@ -372,6 +372,12 @@ spring:
           predicates:
             - Path=/api/v1/chef-events,/api/v1/chef-events/**
 
+        # ── Lead Capture (user-service) ──────────────────────────────────────
+        - id: leads
+          uri: ${USER_SERVICE_URL:http://localhost:8092}
+          predicates:
+            - Path=/api/v1/leads,/api/v1/leads/**
+
         # ── Broker profiles (user-service) ──────────────────────────────────
         - id: broker-service
           uri: ${USER_SERVICE_URL:http://localhost:8092}

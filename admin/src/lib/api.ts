@@ -452,4 +452,23 @@ export const adminApi = {
   getMaterials(projectId: string, token: string) {
     return axios.get(`${BASE}/interiors/projects/${projectId}/materials`, { headers: authHeaders(token) });
   },
+
+  // ══ Users & Leads ══
+  getUsers(token: string, params?: Record<string, any>) {
+    const qs = new URLSearchParams();
+    qs.set('size', '50');
+    qs.set('sort', 'createdAt,desc');
+    if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); });
+    return axios.get(`${BASE}/admin/users?${qs}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  getUserStats(token: string) {
+    return axios.get(`${BASE}/admin/users/stats`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  getLeads(token: string, params?: Record<string, any>) {
+    const qs = new URLSearchParams();
+    qs.set('size', '50');
+    qs.set('sort', 'createdAt,desc');
+    if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); });
+    return axios.get(`${BASE}/admin/leads?${qs}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
 };

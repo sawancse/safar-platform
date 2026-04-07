@@ -45,6 +45,7 @@ const menuItems = [
   { key: '/legal-cases',    icon: <SafetyOutlined />,        label: 'Legal Cases' },
   { key: '/interiors',      icon: <FormatPainterOutlined />, label: 'Interiors' },
   { key: '/pg-management', icon: <ToolOutlined />,           label: 'PG Management' },
+  { key: '/users',         icon: <TeamOutlined />,           label: 'Users & Leads' },
 ];
 
 export default function AdminLayout() {

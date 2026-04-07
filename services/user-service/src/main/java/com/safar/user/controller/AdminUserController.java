@@ -2,21 +2,29 @@ package com.safar.user.controller;
 
 import com.safar.user.dto.AdminHostDto;
 import com.safar.user.entity.CohostProfile;
+import com.safar.user.entity.UserLead;
+import com.safar.user.entity.UserProfile;
 import com.safar.user.repository.ProfileRepository;
+import com.safar.user.repository.UserLeadRepository;
 import com.safar.user.service.CohostService;
 import com.safar.user.service.ProfileService;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.*;
 
 @Slf4j
 @RestController
@@ -27,6 +35,7 @@ public class AdminUserController {
     private final ProfileService profileService;
     private final CohostService cohostService;
     private final ProfileRepository profileRepository;
+    private final UserLeadRepository leadRepository;
     private final RestTemplate restTemplate;
 
     @Value("${services.listing-service.url}")
@@ -168,6 +177,115 @@ public class AdminUserController {
                                                         @PathVariable UUID profileId) {
         requireAdmin(auth);
         return ResponseEntity.ok(cohostService.verifyProfile(profileId));
+    }
+
+    // ── All Users (paginated, filterable) ──────────────────
+
+    @GetMapping("/users")
+    public ResponseEntity<Page<Map<String, Object>>> getAllUsers(
+            Authentication auth,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo,
+            Pageable pageable) {
+        requireAdmin(auth);
+
+        Specification<UserProfile> spec = Specification.where(null);
+
+        if (role != null && !role.isBlank()) {
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("role"), role));
+        }
+        if (status != null && !status.isBlank()) {
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("accountStatus"), status));
+        }
+        if (search != null && !search.isBlank()) {
+            String s = "%" + search.toLowerCase() + "%";
+            spec = spec.and((root, q, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("name")), s),
+                    cb.like(cb.lower(root.get("email")), s),
+                    cb.like(root.get("phone"), "%" + search + "%")
+            ));
+        }
+        try {
+            if (dateFrom != null && !dateFrom.isBlank()) {
+                OffsetDateTime dt = LocalDate.parse(dateFrom).atStartOfDay().atOffset(ZoneOffset.UTC);
+                spec = spec.and((root, q, cb) -> cb.greaterThanOrEqualTo(root.get("createdAt"), dt));
+            }
+            if (dateTo != null && !dateTo.isBlank()) {
+                OffsetDateTime dt = LocalDate.parse(dateTo).plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC);
+                spec = spec.and((root, q, cb) -> cb.lessThan(root.get("createdAt"), dt));
+            }
+        } catch (Exception e) {
+            log.warn("Invalid date filter: {} {}", dateFrom, dateTo);
+        }
+
+        Page<Map<String, Object>> result = profileRepository.findAll(spec, pageable)
+                .map(p -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("userId", p.getUserId());
+                    m.put("name", p.getName());
+                    m.put("email", p.getEmail());
+                    m.put("phone", p.getPhone());
+                    m.put("role", p.getRole());
+                    m.put("accountStatus", p.getAccountStatus() != null ? p.getAccountStatus() : "ACTIVE");
+                    m.put("verificationLevel", p.getVerificationLevel());
+                    m.put("loyaltyTier", p.getLoyaltyTier());
+                    m.put("starHost", p.getStarHost());
+                    m.put("profileCompletion", p.getProfileCompletion());
+                    m.put("completedStays", p.getCompletedStays());
+                    m.put("lastActiveAt", p.getLastActiveAt());
+                    m.put("createdAt", p.getCreatedAt());
+                    return m;
+                });
+
+        return ResponseEntity.ok(result);
+    }
+
+    // ── User Stats for Dashboard ─────────────────────────
+
+    @GetMapping("/users/stats")
+    public ResponseEntity<Map<String, Object>> getUserStats(Authentication auth) {
+        requireAdmin(auth);
+
+        long total = profileRepository.count();
+        OffsetDateTime now = OffsetDateTime.now();
+        long thisWeek = profileRepository.countByCreatedAtAfter(now.minusDays(7));
+        long thisMonth = profileRepository.countByCreatedAtAfter(now.minusDays(30));
+
+        Map<String, Long> byRole = new LinkedHashMap<>();
+        for (Object[] row : profileRepository.countByRoleGrouped()) {
+            byRole.put((String) row[0], (Long) row[1]);
+        }
+
+        long totalLeads = leadRepository.count();
+        long leadsThisWeek = leadRepository.countByCreatedAtAfter(now.minusDays(7));
+        long convertedLeads = leadRepository.countByConvertedTrue();
+
+        return ResponseEntity.ok(Map.of(
+                "totalUsers", total,
+                "newThisWeek", thisWeek,
+                "newThisMonth", thisMonth,
+                "byRole", byRole,
+                "totalLeads", totalLeads,
+                "leadsThisWeek", leadsThisWeek,
+                "convertedLeads", convertedLeads
+        ));
+    }
+
+    // ── Leads Management ─────────────────────────────────
+
+    @GetMapping("/leads")
+    public ResponseEntity<Page<UserLead>> getLeads(
+            Authentication auth,
+            @RequestParam(required = false) String city,
+            Pageable pageable) {
+        requireAdmin(auth);
+        if (city != null && !city.isBlank()) {
+            return ResponseEntity.ok(leadRepository.findByCityIgnoreCaseOrderByCreatedAtDesc(city, pageable));
+        }
+        return ResponseEntity.ok(leadRepository.findAllByOrderByCreatedAtDesc(pageable));
     }
 
     private void requireAdmin(Authentication auth) {
