@@ -1,6 +1,6 @@
 package com.safar.chef.controller;
 
-import com.safar.chef.dto.CreateChefMenuRequest;
+import com.safar.chef.dto.*;
 import com.safar.chef.entity.ChefMenu;
 import com.safar.chef.entity.MenuItem;
 import com.safar.chef.service.ChefMenuService;
@@ -45,5 +45,28 @@ public class ChefMenuController {
         UUID userId = UUID.fromString(auth.getName());
         chefMenuService.deleteMenu(userId, menuId);
         return ResponseEntity.noContent().build();
+    }
+
+    // ── Ingredients ─────────────────────────────────────────
+
+    @GetMapping("/menu-items/{menuItemId}/ingredients")
+    public ResponseEntity<List<IngredientResponse>> getIngredients(@PathVariable UUID menuItemId) {
+        return ResponseEntity.ok(chefMenuService.getIngredients(menuItemId));
+    }
+
+    @PutMapping("/menu-items/{menuItemId}/ingredients")
+    public ResponseEntity<List<IngredientResponse>> setIngredients(
+            @PathVariable UUID menuItemId,
+            @RequestBody List<IngredientRequest> ingredients) {
+        return ResponseEntity.ok(chefMenuService.setIngredients(menuItemId, ingredients));
+    }
+
+    // ── Shopping List ───────────────────────────────────────
+
+    @GetMapping("/menus/{menuId}/shopping-list")
+    public ResponseEntity<ShoppingListResponse> getShoppingList(
+            @PathVariable UUID menuId,
+            @RequestParam(defaultValue = "4") int guests) {
+        return ResponseEntity.ok(chefMenuService.generateShoppingList(menuId, guests));
     }
 }

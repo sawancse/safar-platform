@@ -540,14 +540,20 @@ export default function ListingsPage() {
       width: 160,
       render: (_, r) => {
         const host = hostsMap[r.hostId];
-        return host ? (
+        return (
           <div>
-            <div style={{ fontWeight: 600 }}>{host.name || '—'}</div>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>{host.phone || host.email || '—'}</div>
-            {host.kycStatus && <Tag color={host.kycStatus === 'VERIFIED' ? 'green' : 'orange'} style={{ fontSize: 10, marginTop: 2 }}>{host.kycStatus}</Tag>}
+            {host ? (
+              <>
+                <div style={{ fontWeight: 600 }}>{host.name || '—'}</div>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>{host.phone || '—'}</div>
+                {host.email && <div style={{ fontSize: 11, color: '#9ca3af' }}>{host.email}</div>}
+                {host.kycStatus && <Tag color={host.kycStatus === 'VERIFIED' ? 'green' : 'orange'} style={{ fontSize: 10, marginTop: 2 }}>{host.kycStatus}</Tag>}
+              </>
+            ) : (
+              <div style={{ fontSize: 12, color: '#9ca3af' }}>Loading host…</div>
+            )}
+            <div style={{ fontSize: 10, color: '#d1d5db', marginTop: 2, fontFamily: 'monospace' }}>{r.hostId?.slice(0, 12)}…</div>
           </div>
-        ) : (
-          <Text type="secondary" style={{ fontSize: 12 }}>ID: {r.hostId?.slice(0, 8)}… (loading…)</Text>
         );
       },
     },
