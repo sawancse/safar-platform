@@ -6,6 +6,8 @@ spring:
     hikari:
       maximum-pool-size: 10
       minimum-idle: 3
+  flyway:
+    validate-on-migrate: false
 
 spring.kafka:
   bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}

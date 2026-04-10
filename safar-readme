@@ -617,3 +617,62 @@ upon clicking PG management it's getting logged out.
 2). do ticket management who stay in hotel/apartment. to get neccesasry suppoort oor basic thing water, breakfast lunch ordering etc.
 
 3). received email notification. why 404 for https://ysafar.com/dashboard/bookings/SAF-BKG-RC524G
+
+==========
+@10/04/2026
+-----------
+1). cook dahsboard i
+s not showing booking details
+2). notification is missed when kafka is down how to handle it 
+3). No settlement plan exists for booking 1abdabce-da64-40ad-b6cc-976ff9cc7e58. 4).For cash bookings, provide totalAmountPaise, hostId, bookingType, hostTier params to create one.
+http://localhost:3000/cooks/my-bookings  track chef is not working as eta , lat, lng not shared what is design around this
+
+customer : 92123 45678
+cookL
+sawan kumar
++917367034295
+sawancse@gmail.com
+
+● MSG91 accepted and verified the OTP on their side, but the SMS never delivered to your phone. This confirms the issue
+  is DLT compliance.
+                                                                                                                          India requires these for SMS delivery:
+                                                                                                                          ┌─────────────────────────────────────┬────────────┐
+  │             Requirement             │   Status   │
+  ├─────────────────────────────────────┼────────────┤
+  │ MSG91 account + API key             │ ✅ Working │
+  ├─────────────────────────────────────┼────────────┤
+  │ DLT Entity registration (TRAI)      │ ❌ Missing │
+  ├─────────────────────────────────────┼────────────┤
+  │ DLT-approved sender ID (e.g. SAFAR) │ ❌ Missing │
+  ├─────────────────────────────────────┼────────────┤
+  │ DLT-approved SMS template           │ ❌ Missing │
+  ├─────────────────────────────────────┼────────────┤
+  │ Template ID in MSG91                │ ❌ Not set │
+  └─────────────────────────────────────┴────────────┘
+
+  To fix this, you need to:
+
+  1. Register on DLT portal — go to one of these:
+    - Jio: https://trueconnect.jio.com
+    - Airtel: https://www.airtel.in/business/commercial-communication
+    - Vodafone: https://www.vilpower.in
+  2. Register entity (company: Safar Technologies) → get Entity ID
+  3. Register sender ID → "SAFAR" (6 chars, alphanumeric)
+  4. Register SMS template like:
+  Your Safar verification code is: {#var#}. Valid for {#var#} minutes. Do not share.
+  4. → Get Template ID
+  5. Add to MSG91 dashboard → Map DLT entity ID + template ID
+  6. Set env var: MSG91_TEMPLATE_ID=<your-template-id>
+
+===============
+1).{"type":"about:blank","title":"Bad Request","status":400,"detail":"Property not available: Listing status is DRAFT (must be VERIFIED to accept bookings)","instance":"/api/v1/bookings"}
+
+https://www.ysafar.com/book/a8bc1904-bb80-4b01-899d-fbf1ec80f9d0?checkIn=2026-04-12&checkOut=2026-05-12&rooms=1&guests=1&adults=1&children=0&infants=0&pets=0&roomSelections=%5B%7B%22id%22%3A%2203855916-069d-4c8c-9c39-dd59adaa58dd%22%2C%22c%22%3A1%2C%22rooms%22%3A1%2C%22gpr%22%3A5%7D%5D
+
+curL:
+curl -s http://localhost:8092/api/v1/users/hosts/92ebd08c-f323-4312-a5f8-3d96b7271385 2>&1 | head -20
+
+PG use cases:
+---------------
+host:
+customer: 
