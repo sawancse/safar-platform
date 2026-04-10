@@ -181,11 +181,13 @@ export default function BookingsPage() {
           {r.status === 'COMPLETED' && (
             <Popconfirm title="Process settlement for this booking?" onConfirm={async () => {
               try {
-                // For COD bookings, pass amount info so settlement plan can be auto-created
-                const params = r.paymentMode === 'PAY_AT_PROPERTY' || r.paymentMode === 'CASH_COLLECTED'
-                  ? `?totalAmountPaise=${r.totalAmountPaise || 0}&hostId=${r.hostId || ''}&bookingType=${r.bookingType || 'SHORT_TERM'}`
-                  : '';
-                await adminApi.processSettlementByBooking(r.id + params, token);
+                const isCash = r.paymentMode === 'PAY_AT_PROPERTY' || r.paymentMode === 'CASH_COLLECTED';
+                await adminApi.processSettlementByBooking(r.id, token, isCash ? {
+                  totalAmountPaise: r.totalAmountPaise || 0,
+                  hostId: r.hostId || '',
+                  bookingType: r.bookingType || 'SHORT_TERM',
+                  hostTier: 'STARTER',
+                } : undefined);
                 message.success('Settlement processed');
               } catch (e: any) { message.error(e?.response?.data?.detail || 'Settlement failed'); }
             }}>

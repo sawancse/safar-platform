@@ -250,8 +250,14 @@ export const adminApi = {
     return axios.post(`${BASE}/admin/settlements/${planId}/process`, {}, { headers: authHeaders(token) });
   },
 
-  processSettlementByBooking(bookingId: string, token: string) {
-    return axios.post(`${BASE}/admin/settlements/by-booking/${bookingId}/process`, {}, { headers: authHeaders(token) });
+  processSettlementByBooking(bookingId: string, token: string, params?: { totalAmountPaise?: number; hostId?: string; bookingType?: string; hostTier?: string }) {
+    const qs = new URLSearchParams();
+    if (params?.totalAmountPaise) qs.set('totalAmountPaise', String(params.totalAmountPaise));
+    if (params?.hostId) qs.set('hostId', params.hostId);
+    if (params?.bookingType) qs.set('bookingType', params.bookingType);
+    if (params?.hostTier) qs.set('hostTier', params.hostTier || 'STARTER');
+    const q = qs.toString() ? `?${qs}` : '';
+    return axios.post(`${BASE}/admin/settlements/by-booking/${bookingId}/process${q}`, {}, { headers: authHeaders(token) });
   },
 
   retryPayout(payoutId: string, token: string) {
