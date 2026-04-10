@@ -15,7 +15,7 @@ public class LeadActivity {
     private UUID leadId;
     private String email;
     @Column(nullable = false) private String activityType;
-    @Column(columnDefinition = "TEXT") private String metadata;
+    @Column(columnDefinition = "jsonb") private String metadata;
     @Builder.Default private Integer scoreDelta = 0;
     @CreationTimestamp private OffsetDateTime createdAt;
 }
