@@ -165,6 +165,13 @@ public class PinService {
 
     // ── Check if user has PIN set ──
 
+    public boolean hasPin(String phone) {
+        try {
+            User user = userRepository.findByPhone(phone).orElse(null);
+            return user != null && user.hasPin();
+        } catch (Exception e) { return false; }
+    }
+
     public Map<String, Object> checkPinStatus(String phone, String email) {
         try {
             User user = findUser(phone, email);

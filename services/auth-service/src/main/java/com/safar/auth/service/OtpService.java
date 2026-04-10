@@ -37,7 +37,11 @@ public class OtpService {
     private static final String DEV_OTP       = "123456";
     private static final int    MAX_ATTEMPTS  = 3;
 
-    public void sendOtp(String phone) {
+    /**
+     * Send OTP via configured provider.
+     * @return true if SMS was delivered (or dev mode), false if delivery failed
+     */
+    public boolean sendOtp(String phone) {
         checkRateLimit(phone);
 
         String otp = generateOtp();
@@ -51,11 +55,14 @@ public class OtpService {
             boolean sent = msg91Client.sendOtp(phone, otp);
             if (sent) {
                 log.info("OTP sent to {} via MSG91", maskPhone(phone));
+                return true;
             } else {
                 log.warn("MSG91 delivery failed for {}, OTP still stored in Redis", maskPhone(phone));
+                return false;
             }
         } else {
             log.info("OTP for {}: {} (provider=log)", phone, otp);
+            return true; // dev/log mode always "succeeds"
         }
     }
 

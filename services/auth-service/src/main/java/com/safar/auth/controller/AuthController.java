@@ -24,10 +24,28 @@ public class AuthController {
     private final PinService      pinService;
 
     @PostMapping("/otp/send")
-    public ResponseEntity<Void> sendOtp(
+    public ResponseEntity<Map<String, Object>> sendOtp(
             @Valid @RequestBody SendOtpRequest request) {
-        otpService.sendOtp(request.phone());
-        return ResponseEntity.ok().build();
+        boolean delivered = otpService.sendOtp(request.phone());
+        boolean hasPin = pinService.hasPin(request.phone());
+        boolean hasPassword = passwordService.hasPassword(request.phone());
+
+        Map<String, Object> response = new java.util.LinkedHashMap<>();
+        response.put("delivered", delivered);
+        response.put("hasPin", hasPin);
+        response.put("hasPassword", hasPassword);
+
+        if (!delivered && (hasPin || hasPassword)) {
+            response.put("fallback", hasPin ? "PIN" : "PASSWORD");
+            response.put("message", "SMS delivery failed. You can login with your " + (hasPin ? "PIN" : "password") + " instead.");
+        } else if (!delivered) {
+            response.put("fallback", "NONE");
+            response.put("message", "SMS delivery failed. Please try again or use email OTP.");
+        } else {
+            response.put("message", "OTP sent successfully");
+        }
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/otp/verify")

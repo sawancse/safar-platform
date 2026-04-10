@@ -25,6 +25,13 @@ public class PasswordService {
     private final JwtService jwtService;
     private final OtpService otpService;
 
+    public boolean hasPassword(String phone) {
+        try {
+            User user = userRepository.findByPhone(phone).orElse(null);
+            return user != null && user.getPasswordHash() != null && !user.getPasswordHash().isBlank();
+        } catch (Exception e) { return false; }
+    }
+
     private static final int MAX_FAILED_ATTEMPTS = 5;
     private static final int LOCK_MINUTES = 15;
     private static final Pattern UPPER_CASE = Pattern.compile("[A-Z]");
