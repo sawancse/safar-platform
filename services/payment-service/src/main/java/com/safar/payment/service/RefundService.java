@@ -34,8 +34,10 @@ public class RefundService {
     @Transactional
     public RefundRecord initiateRefund(UUID paymentId, UUID bookingId, long amountPaise,
                                        String reason, RefundType type) {
+        // Try by paymentId first, fall back to bookingId lookup
         Payment payment = paymentRepo.findById(paymentId)
-                .orElseThrow(() -> new IllegalArgumentException("Payment not found: " + paymentId));
+                .or(() -> bookingId != null ? paymentRepo.findFirstByBookingIdOrderByCreatedAtDesc(bookingId) : java.util.Optional.empty())
+                .orElseThrow(() -> new IllegalArgumentException("Payment not found for paymentId=" + paymentId + " or bookingId=" + bookingId));
 
         RefundRecord refund = RefundRecord.builder()
                 .paymentId(paymentId)

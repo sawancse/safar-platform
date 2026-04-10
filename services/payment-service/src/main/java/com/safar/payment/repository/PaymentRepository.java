@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     Optional<Payment> findByRazorpayOrderId(String razorpayOrderId);
     Optional<Payment> findByRazorpayPaymentId(String razorpayPaymentId);
+    Optional<Payment> findFirstByBookingIdOrderByCreatedAtDesc(UUID bookingId);
 }
