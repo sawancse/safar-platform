@@ -34,13 +34,15 @@ public class RefundService {
     @Transactional
     public RefundRecord initiateRefund(UUID paymentId, UUID bookingId, long amountPaise,
                                        String reason, RefundType type) {
-        // Try by paymentId first, fall back to bookingId lookup
+        // Try to find the payment record; for COD bookings there may be none
         Payment payment = paymentRepo.findById(paymentId)
                 .or(() -> bookingId != null ? paymentRepo.findFirstByBookingIdOrderByCreatedAtDesc(bookingId) : java.util.Optional.empty())
-                .orElseThrow(() -> new IllegalArgumentException("Payment not found for paymentId=" + paymentId + " or bookingId=" + bookingId));
+                .orElse(null);
+
+        boolean isCashRefund = (payment == null || payment.getRazorpayPaymentId() == null);
 
         RefundRecord refund = RefundRecord.builder()
-                .paymentId(paymentId)
+                .paymentId(payment != null ? payment.getId() : paymentId)
                 .bookingId(bookingId)
                 .amountPaise(amountPaise)
                 .reason(reason)
@@ -53,30 +55,39 @@ public class RefundService {
             refund.setStatus(RefundStatus.PROCESSING);
             refundRecordRepo.save(refund);
 
-            String gatewayRefundId = razorpayGateway.refund(payment.getRazorpayPaymentId(), amountPaise);
-            refund.setGatewayRefundId(gatewayRefundId);
+            if (isCashRefund) {
+                // COD/Cash booking — no Razorpay refund, record ledger entry only
+                refund.setGatewayRefundId("CASH_REFUND");
+                log.info("Cash refund recorded (no gateway) for booking {}: {} paise", bookingId, amountPaise);
+            } else {
+                // Online payment — refund via Razorpay
+                String gatewayRefundId = razorpayGateway.refund(payment.getRazorpayPaymentId(), amountPaise);
+                refund.setGatewayRefundId(gatewayRefundId);
+            }
+
             refund.setStatus(RefundStatus.COMPLETED);
             refund.setCompletedAt(OffsetDateTime.now());
             refundRecordRepo.save(refund);
 
             ledgerService.recordEntry(
                     bookingId,
-                    "REFUND",
-                    "escrow_account",
+                    isCashRefund ? "CASH_REFUND" : "REFUND",
+                    isCashRefund ? "cash_account" : "escrow_account",
                     "guest_receivable",
                     amountPaise,
-                    "Refund: " + reason + " (" + type + ")",
+                    "Refund: " + reason + " (" + type + ")" + (isCashRefund ? " [CASH]" : ""),
                     refund.getId()
             );
 
             kafka.send("payment.refunded", bookingId != null ? bookingId.toString() : paymentId.toString());
-            log.info("Refund completed for payment {}: {} paise, reason={}", paymentId, amountPaise, reason);
+            log.info("Refund completed for {} {}: {} paise, reason={}",
+                    isCashRefund ? "cash booking" : "payment", paymentId, amountPaise, reason);
 
         } catch (Exception e) {
             refund.setStatus(RefundStatus.FAILED);
             refund.setFailureReason(e.getMessage());
             refundRecordRepo.save(refund);
-            log.error("Refund failed for payment {}: {}", paymentId, e.getMessage());
+            log.error("Refund failed for {}: {}", paymentId, e.getMessage());
         }
 
         return refund;

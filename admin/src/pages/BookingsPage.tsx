@@ -163,14 +163,29 @@ export default function BookingsPage() {
           )}
           {r.status === 'CANCELLED' && r.totalAmountPaise > 0 && (
             <Button size="small" icon={<RollbackOutlined />}
-              onClick={() => { setRefundModal({ open: true, booking: r }); setRefundAmount(String(r.totalAmountPaise / 100)); setRefundReason(''); }}>
-              Refund
+              onClick={() => { setRefundModal({ open: true, booking: r }); setRefundAmount(String((r.paymentMode === 'PAY_AT_PROPERTY' ? (r.cashCollectedPaise || 0) : r.totalAmountPaise) / 100)); setRefundReason(''); }}>
+              {r.paymentMode === 'PAY_AT_PROPERTY' ? 'Cash Refund' : 'Refund'}
             </Button>
+          )}
+          {r.status === 'PENDING_PAYMENT' && r.paymentMode === 'PAY_AT_PROPERTY' && (
+            <Popconfirm title="Confirm this cash booking?" onConfirm={async () => {
+              try {
+                await adminApi.adminConfirmCashBooking(r.id, token);
+                message.success('Cash booking confirmed');
+                load();
+              } catch { message.error('Confirm failed'); }
+            }}>
+              <Button size="small" type="primary">Confirm Cash</Button>
+            </Popconfirm>
           )}
           {r.status === 'COMPLETED' && (
             <Popconfirm title="Process settlement for this booking?" onConfirm={async () => {
               try {
-                await adminApi.processSettlementByBooking(r.id, token);
+                // For COD bookings, pass amount info so settlement plan can be auto-created
+                const params = r.paymentMode === 'PAY_AT_PROPERTY' || r.paymentMode === 'CASH_COLLECTED'
+                  ? `?totalAmountPaise=${r.totalAmountPaise || 0}&hostId=${r.hostId || ''}&bookingType=${r.bookingType || 'SHORT_TERM'}`
+                  : '';
+                await adminApi.processSettlementByBooking(r.id + params, token);
                 message.success('Settlement processed');
               } catch (e: any) { message.error(e?.response?.data?.detail || 'Settlement failed'); }
             }}>
@@ -402,7 +417,13 @@ export default function BookingsPage() {
         {refundModal.booking && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <p>Booking: <strong>{refundModal.booking.bookingRef}</strong></p>
-            <p>Total Paid: <strong>{INR(refundModal.booking.totalAmountPaise)}</strong></p>
+            {refundModal.booking.paymentMode === 'PAY_AT_PROPERTY' && (
+              <p style={{ background: '#fff7ed', padding: '8px 12px', borderRadius: 8, border: '1px solid #fed7aa' }}>
+                <strong>Cash/COD Booking</strong> — No online payment. This records a cash refund in the ledger only (no Razorpay refund).
+                {refundModal.booking.cashCollectedPaise > 0 && <><br/>Cash collected: <strong>{INR(refundModal.booking.cashCollectedPaise)}</strong></>}
+              </p>
+            )}
+            <p>Total Amount: <strong>{INR(refundModal.booking.totalAmountPaise)}</strong></p>
             <div>
               <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Refund Amount (INR)</label>
               <Input type="number" value={refundAmount} onChange={e => setRefundAmount(e.target.value)}

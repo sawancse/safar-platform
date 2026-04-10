@@ -559,14 +559,25 @@ public class BookingService {
             listingClient.blockDates(req.listingId(), checkInDate, checkOutDate);
         }
 
+        // PAY_AT_PROPERTY: auto-confirm (no online payment required)
+        if ("PAY_AT_PROPERTY".equals(paymentMode)) {
+            saved.setStatus(BookingStatus.CONFIRMED);
+            saved = bookingRepo.save(saved);
+            log.info("Auto-confirmed PAY_AT_PROPERTY booking: {}", saved.getBookingRef());
+        }
+
         // Send Kafka event AFTER transaction commits so notification-service can find the booking
         final UUID savedId = saved.getId();
         final String savedRef = saved.getBookingRef();
+        final boolean isConfirmed = saved.getStatus() == BookingStatus.CONFIRMED;
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
                 try {
                     kafka.send("booking.created", savedId != null ? savedId.toString() : "");
+                    if (isConfirmed) {
+                        kafka.send("booking.confirmed", savedId != null ? savedId.toString() : "");
+                    }
                 } catch (Exception e) {
                     log.warn("Failed to send Kafka event for created booking {}: {}", savedRef, e.getMessage());
                 }
@@ -1188,6 +1199,48 @@ public class BookingService {
 
         log.info("Admin cancelled booking {} (ref: {})", bookingId, booking.getBookingRef());
         return toResponse(cancelled);
+    }
+
+    // ── Admin: confirm cash/COD booking ─────────────────────────────────────
+
+    @Transactional
+    public BookingResponse adminConfirmCashBooking(UUID bookingId) {
+        Booking booking = getBookingById(bookingId);
+        if (booking.getStatus() != BookingStatus.PENDING_PAYMENT && booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new IllegalStateException("Booking cannot be confirmed in status: " + booking.getStatus());
+        }
+        if (booking.getStatus() == BookingStatus.CONFIRMED) {
+            return toResponse(booking); // already confirmed
+        }
+        booking.setStatus(BookingStatus.CONFIRMED);
+        Booking confirmed = bookingRepo.save(booking);
+        try { kafka.send("booking.confirmed", bookingId.toString()); }
+        catch (Exception e) { log.warn("Kafka booking.confirmed failed: {}", e.getMessage()); }
+        log.info("Admin confirmed cash booking {} (ref: {})", bookingId, booking.getBookingRef());
+        return toResponse(confirmed);
+    }
+
+    @Transactional
+    public BookingResponse adminRecordCashPayment(UUID bookingId, long amountPaise, String note) {
+        Booking booking = getBookingById(bookingId);
+        if (!"PAY_AT_PROPERTY".equals(booking.getPaymentMode()) && !"PARTIAL_PREPAID".equals(booking.getPaymentMode())) {
+            throw new IllegalStateException("Cash payment recording only for PAY_AT_PROPERTY/PARTIAL_PREPAID bookings");
+        }
+        // Track cash collected
+        long previousPaid = booking.getCashCollectedPaise() != null ? booking.getCashCollectedPaise() : 0;
+        booking.setCashCollectedPaise(previousPaid + amountPaise);
+        booking.setCashCollectionNote(note);
+
+        // If fully paid, update payment mode status
+        long totalDue = booking.getTotalAmountPaise() != null ? booking.getTotalAmountPaise() : 0;
+        if (booking.getCashCollectedPaise() >= totalDue) {
+            booking.setPaymentMode("CASH_COLLECTED");
+        }
+
+        Booking saved = bookingRepo.save(booking);
+        log.info("Admin recorded cash payment {} paise for booking {} (total collected: {})",
+                amountPaise, booking.getBookingRef(), booking.getCashCollectedPaise());
+        return toResponse(saved);
     }
 
     // ── Admin: deposit refund (bypasses host ownership check) ───────────────

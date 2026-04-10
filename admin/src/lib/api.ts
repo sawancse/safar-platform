@@ -226,6 +226,14 @@ export const adminApi = {
     return axios.post(`${BASE}/admin/bookings/${id}/cancel?reason=${encodeURIComponent(reason)}`, {}, { headers: authHeaders(token) });
   },
 
+  adminConfirmCashBooking(id: string, token: string) {
+    return axios.post(`${BASE}/admin/bookings/${id}/confirm-cash`, {}, { headers: authHeaders(token) });
+  },
+
+  adminRecordCashPayment(id: string, amountPaise: number, note: string, token: string) {
+    return axios.post(`${BASE}/admin/bookings/${id}/record-cash-payment?amountPaise=${amountPaise}&note=${encodeURIComponent(note)}`, {}, { headers: authHeaders(token) });
+  },
+
   getBookingStats(token: string, days = 30) {
     return axios.get(`${BASE}/admin/bookings/stats?days=${days}`, { headers: authHeaders(token) }).then(r => r.data).catch(() => null);
   },

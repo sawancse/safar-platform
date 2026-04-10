@@ -214,6 +214,12 @@ public class Booking {
     @Column(name = "due_at_property_paise")
     private Long dueAtPropertyPaise; // remaining amount to pay at check-in
 
+    @Column(name = "cash_collected_paise")
+    private Long cashCollectedPaise; // cash amount collected at property
+
+    @Column(name = "cash_collection_note")
+    private String cashCollectionNote;
+
     // Inclusions & Perks
     @Column(name = "inclusions_total_paise")
     @Builder.Default

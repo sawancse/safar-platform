@@ -137,11 +137,32 @@ public class AdminPaymentController {
     }
 
     @PostMapping("/settlements/by-booking/{bookingId}/process")
-    public ResponseEntity<SettlementPlan> processSettlementByBooking(@PathVariable UUID bookingId, Authentication auth) {
+    public ResponseEntity<SettlementPlan> processSettlementByBooking(
+            @PathVariable UUID bookingId,
+            @RequestParam(required = false) Long totalAmountPaise,
+            @RequestParam(required = false) String bookingType,
+            @RequestParam(required = false) UUID hostId,
+            @RequestParam(required = false) String hostTier,
+            Authentication auth) {
         requireAdmin(auth);
-        SettlementPlan plan = settlementPlanRepository.findByBookingId(bookingId)
-                .orElseThrow(() -> new IllegalArgumentException("No settlement plan found for booking: " + bookingId));
-        log.info("Admin manually processing settlement for booking {} (plan {})", bookingId, plan.getId());
+
+        // Try existing plan first
+        SettlementPlan plan = settlementPlanRepository.findByBookingId(bookingId).orElse(null);
+
+        // If no plan exists (COD/cash bookings), auto-create one
+        if (plan == null) {
+            if (totalAmountPaise == null || totalAmountPaise <= 0) {
+                throw new IllegalArgumentException("No settlement plan exists for booking " + bookingId
+                        + ". For cash bookings, provide totalAmountPaise, hostId, bookingType, hostTier params to create one.");
+            }
+            log.info("Auto-creating settlement plan for cash booking {} (amount={} paise)", bookingId, totalAmountPaise);
+            plan = settlementService.createSettlementPlan(
+                    bookingId, null, totalAmountPaise,
+                    bookingType != null ? bookingType : "SHORT_TERM",
+                    hostId, null, hostTier != null ? hostTier : "STARTER");
+        }
+
+        log.info("Admin processing settlement for booking {} (plan {})", bookingId, plan.getId());
         SettlementPlan processed = settlementService.processSettlement(plan.getId());
         return ResponseEntity.ok(processed);
     }

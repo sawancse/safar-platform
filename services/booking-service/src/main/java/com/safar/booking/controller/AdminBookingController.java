@@ -82,6 +82,26 @@ public class AdminBookingController {
         return ResponseEntity.ok(bookingService.adminCancelBooking(id, reason));
     }
 
+    // ── Confirm cash/COD booking (mark as payment collected at property) ────
+
+    @PostMapping("/bookings/{id}/confirm-cash")
+    public ResponseEntity<BookingResponse> adminConfirmCash(
+            Authentication auth,
+            @PathVariable UUID id) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(bookingService.adminConfirmCashBooking(id));
+    }
+
+    @PostMapping("/bookings/{id}/record-cash-payment")
+    public ResponseEntity<BookingResponse> adminRecordCashPayment(
+            Authentication auth,
+            @PathVariable UUID id,
+            @RequestParam long amountPaise,
+            @RequestParam(required = false) String note) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(bookingService.adminRecordCashPayment(id, amountPaise, note));
+    }
+
     // ── Admin deposit refund ──────────────────────────────────────────────────
 
     @PostMapping("/bookings/{id}/deposit-refund")

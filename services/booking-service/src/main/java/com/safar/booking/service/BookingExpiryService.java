@@ -48,25 +48,31 @@ public class BookingExpiryService {
         List<Booking> pendingBookings = bookingRepo.findByStatus(BookingStatus.PENDING_PAYMENT);
 
         for (Booking booking : pendingBookings) {
+            // Skip COD / Pay at Property bookings — they don't need online payment
+            String pm = booking.getPaymentMode();
+            if ("PAY_AT_PROPERTY".equals(pm)) {
+                continue; // No expiry, no reminders — guest pays at check-in
+            }
+
             OffsetDateTime createdAt = booking.getCreatedAt();
             long minutesElapsed = java.time.Duration.between(createdAt, now).toMinutes();
 
-            // Auto-expire after 24 hours
-            if (minutesElapsed >= EXPIRY_HOURS * 60) {
+            // PARTIAL_PREPAID: only expire after 48h (more time to arrange partial payment)
+            long expiryMinutes = "PARTIAL_PREPAID".equals(pm) ? 48 * 60 : EXPIRY_HOURS * 60;
+
+            // Auto-expire after deadline
+            if (minutesElapsed >= expiryMinutes) {
                 expireBooking(booking);
                 continue;
             }
 
             // Send payment reminders via Kafka events (notification-service handles emails)
-            // Use Redis to track which reminders have been sent
             String reminder1Key = "booking:reminder1:" + booking.getId();
             String reminder2Key = "booking:reminder2:" + booking.getId();
 
             if (minutesElapsed >= REMINDER_2_MINUTES) {
-                // Send urgent reminder (1 hour) — only if not already sent
                 sendReminderIfNeeded(booking, reminder2Key, "payment.reminder.urgent");
             } else if (minutesElapsed >= REMINDER_1_MINUTES) {
-                // Send first reminder (15 min) — only if not already sent
                 sendReminderIfNeeded(booking, reminder1Key, "payment.reminder");
             }
         }
