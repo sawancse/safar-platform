@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"/></head>
+<body style="margin:0;padding:0;background:#F7F7F7;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F7F7;padding:24px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+  <!-- Header -->
+  <tr><td style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:24px;text-align:center;">
+    <span style="font-family:Georgia,serif;font-style:italic;font-size:28px;color:#FF5A5F;font-weight:bold;">S</span>
+    <span style="font-family:Georgia,serif;font-size:28px;color:#FF5A5F;">afar</span>
+  </td></tr>
+  <!-- Hero -->
+  <tr><td style="background:linear-gradient(135deg,#2980b9,#3498db);padding:36px 24px;text-align:center;">
+    <div style="font-size:26px;color:#fff;font-weight:bold;">Top Stays Waiting For You</div>
+    <div style="color:rgba(255,255,255,0.9);margin-top:8px;font-size:15px;">Handpicked just for you</div>
+  </td></tr>
+  <!-- Body -->
+  <tr><td style="padding:32px 36px;">
+    <p style="font-size:16px;color:#333;margin:0 0 16px;">Hi <span th:text="${ctx.guestName}">Guest</span>,</p>
+    <p style="font-size:15px;color:#555;line-height:1.6;margin:0 0 24px;">
+      We handpicked amazing stays in <strong th:text="${ctx.city}">your city</strong> that we think you'll love.
+    </p>
+    <!-- Category Cards -->
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td width="33%" style="padding:0 6px 0 0;vertical-align:top;">
+          <div style="background:#e8f5e9;border-radius:10px;padding:20px 12px;text-align:center;">
+            <div style="font-size:28px;">&#x1F3D4;&#xFE0F;</div>
+            <div style="font-size:14px;font-weight:bold;color:#2e7d32;margin-top:8px;">Hill Stations</div>
+            <div style="font-size:12px;color:#555;margin-top:4px;">Cool retreats in the mountains</div>
+          </div>
+        </td>
+        <td width="33%" style="padding:0 3px;vertical-align:top;">
+          <div style="background:#e3f2fd;border-radius:10px;padding:20px 12px;text-align:center;">
+            <div style="font-size:28px;">&#x1F3D6;&#xFE0F;</div>
+            <div style="font-size:14px;font-weight:bold;color:#1565c0;margin-top:8px;">Beach Getaways</div>
+            <div style="font-size:12px;color:#555;margin-top:4px;">Sun, sand &amp; serenity</div>
+          </div>
+        </td>
+        <td width="33%" style="padding:0 0 0 6px;vertical-align:top;">
+          <div style="background:#fff3e0;border-radius:10px;padding:20px 12px;text-align:center;">
+            <div style="font-size:28px;">&#x1F3F0;</div>
+            <div style="font-size:14px;font-weight:bold;color:#e65100;margin-top:8px;">Heritage Havelis</div>
+            <div style="font-size:12px;color:#555;margin-top:4px;">Royal stays with history</div>
+          </div>
+        </td>
+      </tr>
+    </table>
+    <div style="text-align:center;margin:28px 0;">
+      <a href="https://ysafar.com/search" style="background:#FF5A5F;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:bold;display:inline-block;">Browse Deals</a>
+    </div>
+  </td></tr>
+  <!-- Footer -->
+  <tr><td style="background:#f9f9f9;padding:20px 36px;text-align:center;border-top:1px solid #eee;">
+    <p style="font-size:12px;color:#999;margin:0;">Safar Technologies Pvt. Ltd. | Hyderabad, India</p>
+    <p style="font-size:12px;color:#999;margin:6px 0 0;">
+      <a href="https://ysafar.com" style="color:#FF5A5F;text-decoration:none;">ysafar.com</a>
+    </p>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>

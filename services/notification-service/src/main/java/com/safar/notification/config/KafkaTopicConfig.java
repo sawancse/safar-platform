@@ -46,4 +46,13 @@ public class KafkaTopicConfig {
     // Medical & donation events consumed
     @Bean public NewTopic medicalBookingCreated() { return new NewTopic("medical.booking.created", 1, (short) 1); }
     @Bean public NewTopic donationCaptured() { return new NewTopic("donation.captured", 1, (short) 1); }
+
+    // Lead management events consumed
+    @Bean public NewTopic leadCaptured() { return new NewTopic("lead.captured", 1, (short) 1); }
+    @Bean public NewTopic leadNurtureWelcome() { return new NewTopic("lead.nurture.welcome", 1, (short) 1); }
+    @Bean public NewTopic leadNurtureDay3() { return new NewTopic("lead.nurture.day3", 1, (short) 1); }
+    @Bean public NewTopic leadNurtureDay7() { return new NewTopic("lead.nurture.day7", 1, (short) 1); }
+    @Bean public NewTopic leadNurtureReEngagement() { return new NewTopic("lead.nurture.re-engagement", 1, (short) 1); }
+    @Bean public NewTopic leadPriceDropped() { return new NewTopic("lead.price.dropped", 1, (short) 1); }
+    @Bean public NewTopic leadLocalityNewListing() { return new NewTopic("lead.locality.new-listing", 1, (short) 1); }
 }

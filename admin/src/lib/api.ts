@@ -524,4 +524,16 @@ export const adminApi = {
     if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); });
     return axios.get(`${BASE}/admin/leads?${qs}`, { headers: authHeaders(token) }).then(r => r.data);
   },
+
+  getLeadStats(token: string) {
+    return axios.get(`${BASE}/admin/leads/stats`, { headers: authHeaders(token) }).then(r => r.data).catch(() => ({}));
+  },
+
+  getLeadCampaigns(token: string) {
+    return axios.get(`${BASE}/admin/leads/campaigns`, { headers: authHeaders(token) }).then(r => r.data).catch(() => []);
+  },
+
+  toggleCampaign(campaignId: string, token: string) {
+    return axios.post(`${BASE}/admin/leads/campaigns/${campaignId}/toggle`, {}, { headers: authHeaders(token) }).then(r => r.data);
+  },
 };

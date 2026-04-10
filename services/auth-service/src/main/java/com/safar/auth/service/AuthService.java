@@ -220,6 +220,7 @@ public class AuthService {
             Map<String, Object> body = new HashMap<>();
             body.put("name", user.getName());
             body.put("phone", user.getPhone());
+            body.put("email", user.getEmail());
             body.put("role", user.getRole().name());
             restTemplate.postForEntity(url, body, Void.class);
         } catch (Exception e) {

@@ -37,7 +37,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/brokers/search").permitAll()
                         .requestMatchers("/api/v1/brokers/{id}").permitAll()
                         .requestMatchers("/api/v1/leads").permitAll()
-                        .requestMatchers("/api/v1/leads/unsubscribe").permitAll()
+                        .requestMatchers("/api/v1/leads/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(e -> e

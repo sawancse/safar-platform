@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Table, Tag, Card, Row, Col, Statistic, Select, Input, Button, DatePicker, Tabs, Modal, Descriptions } from 'antd';
-import { UserOutlined, TeamOutlined, SearchOutlined, MailOutlined, RiseOutlined } from '@ant-design/icons';
+import { Table, Tag, Card, Row, Col, Statistic, Select, Input, Button, DatePicker, Tabs, Modal, Descriptions, Switch, Progress, message, Space, Badge } from 'antd';
+import { UserOutlined, TeamOutlined, SearchOutlined, MailOutlined, RiseOutlined, ThunderboltOutlined, FunnelPlotOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { adminApi } from '../lib/api';
 
@@ -26,6 +26,8 @@ export default function UsersPage() {
   const [leads, setLeads] = useState<any[]>([]);
   const [leadsLoading, setLeadsLoading] = useState(false);
   const [detail, setDetail] = useState<any>(null);
+  const [leadStats, setLeadStats] = useState<any>(null);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
 
   // Filters
   const [role, setRole] = useState('');
@@ -52,10 +54,15 @@ export default function UsersPage() {
 
   const loadLeads = () => {
     setLeadsLoading(true);
-    adminApi.getLeads(token)
-      .then((data: any) => setLeads(data.content || []))
-      .catch(() => setLeads([]))
-      .finally(() => setLeadsLoading(false));
+    Promise.all([
+      adminApi.getLeads(token, { sortBy: 'score' }).then((data: any) => data.content || []).catch(() => []),
+      adminApi.getLeadStats(token),
+      adminApi.getLeadCampaigns(token),
+    ]).then(([l, s, c]) => {
+      setLeads(l);
+      setLeadStats(s);
+      setCampaigns(Array.isArray(c) ? c : []);
+    }).finally(() => setLeadsLoading(false));
   };
 
   useEffect(() => { loadUsers(); loadStats(); }, [role, status]);
@@ -106,23 +113,42 @@ export default function UsersPage() {
     },
   ];
 
+  const SEGMENT_COLORS: Record<string, string> = {
+    NEW: 'default', WARM: 'orange', HOT: 'red', COLD: 'blue', CONVERTED: 'green', HOST_PROSPECT: 'purple',
+  };
+
   const leadColumns: ColumnsType<any> = [
-    { title: 'Email', dataIndex: 'email', width: 220 },
-    { title: 'Name', dataIndex: 'name', width: 150, render: (v: string) => v || '—' },
-    { title: 'City', dataIndex: 'city', width: 120, render: (v: string) => v || '—' },
-    { title: 'Source', dataIndex: 'source', width: 130, render: (v: string) => <Tag>{v}</Tag> },
-    {
-      title: 'Subscribed', dataIndex: 'subscribed', width: 90,
-      render: (v: boolean) => v ? <Tag color="green">Yes</Tag> : <Tag color="red">No</Tag>,
-    },
-    {
-      title: 'Converted', dataIndex: 'converted', width: 90,
-      render: (v: boolean) => v ? <Tag color="blue">Yes</Tag> : '—',
-    },
-    {
-      title: 'Captured', dataIndex: 'createdAt', width: 120,
+    { title: 'Email', dataIndex: 'email', width: 200, ellipsis: true },
+    { title: 'Name', dataIndex: 'name', width: 130, render: (v: string) => v || '—' },
+    { title: 'City', dataIndex: 'city', width: 100, render: (v: string) => v || '—' },
+    { title: 'Score', dataIndex: 'leadScore', width: 80, sorter: (a: any, b: any) => (a.leadScore || 0) - (b.leadScore || 0),
+      render: (v: number) => <Progress percent={Math.min(v || 0, 100)} size="small" strokeColor={v >= 80 ? '#f5222d' : v >= 40 ? '#fa8c16' : '#1890ff'} format={() => v || 0} /> },
+    { title: 'Segment', dataIndex: 'segment', width: 110,
+      render: (v: string) => <Tag color={SEGMENT_COLORS[v] || 'default'}>{v}</Tag>,
+      filters: Object.keys(SEGMENT_COLORS).map(k => ({ text: k, value: k })),
+      onFilter: (val: any, r: any) => r.segment === val },
+    { title: 'Source', dataIndex: 'source', width: 120, render: (v: string) => <Tag>{v?.replace(/_/g, ' ')}</Tag>,
+      filters: ['WEBSITE_POPUP', 'EXIT_INTENT', 'PRICE_ALERT', 'LOCALITY_ALERT', 'HOST_CALCULATOR', 'REFERRAL', 'LANDING_PAGE'].map(k => ({ text: k.replace(/_/g, ' '), value: k })),
+      onFilter: (val: any, r: any) => r.source === val },
+    { title: 'Type', dataIndex: 'leadType', width: 80, render: (v: string) => v === 'HOST_PROSPECT' ? <Tag color="purple">Host</Tag> : <Tag>Guest</Tag> },
+    { title: 'Converted', dataIndex: 'converted', width: 85,
+      render: (v: boolean) => v ? <Tag color="green">Yes</Tag> : '—',
+      filters: [{ text: 'Converted', value: true }, { text: 'Not converted', value: false }],
+      onFilter: (val: any, r: any) => r.converted === val },
+    { title: 'WhatsApp', dataIndex: 'whatsappOptin', width: 85, render: (v: boolean) => v ? <Tag color="green">Yes</Tag> : '—' },
+    { title: 'Nurture', dataIndex: 'nurtureStage', width: 100, render: (v: string) => v && v !== 'NONE' ? <Tag color="cyan">{v}</Tag> : '—' },
+    { title: 'Activity', width: 110, render: (_: any, r: any) => (
+      <span style={{ fontSize: 11 }}>
+        {r.pagesViewed > 0 && `${r.pagesViewed}pg `}
+        {r.searchesPerformed > 0 && `${r.searchesPerformed}srch `}
+        {r.listingsViewed > 0 && `${r.listingsViewed}list `}
+        {r.wishlistCount > 0 && `${r.wishlistCount}wish`}
+        {!r.pagesViewed && !r.searchesPerformed && !r.listingsViewed && !r.wishlistCount && '—'}
+      </span>
+    )},
+    { title: 'Captured', dataIndex: 'createdAt', width: 100,
       render: (d: string) => d ? new Date(d).toLocaleDateString('en-IN') : '—',
-    },
+      sorter: (a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() },
   ];
 
   return (
@@ -178,13 +204,76 @@ export default function UsersPage() {
             ),
           },
           {
-            key: 'leads', label: `Leads`,
+            key: 'leads', label: <Badge count={leadStats?.totalLeads || 0} offset={[16, 0]} overflowCount={9999}>Leads</Badge>,
             children: (
               <>
+                {/* Lead Stats Row */}
+                {leadStats && (
+                  <Row gutter={12} style={{ marginBottom: 16 }}>
+                    <Col span={3}><Card size="small"><Statistic title="Total Leads" value={leadStats.totalLeads} /></Card></Col>
+                    <Col span={3}><Card size="small"><Statistic title="This Week" value={leadStats.leadsThisWeek} valueStyle={{ color: '#1890ff' }} /></Card></Col>
+                    <Col span={3}><Card size="small"><Statistic title="This Month" value={leadStats.leadsThisMonth} valueStyle={{ color: '#52c41a' }} /></Card></Col>
+                    <Col span={3}><Card size="small"><Statistic title="Converted" value={leadStats.convertedLeads} valueStyle={{ color: '#f97316' }} /></Card></Col>
+                    <Col span={3}><Card size="small"><Statistic title="Conv. Rate" value={leadStats.conversionRate} /></Card></Col>
+                    <Col span={3}><Card size="small"><Statistic title="Price Alerts" value={leadStats.activePriceAlerts} prefix={<ThunderboltOutlined />} /></Card></Col>
+                    <Col span={3}><Card size="small"><Statistic title="Area Alerts" value={leadStats.activeLocalityAlerts} /></Card></Col>
+                  </Row>
+                )}
+
+                {/* Segment Funnel + Source Breakdown */}
+                {leadStats?.bySegment && (
+                  <Row gutter={12} style={{ marginBottom: 16 }}>
+                    <Col span={12}>
+                      <Card size="small" title={<><FunnelPlotOutlined /> Lead Funnel</>}>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {Object.entries(leadStats.bySegment as Record<string, number>).map(([seg, cnt]) => (
+                            <Tag key={seg} color={SEGMENT_COLORS[seg] || 'default'} style={{ fontSize: 13, padding: '4px 12px' }}>
+                              {seg}: <strong>{cnt}</strong>
+                            </Tag>
+                          ))}
+                        </div>
+                      </Card>
+                    </Col>
+                    <Col span={12}>
+                      <Card size="small" title="Source Attribution">
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {Object.entries(leadStats.bySource as Record<string, number>).map(([src, cnt]) => {
+                            const conv = (leadStats.conversionBySource as Record<string, number>)?.[src] || 0;
+                            return (
+                              <Tag key={src} style={{ fontSize: 12, padding: '4px 10px' }}>
+                                {src.replace(/_/g, ' ')}: <strong>{cnt}</strong> {conv > 0 && <span style={{ color: '#52c41a' }}>({conv} conv)</span>}
+                              </Tag>
+                            );
+                          })}
+                        </div>
+                      </Card>
+                    </Col>
+                  </Row>
+                )}
+
+                {/* Campaigns */}
+                {campaigns.length > 0 && (
+                  <Card size="small" title="Nurture Campaigns" style={{ marginBottom: 16 }}>
+                    <Table dataSource={campaigns} rowKey="id" size="small" pagination={false} columns={[
+                      { title: 'Campaign', dataIndex: 'name', width: 200 },
+                      { title: 'Type', dataIndex: 'campaignType', width: 140, render: (v: string) => <Tag>{v?.replace(/_/g, ' ')}</Tag> },
+                      { title: 'Segment', dataIndex: 'targetSegment', width: 100, render: (v: string) => <Tag color={SEGMENT_COLORS[v]}>{v}</Tag> },
+                      { title: 'Delay', dataIndex: 'delayHours', width: 70, render: (h: number) => h > 0 ? `${h}h` : 'Instant' },
+                      { title: 'Sent', dataIndex: 'sentCount', width: 60 },
+                      { title: 'Active', dataIndex: 'active', width: 80, render: (v: boolean, r: any) => (
+                        <Switch checked={v} size="small" onChange={async () => {
+                          try { await adminApi.toggleCampaign(r.id, token); loadLeads(); }
+                          catch { message.error('Toggle failed'); }
+                        }} />
+                      )},
+                    ]} />
+                  </Card>
+                )}
+
                 <Button onClick={loadLeads} style={{ marginBottom: 12 }}>Refresh</Button>
                 <Table columns={leadColumns} dataSource={leads} rowKey="id" loading={leadsLoading}
-                  scroll={{ x: 900 }} size="small"
-                  pagination={{ pageSize: 20, showSizeChanger: true, showTotal: t => `${t} leads` }} />
+                  scroll={{ x: 1400 }} size="small"
+                  pagination={{ pageSize: 25, showSizeChanger: true, showTotal: t => `${t} leads` }} />
               </>
             ),
           },

@@ -2,11 +2,14 @@ package com.safar.user.controller;
 
 import com.safar.user.dto.AdminHostDto;
 import com.safar.user.entity.CohostProfile;
+import com.safar.user.entity.NurtureCampaign;
 import com.safar.user.entity.UserLead;
 import com.safar.user.entity.UserProfile;
+import com.safar.user.repository.NurtureCampaignRepository;
 import com.safar.user.repository.ProfileRepository;
 import com.safar.user.repository.UserLeadRepository;
 import com.safar.user.service.CohostService;
+import com.safar.user.service.LeadManagementService;
 import com.safar.user.service.ProfileService;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +39,8 @@ public class AdminUserController {
     private final CohostService cohostService;
     private final ProfileRepository profileRepository;
     private final UserLeadRepository leadRepository;
+    private final NurtureCampaignRepository nurtureCampaignRepository;
+    private final LeadManagementService leadManagementService;
     private final RestTemplate restTemplate;
 
     @Value("${services.listing-service.url}")
@@ -274,18 +279,44 @@ public class AdminUserController {
         ));
     }
 
-    // ── Leads Management ─────────────────────────────────
+    // ── Leads Management (enhanced) ────────────────────────────
 
     @GetMapping("/leads")
     public ResponseEntity<Page<UserLead>> getLeads(
             Authentication auth,
             @RequestParam(required = false) String city,
+            @RequestParam(required = false) String segment,
+            @RequestParam(defaultValue = "score") String sortBy,
             Pageable pageable) {
         requireAdmin(auth);
         if (city != null && !city.isBlank()) {
             return ResponseEntity.ok(leadRepository.findByCityIgnoreCaseOrderByCreatedAtDesc(city, pageable));
         }
+        if ("score".equals(sortBy)) {
+            return ResponseEntity.ok(leadRepository.findAllByOrderByLeadScoreDesc(pageable));
+        }
         return ResponseEntity.ok(leadRepository.findAllByOrderByCreatedAtDesc(pageable));
+    }
+
+    @GetMapping("/leads/stats")
+    public ResponseEntity<Map<String, Object>> getLeadStats(Authentication auth) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(leadManagementService.getLeadStats());
+    }
+
+    @GetMapping("/leads/campaigns")
+    public ResponseEntity<List<NurtureCampaign>> getCampaigns(Authentication auth) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(nurtureCampaignRepository.findAll());
+    }
+
+    @PostMapping("/leads/campaigns/{id}/toggle")
+    public ResponseEntity<NurtureCampaign> toggleCampaign(Authentication auth, @PathVariable UUID id) {
+        requireAdmin(auth);
+        NurtureCampaign c = nurtureCampaignRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Campaign not found"));
+        c.setActive(!c.getActive());
+        return ResponseEntity.ok(nurtureCampaignRepository.save(c));
     }
 
     private void requireAdmin(Authentication auth) {

@@ -43,6 +43,60 @@ public class UserLead {
 
     private UUID convertedUserId;
 
+    // Scoring
+    @Builder.Default
+    private Integer leadScore = 0;
+    @Builder.Default
+    private Integer intentScore = 0;
+    @Builder.Default
+    private Integer behavioralScore = 0;
+    @Builder.Default
+    private Integer demographicScore = 0;
+    @Builder.Default
+    private Integer recencyScore = 0;
+
+    @Column(length = 30)
+    @Builder.Default
+    private String segment = "NEW";
+
+    @Builder.Default
+    private Boolean whatsappOptin = false;
+
+    private OffsetDateTime lastActiveAt;
+
+    @Builder.Default
+    private Integer pagesViewed = 0;
+    @Builder.Default
+    private Integer searchesPerformed = 0;
+    @Builder.Default
+    private Integer listingsViewed = 0;
+    @Builder.Default
+    private Integer wishlistCount = 0;
+    @Builder.Default
+    private Boolean checkoutAttempted = false;
+
+    @Column(length = 500)
+    private String lastSearchQuery;
+    @Column(length = 100)
+    private String lastSearchCity;
+
+    // Nurturing
+    @Column(length = 30)
+    @Builder.Default
+    private String nurtureStage = "NONE";
+    @Builder.Default
+    private Boolean nurtureDay0Sent = false;
+    @Builder.Default
+    private Boolean nurtureDay3Sent = false;
+    @Builder.Default
+    private Boolean nurtureDay7Sent = false;
+
+    private OffsetDateTime convertedAt;
+
+    @Column(length = 20)
+    @Builder.Default
+    private String leadType = "GUEST";
+
     @CreationTimestamp
     private OffsetDateTime createdAt;
 

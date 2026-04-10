@@ -163,6 +163,8 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         // VAS: Interior designers & material catalog — public browse
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/interiors/designers")) return true;
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/interiors/materials/catalog")) return true;
+        // Lead capture — public (no auth needed for email capture, activity tracking, alerts, calculator)
+        if (path.startsWith("/api/v1/leads")) return true;
         // Dish catalog — public browse and cook matching
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/dishes")) return true;
         if (HttpMethod.POST.equals(method) && path.equals("/api/v1/dishes/match-chefs")) return true;

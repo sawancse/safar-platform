@@ -28,13 +28,23 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class ProfileService {
 
     private final ProfileRepository profileRepository;
     private final HostSubscriptionRepository hostSubscriptionRepository;
     private final RestTemplate restTemplate;
+    private final LeadManagementService leadManagementService;
+
+    public ProfileService(ProfileRepository profileRepository,
+                           HostSubscriptionRepository hostSubscriptionRepository,
+                           RestTemplate restTemplate,
+                           @org.springframework.context.annotation.Lazy LeadManagementService leadManagementService) {
+        this.profileRepository = profileRepository;
+        this.hostSubscriptionRepository = hostSubscriptionRepository;
+        this.restTemplate = restTemplate;
+        this.leadManagementService = leadManagementService;
+    }
 
     @Value("${services.media-service.url}")
     private String mediaServiceUrl;
@@ -156,9 +166,17 @@ public class ProfileService {
 
         if (req.name() != null) profile.setName(req.name());
         if (req.phone() != null) profile.setPhone(req.phone());
+        if (req.email() != null) profile.setEmail(req.email());
         if (req.role() != null) profile.setRole(req.role());
 
         profileRepository.save(profile);
+
+        // Auto-convert matching lead
+        try {
+            leadManagementService.checkAndConvertLead(userId, req.email(), req.phone());
+        } catch (Exception e) {
+            log.warn("Lead conversion check failed for userId={}: {}", userId, e.getMessage());
+        }
     }
 
     @Transactional

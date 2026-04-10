@@ -38,4 +38,14 @@ public class KafkaTopicConfig {
     public NewTopic conciergeDailyTopic() {
         return new NewTopic("concierge.daily", 1, (short) 1);
     }
+
+    // Lead management topics
+    @Bean public NewTopic leadCapturedTopic() { return new NewTopic("lead.captured", 1, (short) 1); }
+    @Bean public NewTopic leadConvertedTopic() { return new NewTopic("lead.converted", 1, (short) 1); }
+    @Bean public NewTopic leadNurtureWelcomeTopic() { return new NewTopic("lead.nurture.welcome", 1, (short) 1); }
+    @Bean public NewTopic leadNurtureDay3Topic() { return new NewTopic("lead.nurture.day3", 1, (short) 1); }
+    @Bean public NewTopic leadNurtureDay7Topic() { return new NewTopic("lead.nurture.day7", 1, (short) 1); }
+    @Bean public NewTopic leadNurtureReEngagementTopic() { return new NewTopic("lead.nurture.re-engagement", 1, (short) 1); }
+    @Bean public NewTopic leadPriceDropTopic() { return new NewTopic("lead.price.dropped", 1, (short) 1); }
+    @Bean public NewTopic leadLocalityNewTopic() { return new NewTopic("lead.locality.new-listing", 1, (short) 1); }
 }
