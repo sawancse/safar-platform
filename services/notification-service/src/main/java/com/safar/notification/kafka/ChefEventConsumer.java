@@ -33,7 +33,9 @@ public class ChefEventConsumer {
 
     @KafkaListener(
             topics = {"chef.booking.created", "chef.booking.confirmed",
-                      "chef.booking.cancelled", "chef.booking.completed"},
+                      "chef.booking.cancelled", "chef.booking.completed",
+                      "chef.booking.payment.confirmed", "chef.booking.modified",
+                      "chef.booking.reminder"},
             groupId = "notification-chef-group"
     )
     public void onChefBookingEvent(String message,
@@ -47,10 +49,19 @@ public class ChefEventConsumer {
             String chefName = txt(node, "chefName", "Chef");
             String customerName = txt(node, "customerName", "Customer");
             String serviceDate = txt(node, "serviceDate", "");
+            String serviceTime = txt(node, "serviceTime", "");
             String mealType = txt(node, "mealType", "");
             String city = txt(node, "city", "");
             long totalPaise = node.has("totalAmountPaise") ? node.get("totalAmountPaise").asLong() : 0;
             String amount = formatINR(totalPaise);
+
+            // Parse advance/balance amounts
+            long advancePaise = node.has("advanceAmountPaise") ? node.get("advanceAmountPaise").asLong() : 0;
+            long balancePaise = node.has("balanceAmountPaise") ? node.get("balanceAmountPaise").asLong() : 0;
+
+            // Parse cancellation/refund fields
+            String cancellationReason = txt(node, "cancellationReason", null);
+            long refundPaise = node.has("refundAmountPaise") ? node.get("refundAmountPaise").asLong() : 0;
 
             // Build shared context
             EmailContext ctx = new EmailContext();
@@ -58,15 +69,28 @@ public class ChefEventConsumer {
             ctx.setChefName(chefName);
             ctx.setCustomerName(customerName);
             ctx.setServiceDate(serviceDate);
+            ctx.setServiceTime(serviceTime);
             ctx.setMealType(mealType);
             ctx.setTotalAmount(amount);
             ctx.setCity(city);
+            ctx.setAdvanceAmount(formatINR(advancePaise));
+            ctx.setBalanceAmount(formatINR(balancePaise));
+            if (cancellationReason != null && !cancellationReason.isBlank()) {
+                ctx.setCancellationReason(cancellationReason);
+            }
+            if (refundPaise > 0) {
+                ctx.setRefundAmount(formatINR(refundPaise));
+                ctx.setRefundTimeline("3-5 business days");
+            }
 
             switch (topic) {
                 case "chef.booking.created" -> handleCreated(bookingId, customerId, chefId, chefName, customerName, bookingRef, serviceDate, mealType, amount, ctx);
                 case "chef.booking.confirmed" -> handleConfirmed(bookingId, customerId, chefId, chefName, customerName, bookingRef, serviceDate, mealType, amount, ctx);
                 case "chef.booking.cancelled" -> handleCancelled(bookingId, customerId, chefId, chefName, customerName, bookingRef, serviceDate, mealType, ctx);
                 case "chef.booking.completed" -> handleCompleted(bookingId, customerId, chefId, chefName, customerName, bookingRef, serviceDate, mealType, amount, ctx);
+                case "chef.booking.payment.confirmed" -> handlePaymentConfirmed(bookingId, customerId, chefId, chefName, customerName, bookingRef, serviceDate, mealType, amount, ctx);
+                case "chef.booking.modified" -> handleModified(bookingId, customerId, chefId, chefName, customerName, bookingRef, serviceDate, mealType, amount, ctx);
+                case "chef.booking.reminder" -> handleReminder(bookingId, customerId, chefId, chefName, customerName, bookingRef, serviceDate, serviceTime, mealType, ctx);
                 default -> log.warn("Unhandled chef topic: {}", topic);
             }
         } catch (Exception e) {
@@ -190,6 +214,93 @@ public class ChefEventConsumer {
         }
 
         log.info("Chef booking completed notifications sent: {}", bookingRef);
+    }
+
+    // ── Payment Confirmed ─────────────────────────────────────────────────
+
+    private void handlePaymentConfirmed(String bookingId, String customerId, String chefId,
+                                         String chefName, String customerName, String bookingRef,
+                                         String serviceDate, String mealType, String amount, EmailContext ctx) {
+        if (customerId != null) {
+            inAppNotificationService.create(
+                    UUID.fromString(customerId),
+                    "Payment Received",
+                    "Payment for booking " + bookingRef + " has been confirmed. Advance: " + ctx.getAdvanceAmount() + ". Your cook will arrive at the scheduled time.",
+                    "CHEF_BOOKING_PAYMENT_CONFIRMED", bookingId, "CHEF_BOOKING");
+
+            sendHtmlEmail(customerId, "Payment Received — " + bookingRef,
+                    "chef-booking-payment-confirmed", ctx);
+        }
+
+        if (chefId != null) {
+            inAppNotificationService.create(
+                    UUID.fromString(chefId),
+                    "Payment Received",
+                    "Payment confirmed for booking " + bookingRef + " from " + customerName + ". Advance: " + ctx.getAdvanceAmount(),
+                    "CHEF_BOOKING_PAYMENT_CONFIRMED", bookingId, "CHEF_BOOKING");
+        }
+
+        log.info("Chef booking payment confirmed notifications sent: {}", bookingRef);
+    }
+
+    // ── Booking Modified ─────────────────────────────────────────────────
+
+    private void handleModified(String bookingId, String customerId, String chefId,
+                                 String chefName, String customerName, String bookingRef,
+                                 String serviceDate, String mealType, String amount, EmailContext ctx) {
+        if (customerId != null) {
+            inAppNotificationService.create(
+                    UUID.fromString(customerId),
+                    "Booking Updated",
+                    "Your booking " + bookingRef + " with " + chefName + " has been updated. Total: " + amount,
+                    "CHEF_BOOKING_MODIFIED", bookingId, "CHEF_BOOKING");
+
+            sendHtmlEmail(customerId, "Booking Updated — " + bookingRef,
+                    "chef-booking-modified", ctx);
+        }
+
+        if (chefId != null) {
+            inAppNotificationService.create(
+                    UUID.fromString(chefId),
+                    "Booking Updated",
+                    "Booking " + bookingRef + " from " + customerName + " has been modified. New total: " + amount,
+                    "CHEF_BOOKING_MODIFIED", bookingId, "CHEF_BOOKING");
+
+            sendHtmlEmail(chefId, "Booking Updated — " + bookingRef,
+                    "chef-booking-modified", ctx);
+        }
+
+        log.info("Chef booking modified notifications sent: {}", bookingRef);
+    }
+
+    // ── Booking Reminder ───────────────────────────────────────────────────
+
+    private void handleReminder(String bookingId, String customerId, String chefId,
+                                 String chefName, String customerName, String bookingRef,
+                                 String serviceDate, String serviceTime, String mealType, EmailContext ctx) {
+        if (customerId != null) {
+            inAppNotificationService.create(
+                    UUID.fromString(customerId),
+                    "Reminder: Cook Arriving Tomorrow",
+                    "Your cook " + chefName + " will arrive tomorrow (" + serviceDate + ") at " + serviceTime + " for " + mealType + ". Booking: " + bookingRef,
+                    "CHEF_BOOKING_REMINDER", bookingId, "CHEF_BOOKING");
+
+            sendHtmlEmail(customerId, "Reminder: Cook Tomorrow — " + bookingRef,
+                    "chef-booking-reminder", ctx);
+        }
+
+        if (chefId != null) {
+            inAppNotificationService.create(
+                    UUID.fromString(chefId),
+                    "Reminder: Booking Tomorrow",
+                    "You have a booking " + bookingRef + " with " + customerName + " tomorrow (" + serviceDate + ") at " + serviceTime + ".",
+                    "CHEF_BOOKING_REMINDER", bookingId, "CHEF_BOOKING");
+
+            sendHtmlEmail(chefId, "Reminder: Booking Tomorrow — " + bookingRef,
+                    "chef-booking-reminder", ctx);
+        }
+
+        log.info("Chef booking reminder notifications sent: {}", bookingRef);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

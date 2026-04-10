@@ -467,6 +467,13 @@ curl -X POST http://localhost:8083/api/v1/builder-projects/admin/reindex
   ! net start winnat                                                                                                    
   This requires Admin privileges.
   
+ To permanently fix it, run once in an Administrator terminal:
+
+  net stop winnat
+  netsh int ipv4 add excludedportrange protocol=tcp startport=3000 numberofports=10
+  net start winnat
+
+  This tells Windows to always reserve 3000–3009 for you instead of letting Hyper-V grab them. It survives reboots.
   
 docker compose -f C:/Users/Win-10/safar-platform/docker-compose.yml up -d zookeeper kafka
 

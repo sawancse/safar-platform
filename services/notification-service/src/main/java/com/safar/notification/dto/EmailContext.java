@@ -146,6 +146,9 @@ public class EmailContext {
     private String staffAmount;
     private String advanceAmount;
     private String balanceAmount;
+    private String venueAddress;
+    private String duration;
+    private int guestCount;
     private String subscriptionPlan;
     private String monthlyAmount;
     private String startDate;
@@ -470,6 +473,12 @@ public class EmailContext {
     public void setAdvanceAmount(String advanceAmount) { this.advanceAmount = advanceAmount; }
     public String getBalanceAmount() { return balanceAmount; }
     public void setBalanceAmount(String balanceAmount) { this.balanceAmount = balanceAmount; }
+    public String getVenueAddress() { return venueAddress; }
+    public void setVenueAddress(String venueAddress) { this.venueAddress = venueAddress; }
+    public String getDuration() { return duration; }
+    public void setDuration(String duration) { this.duration = duration; }
+    public int getGuestCount() { return guestCount; }
+    public void setGuestCount(int guestCount) { this.guestCount = guestCount; }
     public String getSubscriptionPlan() { return subscriptionPlan; }
     public void setSubscriptionPlan(String subscriptionPlan) { this.subscriptionPlan = subscriptionPlan; }
     public String getMonthlyAmount() { return monthlyAmount; }

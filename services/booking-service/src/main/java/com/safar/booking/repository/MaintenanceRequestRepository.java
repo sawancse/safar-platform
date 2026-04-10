@@ -23,6 +23,14 @@ public interface MaintenanceRequestRepository extends JpaRepository<MaintenanceR
 
     long countByTenancyIdAndStatus(UUID tenancyId, MaintenanceStatus status);
 
+    // Booking-linked (hotel/apartment guest service requests)
+    Page<MaintenanceRequest> findByBookingIdOrderByCreatedAtDesc(UUID bookingId, Pageable pageable);
+
+    Page<MaintenanceRequest> findByBookingIdAndStatusOrderByCreatedAtDesc(
+            UUID bookingId, MaintenanceStatus status, Pageable pageable);
+
+    Page<MaintenanceRequest> findByGuestIdOrderByCreatedAtDesc(UUID guestId, Pageable pageable);
+
     // Host: all tickets for a listing
     Page<MaintenanceRequest> findByListingIdOrderByCreatedAtDesc(UUID listingId, Pageable pageable);
 

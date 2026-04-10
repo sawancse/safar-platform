@@ -29,6 +29,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        // Admin: dish catalog CRUD (must be before public GET dishes rule)
+                        .requestMatchers("/api/v1/dishes/admin/**").authenticated()
+                        // Public: dish catalog & cook matching
+                        .requestMatchers(HttpMethod.GET, "/api/v1/dishes", "/api/v1/dishes/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/dishes/match-chefs").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/chefs/*/dish-offerings").permitAll()
                         .requestMatchers("/api/v1/chefs/admin/**").authenticated()
                         .requestMatchers("/api/v1/chef-bookings/admin/**").authenticated()
                         .requestMatchers("/api/v1/chef-events/admin/**").authenticated()

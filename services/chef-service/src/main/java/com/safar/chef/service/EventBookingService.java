@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,7 @@ public class EventBookingService {
 
     private final EventBookingRepository eventRepo;
     private final ChefProfileRepository chefProfileRepo;
+    private final KafkaTemplate<String, String> kafka;
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -110,6 +112,13 @@ public class EventBookingService {
 
         EventBooking saved = eventRepo.save(event);
         log.info("Event booking created: {} ref={} chef={} customer={}", saved.getId(), saved.getBookingRef(), chef != null ? chef.getId() : "unassigned", customerId);
+
+        try {
+            kafka.send("event.booking.created", saved.getId().toString(), buildEventJson(saved));
+        } catch (Exception e) {
+            log.warn("Failed to send event.booking.created Kafka event: {}", e.getMessage());
+        }
+
         return saved;
     }
 
@@ -147,8 +156,16 @@ public class EventBookingService {
         event.setStatus(EventBookingStatus.QUOTED);
         event.setQuotedAt(OffsetDateTime.now());
 
+        EventBooking saved = eventRepo.save(event);
         log.info("Event booking quoted: {} totalPaise={}", eventId, totalAmountPaise);
-        return eventRepo.save(event);
+
+        try {
+            kafka.send("event.booking.quoted", saved.getId().toString(), buildEventJson(saved));
+        } catch (Exception e) {
+            log.warn("Failed to send event.booking.quoted Kafka event: {}", e.getMessage());
+        }
+
+        return saved;
     }
 
     @Transactional
@@ -165,8 +182,16 @@ public class EventBookingService {
 
         event.setStatus(EventBookingStatus.CONFIRMED);
         event.setConfirmedAt(OffsetDateTime.now());
+        EventBooking saved = eventRepo.save(event);
         log.info("Event booking confirmed: {}", eventId);
-        return eventRepo.save(event);
+
+        try {
+            kafka.send("event.booking.confirmed", saved.getId().toString(), buildEventJson(saved));
+        } catch (Exception e) {
+            log.warn("Failed to send event.booking.confirmed Kafka event: {}", e.getMessage());
+        }
+
+        return saved;
     }
 
     @Transactional
@@ -179,8 +204,16 @@ public class EventBookingService {
         }
 
         event.setStatus(EventBookingStatus.ADVANCE_PAID);
+        EventBooking saved = eventRepo.save(event);
         log.info("Event booking advance paid: {}", eventId);
-        return eventRepo.save(event);
+
+        try {
+            kafka.send("event.booking.advance.paid", saved.getId().toString(), buildEventJson(saved));
+        } catch (Exception e) {
+            log.warn("Failed to send event.booking.advance.paid Kafka event: {}", e.getMessage());
+        }
+
+        return saved;
     }
 
     @Transactional
@@ -205,8 +238,16 @@ public class EventBookingService {
         chef.setTotalBookings(chef.getTotalBookings() + 1);
         chefProfileRepo.save(chef);
 
+        EventBooking saved = eventRepo.save(event);
         log.info("Event booking completed: {}", eventId);
-        return eventRepo.save(event);
+
+        try {
+            kafka.send("event.booking.completed", saved.getId().toString(), buildEventJson(saved));
+        } catch (Exception e) {
+            log.warn("Failed to send event.booking.completed Kafka event: {}", e.getMessage());
+        }
+
+        return saved;
     }
 
     @Transactional
@@ -228,8 +269,16 @@ public class EventBookingService {
         event.setStatus(EventBookingStatus.CANCELLED);
         event.setCancellationReason(reason);
         event.setCancelledAt(OffsetDateTime.now());
+        EventBooking saved = eventRepo.save(event);
         log.info("Event booking cancelled: {} by userId={}", eventId, userId);
-        return eventRepo.save(event);
+
+        try {
+            kafka.send("event.booking.cancelled", saved.getId().toString(), buildEventJson(saved));
+        } catch (Exception e) {
+            log.warn("Failed to send event.booking.cancelled Kafka event: {}", e.getMessage());
+        }
+
+        return saved;
     }
 
     @Transactional
@@ -338,6 +387,39 @@ public class EventBookingService {
     }
 
     @Transactional
+    public EventBooking adminCancelEvent(UUID eventId, String reason) {
+        EventBooking event = eventRepo.findById(eventId)
+                .orElseThrow(() -> new IllegalArgumentException("Event booking not found"));
+        if (event.getStatus() == EventBookingStatus.CANCELLED || event.getStatus() == EventBookingStatus.COMPLETED) {
+            throw new IllegalArgumentException("Event cannot be cancelled in current status");
+        }
+        event.setStatus(EventBookingStatus.CANCELLED);
+        event.setCancellationReason(reason != null ? reason : "Cancelled by admin");
+        event.setCancelledAt(OffsetDateTime.now());
+        EventBooking saved = eventRepo.save(event);
+        log.info("Admin cancelled event booking: {}", eventId);
+        try { kafka.send("event.booking.cancelled", saved.getId().toString(), buildEventJson(saved)); }
+        catch (Exception e) { log.warn("Kafka event.booking.cancelled failed: {}", e.getMessage()); }
+        return saved;
+    }
+
+    @Transactional
+    public EventBooking adminCompleteEvent(UUID eventId) {
+        EventBooking event = eventRepo.findById(eventId)
+                .orElseThrow(() -> new IllegalArgumentException("Event booking not found"));
+        if (event.getStatus() == EventBookingStatus.COMPLETED || event.getStatus() == EventBookingStatus.CANCELLED) {
+            throw new IllegalArgumentException("Event cannot be completed in current status");
+        }
+        event.setStatus(EventBookingStatus.COMPLETED);
+        event.setCompletedAt(OffsetDateTime.now());
+        EventBooking saved = eventRepo.save(event);
+        log.info("Admin completed event booking: {}", eventId);
+        try { kafka.send("event.booking.completed", saved.getId().toString(), buildEventJson(saved)); }
+        catch (Exception e) { log.warn("Kafka event.booking.completed failed: {}", e.getMessage()); }
+        return saved;
+    }
+
+    @Transactional
     public EventBooking adminAssignChef(UUID eventId, UUID chefId) {
         EventBooking event = eventRepo.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Event booking not found"));
@@ -381,5 +463,31 @@ public class EventBookingService {
     public EventBooking getEvent(UUID eventId) {
         return eventRepo.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Event booking not found"));
+    }
+
+    private String buildEventJson(EventBooking e) {
+        return String.format(
+                "{\"bookingId\":\"%s\",\"bookingRef\":\"%s\",\"chefId\":\"%s\",\"customerId\":\"%s\","
+                + "\"chefName\":\"%s\",\"customerName\":\"%s\",\"eventType\":\"%s\",\"eventDate\":\"%s\","
+                + "\"eventTime\":\"%s\",\"guestCount\":%d,\"venueAddress\":\"%s\",\"city\":\"%s\","
+                + "\"totalAmountPaise\":%d,\"advanceAmountPaise\":%d,\"balanceAmountPaise\":%d,"
+                + "\"durationHours\":%d,\"status\":\"%s\"}",
+                e.getId(),
+                e.getBookingRef() != null ? e.getBookingRef() : "",
+                e.getChefId() != null ? e.getChefId() : "",
+                e.getCustomerId() != null ? e.getCustomerId() : "",
+                e.getChefName() != null ? e.getChefName() : "",
+                e.getCustomerName() != null ? e.getCustomerName() : "",
+                e.getEventType() != null ? e.getEventType() : "",
+                e.getEventDate() != null ? e.getEventDate() : "",
+                e.getEventTime() != null ? e.getEventTime() : "",
+                e.getGuestCount() != null ? e.getGuestCount() : 0,
+                e.getVenueAddress() != null ? e.getVenueAddress().replace("\"", "\\\"") : "",
+                e.getCity() != null ? e.getCity() : "",
+                e.getTotalAmountPaise() != null ? e.getTotalAmountPaise() : 0,
+                e.getAdvanceAmountPaise() != null ? e.getAdvanceAmountPaise() : 0,
+                e.getBalanceAmountPaise() != null ? e.getBalanceAmountPaise() : 0,
+                e.getDurationHours() != null ? e.getDurationHours() : 0,
+                e.getStatus() != null ? e.getStatus() : "");
     }
 }

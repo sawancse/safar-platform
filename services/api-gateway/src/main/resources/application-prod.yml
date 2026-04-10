@@ -256,6 +256,11 @@ spring:
           predicates:
             - Path=/api/v1/admin/payouts/**,/api/v1/admin/settlements/**,/api/v1/admin/reconciliation/**,/api/v1/admin/commission/**
 
+        - id: dish-catalog
+          uri: http://${CHEF_SERVICE_HOST:localhost}:8093
+          predicates:
+            - Path=/api/v1/dishes,/api/v1/dishes/**
+
         - id: chef-profiles
           uri: http://${CHEF_SERVICE_HOST:localhost}:8093
           predicates:
@@ -335,6 +340,26 @@ spring:
           uri: http://${SEARCH_SERVICE_HOST}:8084
           predicates:
             - Path=/api/v1/search/builder-projects/**
+
+        - id: admin-pg-service
+          uri: http://${BOOKING_SERVICE_HOST}:8095
+          predicates:
+            - Path=/api/v1/admin/pg/**
+
+        - id: host-tickets-service
+          uri: http://${BOOKING_SERVICE_HOST}:8095
+          predicates:
+            - Path=/api/v1/listings/*/tickets,/api/v1/listings/*/tickets/**
+
+        - id: admin-experiences-service
+          uri: http://${LISTING_SERVICE_HOST}:8083
+          predicates:
+            - Path=/api/v1/admin/experiences,/api/v1/admin/experiences/**
+
+        - id: admin-users-leads
+          uri: http://${USER_SERVICE_HOST}:8092
+          predicates:
+            - Path=/api/v1/admin/users,/api/v1/admin/users/**,/api/v1/admin/leads,/api/v1/admin/leads/**
 
         - id: admin-listing-service
           uri: http://${LISTING_SERVICE_HOST}:8083

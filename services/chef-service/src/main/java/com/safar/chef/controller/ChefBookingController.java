@@ -37,6 +37,17 @@ public class ChefBookingController {
         return ResponseEntity.ok(chefBookingService.adminAssignChef(id, chefId));
     }
 
+    @PostMapping("/admin/{id}/cancel")
+    public ResponseEntity<ChefBooking> adminCancel(@PathVariable UUID id,
+                                                    @RequestParam(required = false) String reason) {
+        return ResponseEntity.ok(chefBookingService.adminCancelBooking(id, reason));
+    }
+
+    @PostMapping("/admin/{id}/complete")
+    public ResponseEntity<ChefBooking> adminComplete(@PathVariable UUID id) {
+        return ResponseEntity.ok(chefBookingService.adminCompleteBooking(id));
+    }
+
     @PostMapping
     public ResponseEntity<ChefBooking> createBooking(Authentication auth,
                                                       @RequestBody CreateChefBookingRequest req) {

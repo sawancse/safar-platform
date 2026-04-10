@@ -1,6 +1,7 @@
 package com.safar.booking.entity.enums;
 
 public enum MaintenanceCategory {
+    // Common
     PLUMBING,
     ELECTRICAL,
     FURNITURE,
@@ -20,5 +21,18 @@ public enum MaintenanceCategory {
     COMMON_AREA,
     PARKING,
     LAUNDRY,
-    OTHER
+    OTHER,
+    // Hotel / Apartment service categories
+    ROOM_SERVICE,
+    BREAKFAST,
+    LUNCH,
+    DINNER,
+    TOWELS_LINEN,
+    MINIBAR,
+    EXTRA_BED,
+    WAKE_UP_CALL,
+    CHECKOUT_EXTENSION,
+    CONCIERGE,
+    LUGGAGE,
+    TRANSPORT
 }

@@ -6,5 +6,6 @@ public enum RefundType {
     DISPUTE,
     MEDICAL_TREATMENT,
     PRORATED,
-    FX_ADJUSTED
+    FX_ADJUSTED,
+    CHEF_BOOKING
 }

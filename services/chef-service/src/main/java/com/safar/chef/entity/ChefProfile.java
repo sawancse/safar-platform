@@ -122,6 +122,10 @@ public class ChefProfile {
     @Builder.Default
     private Boolean available = true;
 
+    @Column(name = "gas_burners")
+    @Builder.Default
+    private Integer gasBurners = 2;
+
     @Column(name = "bank_account_name")
     private String bankAccountName;
 

@@ -31,6 +31,17 @@ public class KafkaTopicConfig {
     @Bean public NewTopic chefBookingConfirmed() { return new NewTopic("chef.booking.confirmed", 1, (short) 1); }
     @Bean public NewTopic chefBookingCancelled() { return new NewTopic("chef.booking.cancelled", 1, (short) 1); }
     @Bean public NewTopic chefBookingCompleted() { return new NewTopic("chef.booking.completed", 1, (short) 1); }
+    @Bean public NewTopic chefBookingPaymentConfirmed() { return new NewTopic("chef.booking.payment.confirmed", 1, (short) 1); }
+    @Bean public NewTopic chefBookingModified() { return new NewTopic("chef.booking.modified", 1, (short) 1); }
+    @Bean public NewTopic chefBookingReminder() { return new NewTopic("chef.booking.reminder", 1, (short) 1); }
+
+    // Event booking events consumed
+    @Bean public NewTopic eventBookingCreated() { return new NewTopic("event.booking.created", 1, (short) 1); }
+    @Bean public NewTopic eventBookingQuoted() { return new NewTopic("event.booking.quoted", 1, (short) 1); }
+    @Bean public NewTopic eventBookingConfirmed() { return new NewTopic("event.booking.confirmed", 1, (short) 1); }
+    @Bean public NewTopic eventBookingAdvancePaid() { return new NewTopic("event.booking.advance.paid", 1, (short) 1); }
+    @Bean public NewTopic eventBookingCompleted() { return new NewTopic("event.booking.completed", 1, (short) 1); }
+    @Bean public NewTopic eventBookingCancelled() { return new NewTopic("event.booking.cancelled", 1, (short) 1); }
 
     // Medical & donation events consumed
     @Bean public NewTopic medicalBookingCreated() { return new NewTopic("medical.booking.created", 1, (short) 1); }

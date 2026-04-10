@@ -351,6 +351,12 @@ spring:
           predicates:
             - Path=/api/v1/loyalty/**
 
+        # ── Dish Catalog (chef-service, public) ────────────────────────────
+        - id: dish-catalog
+          uri: ${CHEF_SERVICE_URL:http://localhost:8093}
+          predicates:
+            - Path=/api/v1/dishes,/api/v1/dishes/**
+
         # ── Safar Cooks (chef-service) ──────────────────────────────────────
         - id: chef-profiles
           uri: ${CHEF_SERVICE_URL:http://localhost:8093}

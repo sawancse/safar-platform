@@ -41,4 +41,40 @@ public class KafkaTopicConfig {
     public NewTopic chefBookingReminderTopic() {
         return new NewTopic("chef.booking.reminder", 1, (short) 1);
     }
+
+    @Bean
+    public NewTopic chefBookingRefundRequestedTopic() {
+        return new NewTopic("chef.booking.refund.requested", 1, (short) 1);
+    }
+
+    // Event booking topics
+    @Bean
+    public NewTopic eventBookingCreatedTopic() {
+        return new NewTopic("event.booking.created", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic eventBookingQuotedTopic() {
+        return new NewTopic("event.booking.quoted", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic eventBookingConfirmedTopic() {
+        return new NewTopic("event.booking.confirmed", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic eventBookingAdvancePaidTopic() {
+        return new NewTopic("event.booking.advance.paid", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic eventBookingCompletedTopic() {
+        return new NewTopic("event.booking.completed", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic eventBookingCancelledTopic() {
+        return new NewTopic("event.booking.cancelled", 1, (short) 1);
+    }
 }

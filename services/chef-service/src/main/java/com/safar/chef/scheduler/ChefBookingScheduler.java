@@ -39,7 +39,7 @@ public class ChefBookingScheduler {
 
                 try {
                     kafka.send("chef.booking.cancelled", booking.getId().toString(),
-                            String.format("{\"bookingId\":\"%s\",\"reason\":\"auto_expired\"}", booking.getId()));
+                            buildEventJson(booking, "Auto-expired: payment not received within 2 hours"));
                 } catch (Exception e) {
                     log.warn("Kafka send failed for auto-expire: {}", e.getMessage());
                 }
@@ -61,17 +61,31 @@ public class ChefBookingScheduler {
 
                 try {
                     kafka.send("chef.booking.reminder", booking.getId().toString(),
-                            String.format("{\"bookingId\":\"%s\",\"bookingRef\":\"%s\",\"chefName\":\"%s\","
-                                    + "\"customerName\":\"%s\",\"serviceDate\":\"%s\",\"serviceTime\":\"%s\"}",
-                                    booking.getId(), booking.getBookingRef(),
-                                    booking.getChefName() != null ? booking.getChefName() : "",
-                                    booking.getCustomerName() != null ? booking.getCustomerName() : "",
-                                    booking.getServiceDate(), booking.getServiceTime()));
+                            buildEventJson(booking, null));
                 } catch (Exception e) {
                     log.warn("Kafka send failed for reminder: {}", e.getMessage());
                 }
                 log.info("Reminder sent for booking {} on {}", booking.getBookingRef(), tomorrow);
             }
         }
+    }
+
+    private String buildEventJson(ChefBooking b, String cancellationReason) {
+        return String.format(
+                "{\"bookingId\":\"%s\",\"bookingRef\":\"%s\",\"chefId\":\"%s\",\"customerId\":\"%s\","
+                + "\"chefName\":\"%s\",\"customerName\":\"%s\",\"serviceDate\":\"%s\",\"serviceTime\":\"%s\","
+                + "\"mealType\":\"%s\",\"status\":\"%s\",\"totalAmountPaise\":%d,\"advanceAmountPaise\":%d,"
+                + "\"balanceAmountPaise\":%d,\"paymentStatus\":\"%s\",\"city\":\"%s\",\"cancellationReason\":\"%s\"}",
+                b.getId(), b.getBookingRef(), b.getChefId(), b.getCustomerId(),
+                b.getChefName() != null ? b.getChefName() : "",
+                b.getCustomerName() != null ? b.getCustomerName() : "",
+                b.getServiceDate(), b.getServiceTime() != null ? b.getServiceTime() : "",
+                b.getMealType() != null ? b.getMealType() : "",
+                b.getStatus(), b.getTotalAmountPaise() != null ? b.getTotalAmountPaise() : 0,
+                b.getAdvanceAmountPaise() != null ? b.getAdvanceAmountPaise() : 0,
+                b.getBalanceAmountPaise() != null ? b.getBalanceAmountPaise() : 0,
+                b.getPaymentStatus() != null ? b.getPaymentStatus() : "UNPAID",
+                b.getCity() != null ? b.getCity() : "",
+                cancellationReason != null ? cancellationReason : "");
     }
 }

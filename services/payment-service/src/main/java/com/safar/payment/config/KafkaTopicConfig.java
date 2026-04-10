@@ -78,6 +78,13 @@ public class KafkaTopicConfig {
         return new NewTopic("payout.failed", 1, (short) 1);
     }
 
+    // --- Chef booking refund ---
+
+    @Bean
+    public NewTopic chefBookingRefundRequestedTopic() {
+        return new NewTopic("chef.booking.refund.requested", 1, (short) 1);
+    }
+
     // --- Donation topics ---
 
     @Bean

@@ -4,9 +4,12 @@ import com.safar.booking.dto.*;
 import com.safar.booking.entity.MaintenanceRequest;
 import com.safar.booking.entity.PgTenancy;
 import com.safar.booking.entity.TicketComment;
+import com.safar.booking.entity.enums.BookingStatus;
 import com.safar.booking.entity.enums.MaintenanceCategory;
 import com.safar.booking.entity.enums.MaintenancePriority;
 import com.safar.booking.entity.enums.MaintenanceStatus;
+import com.safar.booking.entity.Booking;
+import com.safar.booking.repository.BookingRepository;
 import com.safar.booking.repository.MaintenanceRequestRepository;
 import com.safar.booking.repository.PgTenancyRepository;
 import com.safar.booking.repository.TicketCommentRepository;
@@ -31,16 +34,35 @@ public class MaintenanceRequestService {
     private final MaintenanceRequestRepository requestRepository;
     private final TicketCommentRepository commentRepository;
     private final PgTenancyRepository tenancyRepository;
+    private final BookingRepository bookingRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     private static long requestCounter = 1000;
 
-    // SLA hours per priority
+    // SLA hours per priority (PG / general maintenance)
     private static final Map<MaintenancePriority, Integer> SLA_HOURS = Map.of(
             MaintenancePriority.URGENT, 4,
             MaintenancePriority.HIGH, 12,
             MaintenancePriority.MEDIUM, 24,
             MaintenancePriority.LOW, 48
+    );
+
+    // Faster SLAs for hotel/apartment service requests (in minutes)
+    private static final Map<MaintenancePriority, Integer> SERVICE_SLA_MINUTES = Map.of(
+            MaintenancePriority.URGENT, 15,
+            MaintenancePriority.HIGH, 30,
+            MaintenancePriority.MEDIUM, 60,
+            MaintenancePriority.LOW, 120
+    );
+
+    // Categories that are quick service requests (faster SLA)
+    private static final Set<MaintenanceCategory> SERVICE_CATEGORIES = Set.of(
+            MaintenanceCategory.ROOM_SERVICE, MaintenanceCategory.BREAKFAST,
+            MaintenanceCategory.LUNCH, MaintenanceCategory.DINNER,
+            MaintenanceCategory.TOWELS_LINEN, MaintenanceCategory.MINIBAR,
+            MaintenanceCategory.EXTRA_BED, MaintenanceCategory.WAKE_UP_CALL,
+            MaintenanceCategory.WATER, MaintenanceCategory.CONCIERGE,
+            MaintenanceCategory.LUGGAGE, MaintenanceCategory.TRANSPORT
     );
 
     @Transactional
@@ -78,6 +100,70 @@ public class MaintenanceRequestService {
         kafkaTemplate.send("maintenance.request.created", saved.getId().toString(), saved);
         log.info("Ticket {} created for tenancy {}: {}", saved.getRequestNumber(), tenancyId, req.title());
         return saved;
+    }
+
+    @Transactional
+    public MaintenanceRequest createServiceRequest(UUID bookingId, UUID guestId, CreateMaintenanceRequestDto req) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found: " + bookingId));
+
+        // Only allow service requests for active bookings
+        BookingStatus status = booking.getStatus();
+        if (status != BookingStatus.CONFIRMED && status != BookingStatus.CHECKED_IN) {
+            throw new RuntimeException("Service requests can only be created for confirmed or checked-in bookings");
+        }
+
+        MaintenancePriority priority = req.priority() != null
+                ? MaintenancePriority.valueOf(req.priority())
+                : MaintenancePriority.MEDIUM;
+        MaintenanceCategory category = MaintenanceCategory.valueOf(req.category());
+
+        // Use faster SLA for service categories
+        OffsetDateTime slaDeadline;
+        if (SERVICE_CATEGORIES.contains(category)) {
+            slaDeadline = OffsetDateTime.now().plusMinutes(SERVICE_SLA_MINUTES.get(priority));
+        } else {
+            slaDeadline = OffsetDateTime.now().plusHours(SLA_HOURS.get(priority));
+        }
+
+        MaintenanceRequest request = MaintenanceRequest.builder()
+                .bookingId(bookingId)
+                .guestId(guestId)
+                .listingId(booking.getListingId())
+                .propertyType(booking.getListingType())
+                .requestNumber("SR-" + String.format("%04d", ++requestCounter))
+                .category(category)
+                .title(req.title())
+                .description(req.description())
+                .photoUrls(req.photoUrls())
+                .priority(priority)
+                .status(MaintenanceStatus.OPEN)
+                .slaDeadlineAt(slaDeadline)
+                .escalationLevel(1)
+                .build();
+
+        MaintenanceRequest saved = requestRepository.save(request);
+
+        String slaLabel = SERVICE_CATEGORIES.contains(category)
+                ? SERVICE_SLA_MINUTES.get(priority) + " minutes"
+                : SLA_HOURS.get(priority) + " hours";
+        addSystemComment(saved, "Service request created. SLA deadline: " + slaLabel + ".");
+
+        kafkaTemplate.send("maintenance.request.created", saved.getId().toString(), saved);
+        log.info("Service request {} created for booking {}: {}", saved.getRequestNumber(), bookingId, req.title());
+        return saved;
+    }
+
+    public Page<MaintenanceRequest> getBookingRequests(UUID bookingId, String status, Pageable pageable) {
+        if (status != null && !status.isEmpty()) {
+            return requestRepository.findByBookingIdAndStatusOrderByCreatedAtDesc(
+                    bookingId, MaintenanceStatus.valueOf(status), pageable);
+        }
+        return requestRepository.findByBookingIdOrderByCreatedAtDesc(bookingId, pageable);
+    }
+
+    public Page<MaintenanceRequest> getGuestRequests(UUID guestId, Pageable pageable) {
+        return requestRepository.findByGuestIdOrderByCreatedAtDesc(guestId, pageable);
     }
 
     @Transactional
@@ -286,7 +372,8 @@ public class MaintenanceRequestService {
                 .toList();
 
         return new TicketDetailResponse(
-                r.getId(), r.getTenancyId(), r.getListingId(),
+                r.getId(), r.getTenancyId(), r.getBookingId(),
+                r.getGuestId(), r.getPropertyType(), r.getListingId(),
                 r.getRequestNumber(), r.getCategory().name(),
                 r.getTitle(), r.getDescription(), r.getPhotoUrls(),
                 r.getPriority().name(), r.getStatus().name(),

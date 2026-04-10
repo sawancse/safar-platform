@@ -163,6 +163,9 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         // VAS: Interior designers & material catalog — public browse
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/interiors/designers")) return true;
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/interiors/materials/catalog")) return true;
+        // Dish catalog — public browse and cook matching
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/dishes")) return true;
+        if (HttpMethod.POST.equals(method) && path.equals("/api/v1/dishes/match-chefs")) return true;
         // Internal service-to-service endpoints — no user auth
         if (path.startsWith("/api/v1/internal/")) return true;
         return false;

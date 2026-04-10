@@ -28,8 +28,17 @@ public class MaintenanceRequest {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "tenancy_id", nullable = false)
+    @Column(name = "tenancy_id")
     private UUID tenancyId;
+
+    @Column(name = "booking_id")
+    private UUID bookingId;
+
+    @Column(name = "guest_id")
+    private UUID guestId;
+
+    @Column(name = "property_type", length = 20)
+    private String propertyType;
 
     @Column(name = "listing_id")
     private UUID listingId;

@@ -6,6 +6,9 @@ function authHeaders(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
 
+// Singleton guard — prevents concurrent refresh races from parallel 401s
+let refreshPromise: Promise<string | null> | null = null;
+
 // Auto-refresh token on 401 — only if refresh token exists
 axios.interceptors.response.use(
   (res) => res,
@@ -15,19 +18,28 @@ axios.interceptors.response.use(
       original._retry = true;
       const refreshToken = localStorage.getItem('admin_refresh_token');
       if (refreshToken) {
-        try {
-          const res = await axios.post(`${BASE}/auth/refresh`, { refreshToken });
-          const { accessToken, refreshToken: newRefresh } = res.data;
-          localStorage.setItem('admin_token', accessToken);
-          if (newRefresh) localStorage.setItem('admin_refresh_token', newRefresh);
-          original.headers.Authorization = `Bearer ${accessToken}`;
-          return axios(original);
-        } catch {
-          localStorage.removeItem('admin_token');
-          localStorage.removeItem('admin_refresh_token');
-          window.location.href = '/login';
-          return Promise.reject(error);
+        if (!refreshPromise) {
+          refreshPromise = (async () => {
+            try {
+              const res = await axios.post(`${BASE}/auth/refresh`, { refreshToken });
+              const { accessToken, refreshToken: newRefresh } = res.data;
+              localStorage.setItem('admin_token', accessToken);
+              if (newRefresh) localStorage.setItem('admin_refresh_token', newRefresh);
+              return accessToken;
+            } catch {
+              localStorage.removeItem('admin_token');
+              localStorage.removeItem('admin_refresh_token');
+              window.location.href = '/login';
+              return null;
+            }
+          })().finally(() => { refreshPromise = null; });
         }
+        const newToken = await refreshPromise;
+        if (newToken) {
+          original.headers.Authorization = `Bearer ${newToken}`;
+          return axios(original);
+        }
+        return Promise.reject(error);
       }
       // No refresh token — don't redirect, just let the error bubble up
       // Pages will show empty data; user can manually re-login
@@ -317,6 +329,39 @@ export const adminApi = {
 
   assignChefToEvent(eventId: string, chefId: string, token: string) {
     return axios.post(`${BASE}/chef-events/admin/${eventId}/assign?chefId=${chefId}`, null, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  adminCancelChefBooking(bookingId: string, reason: string, token: string) {
+    return axios.post(`${BASE}/chef-bookings/admin/${bookingId}/cancel?reason=${encodeURIComponent(reason)}`, null, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  adminCompleteChefBooking(bookingId: string, token: string) {
+    return axios.post(`${BASE}/chef-bookings/admin/${bookingId}/complete`, null, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  adminCancelChefEvent(eventId: string, reason: string, token: string) {
+    return axios.post(`${BASE}/chef-events/admin/${eventId}/cancel?reason=${encodeURIComponent(reason)}`, null, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  adminCompleteChefEvent(eventId: string, token: string) {
+    return axios.post(`${BASE}/chef-events/admin/${eventId}/complete`, null, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  // ── Dish Catalog (Admin) ──────────────────────────────────────────────
+  getDishCatalog(token: string) {
+    return axios.get(`${BASE}/dishes/admin/all`, { headers: authHeaders(token) }).then(r => r.data).catch(() => []);
+  },
+
+  createDish(dish: any, token: string) {
+    return axios.post(`${BASE}/dishes/admin`, dish, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  updateDish(dishId: string, dish: any, token: string) {
+    return axios.put(`${BASE}/dishes/admin/${dishId}`, dish, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  deleteDish(dishId: string, token: string) {
+    return axios.delete(`${BASE}/dishes/admin/${dishId}`, { headers: authHeaders(token) }).then(r => r.data);
   },
 
   // ── Experiences (Admin) ────────────────────────────────────────────────

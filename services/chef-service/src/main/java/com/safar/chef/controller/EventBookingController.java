@@ -41,6 +41,17 @@ public class EventBookingController {
         return ResponseEntity.ok(eventBookingService.adminAssignChef(id, chefId));
     }
 
+    @PostMapping("/admin/{id}/cancel")
+    public ResponseEntity<EventBooking> adminCancel(@PathVariable UUID id,
+                                                     @RequestParam(required = false) String reason) {
+        return ResponseEntity.ok(eventBookingService.adminCancelEvent(id, reason));
+    }
+
+    @PostMapping("/admin/{id}/complete")
+    public ResponseEntity<EventBooking> adminComplete(@PathVariable UUID id) {
+        return ResponseEntity.ok(eventBookingService.adminCompleteEvent(id));
+    }
+
     @PostMapping
     public ResponseEntity<EventBooking> createEvent(Authentication auth,
                                                      @RequestBody CreateEventBookingRequest req) {

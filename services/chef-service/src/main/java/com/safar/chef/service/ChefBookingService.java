@@ -191,14 +191,68 @@ public class ChefBookingService {
             throw new IllegalArgumentException("Booking cannot be cancelled in current status");
         }
 
+        // Determine refund amount: full advance refund for paid bookings
+        boolean hasPaid = "ADVANCE_PAID".equals(booking.getPaymentStatus())
+                || "PAID".equals(booking.getPaymentStatus());
+        long refundPaise = hasPaid && booking.getAdvanceAmountPaise() != null
+                ? booking.getAdvanceAmountPaise() : 0;
+
         booking.setStatus(ChefBookingStatus.CANCELLED);
         booking.setCancellationReason(reason);
         booking.setCancelledAt(OffsetDateTime.now());
+        if (refundPaise > 0) {
+            booking.setPaymentStatus("REFUND_INITIATED");
+        }
         ChefBooking saved = bookingRepo.save(booking);
-        log.info("Chef booking cancelled: {} by userId={}", bookingId, userId);
-        try { kafka.send("chef.booking.cancelled", saved.getId().toString(), buildEventJson(saved, null)); }
-        catch (Exception e) { log.warn("Kafka chef.booking.cancelled failed: {}", e.getMessage()); }
+        log.info("Chef booking cancelled: {} by userId={} refundPaise={}", bookingId, userId, refundPaise);
+
+        // Send cancellation notification (with refund info)
+        try {
+            String eventJson = buildCancelEventJson(saved, reason, refundPaise);
+            kafka.send("chef.booking.cancelled", saved.getId().toString(), eventJson);
+        } catch (Exception e) {
+            log.warn("Kafka chef.booking.cancelled failed: {}", e.getMessage());
+        }
+
+        // Request refund from payment-service via Kafka
+        if (refundPaise > 0 && saved.getRazorpayPaymentId() != null) {
+            try {
+                String refundJson = String.format(
+                        "{\"bookingId\":\"%s\",\"bookingRef\":\"%s\",\"razorpayPaymentId\":\"%s\","
+                        + "\"amountPaise\":%d,\"reason\":\"%s\",\"refundType\":\"CHEF_BOOKING\","
+                        + "\"customerId\":\"%s\",\"customerName\":\"%s\",\"chefName\":\"%s\"}",
+                        saved.getId(), saved.getBookingRef(), saved.getRazorpayPaymentId(),
+                        refundPaise, reason != null ? reason : "Booking cancelled",
+                        saved.getCustomerId(),
+                        saved.getCustomerName() != null ? saved.getCustomerName() : "",
+                        saved.getChefName() != null ? saved.getChefName() : "");
+                kafka.send("chef.booking.refund.requested", saved.getId().toString(), refundJson);
+                log.info("Refund requested for chef booking {}: {} paise", saved.getBookingRef(), refundPaise);
+            } catch (Exception e) {
+                log.warn("Kafka chef.booking.refund.requested failed: {}", e.getMessage());
+            }
+        }
+
         return saved;
+    }
+
+    private String buildCancelEventJson(ChefBooking b, String reason, long refundPaise) {
+        return String.format(
+                "{\"bookingId\":\"%s\",\"bookingRef\":\"%s\",\"chefId\":\"%s\",\"customerId\":\"%s\","
+                + "\"chefName\":\"%s\",\"customerName\":\"%s\",\"serviceDate\":\"%s\",\"mealType\":\"%s\","
+                + "\"status\":\"%s\",\"totalAmountPaise\":%d,\"advanceAmountPaise\":%d,"
+                + "\"balanceAmountPaise\":%d,\"paymentStatus\":\"%s\",\"city\":\"%s\","
+                + "\"cancellationReason\":\"%s\",\"refundAmountPaise\":%d}",
+                b.getId(), b.getBookingRef(), b.getChefId(), b.getCustomerId(),
+                b.getChefName() != null ? b.getChefName() : "",
+                b.getCustomerName() != null ? b.getCustomerName() : "",
+                b.getServiceDate(), b.getMealType() != null ? b.getMealType() : "",
+                b.getStatus(), b.getTotalAmountPaise() != null ? b.getTotalAmountPaise() : 0,
+                b.getAdvanceAmountPaise() != null ? b.getAdvanceAmountPaise() : 0,
+                b.getBalanceAmountPaise() != null ? b.getBalanceAmountPaise() : 0,
+                b.getPaymentStatus() != null ? b.getPaymentStatus() : "UNPAID",
+                b.getCity() != null ? b.getCity() : "",
+                reason != null ? reason : "", refundPaise);
     }
 
     @Transactional
@@ -335,6 +389,70 @@ public class ChefBookingService {
     @Transactional(readOnly = true)
     public org.springframework.data.domain.Page<ChefBooking> adminListAll(org.springframework.data.domain.Pageable pageable) {
         return bookingRepo.findAll(pageable);
+    }
+
+    @Transactional
+    public ChefBooking adminCancelBooking(UUID bookingId, String reason) {
+        ChefBooking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+        if (booking.getStatus() == ChefBookingStatus.CANCELLED || booking.getStatus() == ChefBookingStatus.COMPLETED) {
+            throw new IllegalArgumentException("Booking cannot be cancelled in current status");
+        }
+
+        boolean hasPaid = "ADVANCE_PAID".equals(booking.getPaymentStatus())
+                || "PAID".equals(booking.getPaymentStatus());
+        long refundPaise = hasPaid && booking.getAdvanceAmountPaise() != null
+                ? booking.getAdvanceAmountPaise() : 0;
+
+        booking.setStatus(ChefBookingStatus.CANCELLED);
+        booking.setCancellationReason(reason != null ? reason : "Cancelled by admin");
+        booking.setCancelledAt(OffsetDateTime.now());
+        if (refundPaise > 0) {
+            booking.setPaymentStatus("REFUND_INITIATED");
+        }
+        ChefBooking saved = bookingRepo.save(booking);
+        log.info("Admin cancelled chef booking: {} refundPaise={}", bookingId, refundPaise);
+
+        try {
+            kafka.send("chef.booking.cancelled", saved.getId().toString(),
+                    buildCancelEventJson(saved, saved.getCancellationReason(), refundPaise));
+        } catch (Exception e) {
+            log.warn("Kafka chef.booking.cancelled failed: {}", e.getMessage());
+        }
+
+        if (refundPaise > 0 && saved.getRazorpayPaymentId() != null) {
+            try {
+                String refundJson = String.format(
+                        "{\"bookingId\":\"%s\",\"bookingRef\":\"%s\",\"razorpayPaymentId\":\"%s\","
+                        + "\"amountPaise\":%d,\"reason\":\"%s\",\"refundType\":\"CHEF_BOOKING\","
+                        + "\"customerId\":\"%s\",\"customerName\":\"%s\",\"chefName\":\"%s\"}",
+                        saved.getId(), saved.getBookingRef(), saved.getRazorpayPaymentId(),
+                        refundPaise, saved.getCancellationReason(),
+                        saved.getCustomerId(),
+                        saved.getCustomerName() != null ? saved.getCustomerName() : "",
+                        saved.getChefName() != null ? saved.getChefName() : "");
+                kafka.send("chef.booking.refund.requested", saved.getId().toString(), refundJson);
+            } catch (Exception e) {
+                log.warn("Kafka chef.booking.refund.requested failed: {}", e.getMessage());
+            }
+        }
+        return saved;
+    }
+
+    @Transactional
+    public ChefBooking adminCompleteBooking(UUID bookingId) {
+        ChefBooking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+        if (booking.getStatus() == ChefBookingStatus.COMPLETED || booking.getStatus() == ChefBookingStatus.CANCELLED) {
+            throw new IllegalArgumentException("Booking cannot be completed in current status");
+        }
+        booking.setStatus(ChefBookingStatus.COMPLETED);
+        booking.setCompletedAt(OffsetDateTime.now());
+        ChefBooking saved = bookingRepo.save(booking);
+        log.info("Admin completed chef booking: {}", bookingId);
+        try { kafka.send("chef.booking.completed", saved.getId().toString(), buildEventJson(saved, null)); }
+        catch (Exception e) { log.warn("Kafka chef.booking.completed failed: {}", e.getMessage()); }
+        return saved;
     }
 
     @Transactional

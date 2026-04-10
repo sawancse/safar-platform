@@ -7,6 +7,9 @@ import java.util.UUID;
 public record TicketDetailResponse(
         UUID id,
         UUID tenancyId,
+        UUID bookingId,
+        UUID guestId,
+        String propertyType,
         UUID listingId,
         String requestNumber,
         String category,

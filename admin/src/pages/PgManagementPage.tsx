@@ -13,7 +13,7 @@ import axios from 'axios';
 const BASE = (import.meta.env.VITE_API_URL || '') + '/api/v1';
 
 function authHeaders() {
-  const token = localStorage.getItem('access_token') || localStorage.getItem('admin_token') || '';
+  const token = localStorage.getItem('admin_token') || localStorage.getItem('access_token') || '';
   return { Authorization: `Bearer ${token}` };
 }
 
