@@ -390,7 +390,7 @@ export default function BookingsPage() {
               bookingId: b.id,
               amountPaise: Math.round(Number(refundAmount) * 100),
               reason: refundReason.trim(),
-              refundType: 'FULL',
+              refundType: 'FULL_CANCELLATION',
             }, token);
             message.success('Refund initiated');
             setRefundModal({ open: false, booking: null });
