@@ -25,9 +25,14 @@ public class BuilderProjectController {
 
     @GetMapping
     public ResponseEntity<Page<BuilderProjectResponse>> browse(
+            @RequestParam(required = false) String state,
             @RequestParam(required = false) String city,
+            @RequestParam(required = false) String locality,
+            @RequestParam(required = false) Long priceMin,
+            @RequestParam(required = false) Long priceMax,
+            @RequestParam(required = false) Integer bhk,
             Pageable pageable) {
-        return ResponseEntity.ok(projectService.browseProjects(city, pageable));
+        return ResponseEntity.ok(projectService.browseProjects(state, city, locality, priceMin, priceMax, bhk, pageable));
     }
 
     // ── Project CRUD ──────────────────────────────────────────

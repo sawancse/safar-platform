@@ -92,11 +92,21 @@ public class TenancyAgreement {
     @Column(name = "host_signature_ip", length = 45)
     private String hostSignatureIp;
 
+    @Column(name = "host_signed_by")
+    private UUID hostSignedBy;
+
     @Column(name = "tenant_signed_at")
     private OffsetDateTime tenantSignedAt;
 
     @Column(name = "tenant_signature_ip", length = 45)
     private String tenantSignatureIp;
+
+    @Column(name = "tenant_signed_by")
+    private UUID tenantSignedBy;
+
+    @Version
+    @Column(name = "version")
+    private Long version;
 
     @Column(name = "agreement_pdf_url", length = 500)
     private String agreementPdfUrl;

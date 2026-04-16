@@ -31,6 +31,11 @@ public class ChefPhoto {
     @Builder.Default
     private String photoType = "FOOD";
 
+    /** IMAGE or VIDEO */
+    @Column(name = "media_type", length = 10)
+    @Builder.Default
+    private String mediaType = "IMAGE";
+
     @Column(name = "sort_order")
     @Builder.Default
     private Integer sortOrder = 0;

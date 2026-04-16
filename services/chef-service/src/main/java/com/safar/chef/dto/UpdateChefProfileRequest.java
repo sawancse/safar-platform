@@ -18,5 +18,7 @@ public record UpdateChefProfileRequest(
         Long eventMinPlatePaise,
         String languages,
         Integer eventMinPax,
-        Integer eventMaxPax
+        Integer eventMaxPax,
+        String profilePhotoUrl,
+        String introVideoUrl
 ) {}

@@ -22,6 +22,14 @@ public class ChefProfileController {
 
     private final ChefProfileService chefProfileService;
 
+    private void requireAdmin(Authentication auth) {
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            throw new org.springframework.security.access.AccessDeniedException("Admin access required");
+        }
+    }
+
     @GetMapping
     public ResponseEntity<Page<ChefProfile>> browseChefs(
             @RequestParam(required = false) String city,
@@ -48,6 +56,13 @@ public class ChefProfileController {
     public ResponseEntity<ChefProfile> getMyProfile(Authentication auth) {
         UUID userId = UUID.fromString(auth.getName());
         return ResponseEntity.ok(chefProfileService.getProfileByUserId(userId));
+    }
+
+    /** Claim an existing chef profile whose phone/email matches the current user's auth identity. */
+    @PostMapping("/claim")
+    public ResponseEntity<ChefProfile> claimProfile(Authentication auth) {
+        UUID userId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(chefProfileService.claimByIdentity(userId));
     }
 
     @GetMapping("/{chefId}")
@@ -79,32 +94,40 @@ public class ChefProfileController {
     // ── Admin ─────────────────────────────────────────────────
 
     @PostMapping("/admin/{chefId}/verify")
-    public ResponseEntity<ChefProfile> adminVerify(@PathVariable UUID chefId) {
+    public ResponseEntity<ChefProfile> adminVerify(@PathVariable UUID chefId, Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(chefProfileService.verifyChef(chefId));
     }
 
     @PostMapping("/admin/{chefId}/reject")
     public ResponseEntity<ChefProfile> adminReject(@PathVariable UUID chefId,
-                                                    @RequestParam(required = false) String reason) {
+                                                    @RequestParam(required = false) String reason,
+                                                    Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(chefProfileService.rejectChef(chefId, reason));
     }
 
     @PostMapping("/admin/{chefId}/suspend")
-    public ResponseEntity<ChefProfile> adminSuspend(@PathVariable UUID chefId) {
+    public ResponseEntity<ChefProfile> adminSuspend(@PathVariable UUID chefId, Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(chefProfileService.suspendChef(chefId));
     }
 
     @GetMapping("/admin/pending")
     public ResponseEntity<Page<ChefProfile>> getPendingChefs(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(chefProfileService.getPendingChefs(page, size));
     }
 
     @GetMapping("/admin/all")
     public ResponseEntity<Page<ChefProfile>> getAllChefs(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(chefProfileService.getAllChefs(page, size));
     }
 }

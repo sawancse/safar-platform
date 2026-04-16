@@ -110,6 +110,11 @@ public class PgTenancy {
     @Builder.Default
     private int maxPenaltyPercent = 25;
 
+    /** Whether 7-day advance rent reminder was sent for the current billing cycle. Reset after invoice generation. */
+    @Column(name = "rent_advance_reminder_sent", nullable = false)
+    @Builder.Default
+    private boolean rentAdvanceReminderSent = false;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

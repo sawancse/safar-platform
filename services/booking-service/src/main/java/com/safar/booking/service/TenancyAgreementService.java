@@ -5,10 +5,10 @@ import com.safar.booking.dto.CreateAgreementRequest;
 import com.safar.booking.entity.PgTenancy;
 import com.safar.booking.entity.TenancyAgreement;
 import com.safar.booking.entity.enums.AgreementStatus;
+import com.safar.booking.kafka.KafkaJsonPublisher;
 import com.safar.booking.repository.TenancyAgreementRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +24,7 @@ public class TenancyAgreementService {
 
     private final TenancyAgreementRepository agreementRepository;
     private final PgTenancyService tenancyService;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaJsonPublisher kafkaJsonPublisher;
 
     private static long agreementCounter = 1000;
 
@@ -57,37 +57,56 @@ public class TenancyAgreementService {
                 .maintenanceChargesPaise(req.maintenanceChargesPaise() != null ? req.maintenanceChargesPaise() : 0)
                 .agreementText(agreementText)
                 .termsAndConditions(req.termsAndConditions())
-                .status(AgreementStatus.DRAFT)
+                .status(AgreementStatus.PENDING_HOST_SIGN)
                 .build();
 
         TenancyAgreement saved = agreementRepository.save(agreement);
-        kafkaTemplate.send("tenancy.agreement.created", saved.getId().toString(), saved);
+
+        // Enrich Kafka event with tenantId
+        java.util.Map<String, Object> event = buildAgreementEvent(saved, tenancy);
+        kafkaJsonPublisher.publish("tenancy.agreement.created", saved.getId().toString(), event);
         log.info("Agreement {} created for tenancy {}", saved.getAgreementNumber(), tenancy.getTenancyRef());
         return saved;
     }
 
     @Transactional
-    public TenancyAgreement hostSign(UUID tenancyId, String signatureIp) {
+    public TenancyAgreement hostSign(UUID tenancyId, UUID userId, String signatureIp) {
         TenancyAgreement agreement = getByTenancyId(tenancyId);
+        PgTenancy tenancy = tenancyService.getTenancy(tenancyId);
 
-        if (agreement.getStatus() != AgreementStatus.DRAFT &&
-                agreement.getStatus() != AgreementStatus.PENDING_HOST_SIGN) {
+        // Verify the signer is the host — tenant cannot sign as host
+        // Host owns the listing, tenant is on the tenancy; only non-tenant can sign as host
+        if (tenancy.getTenantId().equals(userId)) {
+            throw new RuntimeException("Tenant cannot sign as host. Use tenant-sign endpoint.");
+        }
+
+        if (agreement.getStatus() != AgreementStatus.PENDING_HOST_SIGN) {
             throw new RuntimeException("Agreement not in signable state for host. Current: " + agreement.getStatus());
         }
 
         agreement.setHostSignedAt(OffsetDateTime.now());
         agreement.setHostSignatureIp(signatureIp);
+        agreement.setHostSignedBy(userId);
         agreement.setStatus(AgreementStatus.PENDING_TENANT_SIGN);
 
         TenancyAgreement saved = agreementRepository.save(agreement);
-        kafkaTemplate.send("tenancy.agreement.host-signed", saved.getId().toString(), saved);
-        log.info("Host signed agreement {}", saved.getAgreementNumber());
+
+        // Enrich Kafka event with tenantId for notification-service
+        java.util.Map<String, Object> event = buildAgreementEvent(saved, tenancy);
+        kafkaJsonPublisher.publish("tenancy.agreement.host-signed", saved.getId().toString(), event);
+        log.info("Host (userId={}) signed agreement {}", userId, saved.getAgreementNumber());
         return saved;
     }
 
     @Transactional
-    public TenancyAgreement tenantSign(UUID tenancyId, String signatureIp) {
+    public TenancyAgreement tenantSign(UUID tenancyId, UUID userId, String signatureIp) {
         TenancyAgreement agreement = getByTenancyId(tenancyId);
+        PgTenancy tenancy = tenancyService.getTenancy(tenancyId);
+
+        // Verify the signer is the actual tenant for this tenancy
+        if (!tenancy.getTenantId().equals(userId)) {
+            throw new RuntimeException("Only the tenant of this tenancy can sign. userId=" + userId);
+        }
 
         if (agreement.getStatus() != AgreementStatus.PENDING_TENANT_SIGN) {
             throw new RuntimeException("Host must sign first. Current status: " + agreement.getStatus());
@@ -95,12 +114,35 @@ public class TenancyAgreementService {
 
         agreement.setTenantSignedAt(OffsetDateTime.now());
         agreement.setTenantSignatureIp(signatureIp);
+        agreement.setTenantSignedBy(userId);
         agreement.setStatus(AgreementStatus.ACTIVE);
 
         TenancyAgreement saved = agreementRepository.save(agreement);
-        kafkaTemplate.send("tenancy.agreement.active", saved.getId().toString(), saved);
-        log.info("Tenant signed agreement {} — now ACTIVE", saved.getAgreementNumber());
+
+        // Enrich Kafka event with tenantId for notification-service
+        java.util.Map<String, Object> event = buildAgreementEvent(saved, tenancy);
+        kafkaJsonPublisher.publish("tenancy.agreement.active", saved.getId().toString(), event);
+        log.info("Tenant (userId={}) signed agreement {} — now ACTIVE", userId, saved.getAgreementNumber());
         return saved;
+    }
+
+    private java.util.Map<String, Object> buildAgreementEvent(TenancyAgreement a, PgTenancy tenancy) {
+        java.util.Map<String, Object> event = new java.util.HashMap<>();
+        event.put("id", a.getId().toString());
+        event.put("tenancyId", a.getTenancyId().toString());
+        event.put("tenantId", tenancy.getTenantId().toString());
+        event.put("agreementNumber", a.getAgreementNumber());
+        event.put("status", a.getStatus().name());
+        event.put("tenantName", a.getTenantName());
+        event.put("tenantEmail", a.getTenantEmail() != null ? a.getTenantEmail() : "");
+        event.put("hostName", a.getHostName());
+        event.put("propertyAddress", a.getPropertyAddress());
+        event.put("roomDescription", a.getRoomDescription() != null ? a.getRoomDescription() : "");
+        event.put("monthlyRentPaise", a.getMonthlyRentPaise());
+        event.put("moveInDate", a.getMoveInDate() != null ? a.getMoveInDate().toString() : "");
+        if (a.getHostSignedAt() != null) event.put("hostSignedAt", a.getHostSignedAt().toString());
+        if (a.getTenantSignedAt() != null) event.put("tenantSignedAt", a.getTenantSignedAt().toString());
+        return event;
     }
 
     public TenancyAgreement getByTenancyId(UUID tenancyId) {

@@ -27,12 +27,14 @@ public interface BuilderProjectRepository extends JpaRepository<BuilderProject, 
     Page<BuilderProject> findByStatusOrderByCreatedAtDesc(BuilderListingStatus status, Pageable pageable);
 
     @Query("SELECT bp FROM BuilderProject bp WHERE bp.status = 'ACTIVE' " +
-            "AND (:city IS NULL OR bp.city = :city) " +
-            "AND (:locality IS NULL OR bp.locality = :locality) " +
-            "AND (:minPrice IS NULL OR bp.minPricePaise >= :minPrice) " +
-            "AND (:maxPrice IS NULL OR bp.maxPricePaise <= :maxPrice) " +
-            "AND (:minBhk IS NULL OR bp.minBhk >= :minBhk)")
+            "AND (:state IS NULL OR LOWER(bp.state) = LOWER(:state)) " +
+            "AND (:city IS NULL OR LOWER(bp.city) = LOWER(:city)) " +
+            "AND (:locality IS NULL OR LOWER(bp.locality) LIKE LOWER(CONCAT('%', :locality, '%'))) " +
+            "AND (:minPrice IS NULL OR bp.maxPricePaise >= :minPrice) " +
+            "AND (:maxPrice IS NULL OR bp.minPricePaise <= :maxPrice) " +
+            "AND (:minBhk IS NULL OR bp.maxBhk >= :minBhk)")
     Page<BuilderProject> searchProjects(
+            @Param("state") String state,
             @Param("city") String city,
             @Param("locality") String locality,
             @Param("minPrice") Long minPrice,

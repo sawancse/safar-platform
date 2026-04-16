@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -61,28 +62,41 @@ public class EventPricingController {
         return ResponseEntity.noContent().build();
     }
 
+    private void requireAdmin(Authentication auth) {
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            throw new org.springframework.security.access.AccessDeniedException("Admin access required");
+        }
+    }
+
     // ── Admin ──────────────────────────────────────────────────────────────
 
     @GetMapping("/admin")
-    public ResponseEntity<List<EventPricingDefault>> getAdminDefaults() {
+    public ResponseEntity<List<EventPricingDefault>> getAdminDefaults(Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(pricingService.getAllDefaults());
     }
 
     @PostMapping("/admin")
     public ResponseEntity<EventPricingDefault> createDefault(
-            @Valid @RequestBody CreateEventPricingDefaultRequest req) {
+            @Valid @RequestBody CreateEventPricingDefaultRequest req, Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.status(HttpStatus.CREATED).body(pricingService.createDefault(req));
     }
 
     @PutMapping("/admin/{itemKey}")
     public ResponseEntity<EventPricingDefault> updateDefault(
             @PathVariable String itemKey,
-            @Valid @RequestBody CreateEventPricingDefaultRequest req) {
+            @Valid @RequestBody CreateEventPricingDefaultRequest req,
+            Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(pricingService.updateDefault(itemKey, req));
     }
 
     @DeleteMapping("/admin/{itemKey}")
-    public ResponseEntity<Void> deactivateDefault(@PathVariable String itemKey) {
+    public ResponseEntity<Void> deactivateDefault(@PathVariable String itemKey, Authentication auth) {
+        requireAdmin(auth);
         pricingService.deactivateDefault(itemKey);
         return ResponseEntity.noContent().build();
     }

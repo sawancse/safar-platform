@@ -22,9 +22,10 @@ public class ChefPhotoController {
     public ResponseEntity<ChefPhoto> addPhoto(Authentication auth,
                                                @RequestParam String url,
                                                @RequestParam(required = false) String caption,
-                                               @RequestParam(required = false, defaultValue = "FOOD") String photoType) {
+                                               @RequestParam(required = false, defaultValue = "FOOD") String photoType,
+                                               @RequestParam(required = false, defaultValue = "IMAGE") String mediaType) {
         UUID userId = UUID.fromString(auth.getName());
-        return ResponseEntity.status(HttpStatus.CREATED).body(photoService.addPhoto(userId, url, caption, photoType));
+        return ResponseEntity.status(HttpStatus.CREATED).body(photoService.addPhoto(userId, url, caption, photoType, mediaType));
     }
 
     @DeleteMapping("/{photoId}")

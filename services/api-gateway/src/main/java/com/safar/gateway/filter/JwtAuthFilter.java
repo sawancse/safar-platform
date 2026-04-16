@@ -101,8 +101,8 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
                 && !path.contains("/investment-signal")) return true;
         // All search endpoints are public (no login required to search)
         if (path.startsWith("/api/v1/search")) return true;
-        // Agreement view/download — public so tenant can share with family
-        if (HttpMethod.GET.equals(method) && path.matches(".*/agreement/(view|pdf|pdf/inline|text)$")) return true;
+        // Agreement view/download — requires auth (contains PII: name, Aadhaar, address, rent)
+        // Removed public access to prevent unauthorized agreement viewing
         // Razorpay webhook — signed by Razorpay, no user JWT
         if (path.startsWith("/api/v1/payments/webhook")) return true;
         if (path.startsWith("/api/v1/payments/tenancy/webhook")) return true;
@@ -134,9 +134,9 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
                 && !path.contains("/my-projects") && !path.contains("/admin")) return true;
         // Localities — public read + bulk-import (seed script, no user auth)
         if (path.startsWith("/api/v1/localities")) return true;
-        // Safar Cooks — public browse and chef profiles (exclude admin)
+        // Safar Cooks — public browse and chef profiles (exclude admin and /me which needs auth)
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/chefs")
-                && !path.contains("/admin")) return true;
+                && !path.contains("/admin") && !path.contains("/me")) return true;
         // Chef event pricing — public read (exclude admin and /me)
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/chef-events/pricing")
                 && !path.contains("/admin") && !path.contains("/me")) return true;
@@ -168,6 +168,8 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         // Dish catalog — public browse and cook matching
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/dishes")) return true;
         if (HttpMethod.POST.equals(method) && path.equals("/api/v1/dishes/match-chefs")) return true;
+        // Flights — search is public (no login needed to search flights)
+        if (HttpMethod.GET.equals(method) && path.equals("/api/v1/flights/search")) return true;
         // Internal service-to-service endpoints — no user auth
         if (path.startsWith("/api/v1/internal/")) return true;
         return false;

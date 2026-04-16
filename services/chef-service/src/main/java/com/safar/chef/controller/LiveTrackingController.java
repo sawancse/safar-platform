@@ -27,6 +27,19 @@ public class LiveTrackingController {
         return ResponseEntity.ok(trackingService.updateLocation(chefUserId, id, lat, lng, etaMinutes));
     }
 
+    /**
+     * Share live location + send LOCATION message in chef-customer chat.
+     */
+    @PostMapping("/{id}/share-location")
+    public ResponseEntity<ChefBooking> shareLocationInChat(Authentication auth,
+                                                            @PathVariable UUID id,
+                                                            @RequestParam Double lat,
+                                                            @RequestParam Double lng,
+                                                            @RequestParam(required = false) Integer etaMinutes) {
+        UUID chefUserId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(trackingService.shareLocationInChat(chefUserId, id, lat, lng, etaMinutes));
+    }
+
     @GetMapping("/{id}/tracking")
     public ResponseEntity<Map<String, Object>> getTracking(@PathVariable UUID id) {
         return ResponseEntity.ok(trackingService.getTrackingInfo(id));

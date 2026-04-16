@@ -28,6 +28,7 @@ public class ChefProfile {
     @Column(nullable = false)
     private String name;
 
+    @Column(unique = true)
     private String phone;
 
     private String email;
@@ -37,6 +38,9 @@ public class ChefProfile {
 
     @Column(name = "profile_photo_url")
     private String profilePhotoUrl;
+
+    @Column(name = "intro_video_url", length = 500)
+    private String introVideoUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "chef_type")
@@ -162,4 +166,12 @@ public class ChefProfile {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
+
+    /** Throws 409 when the chef is suspended and must not perform actions. */
+    public void ensureNotSuspended() {
+        if (verificationStatus == VerificationStatus.SUSPENDED) {
+            throw new IllegalStateException(
+                    "Your chef account is suspended. You cannot perform this action.");
+        }
+    }
 }

@@ -180,6 +180,28 @@ public class KafkaTopicConfig {
         return new NewTopic("maintenance.request.resolved", 1, (short) 1);
     }
 
+    // --- PG Rent Reminder topics ---
+
+    @Bean
+    public NewTopic tenancyRentReminderTopic() {
+        return new NewTopic("tenancy.rent.reminder", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic tenancyRentReminderUrgentTopic() {
+        return new NewTopic("tenancy.rent.reminder.urgent", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic tenancyRentReminderAdvanceTopic() {
+        return new NewTopic("tenancy.rent.reminder.advance", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic tenancyAgreementTerminatedTopic() {
+        return new NewTopic("tenancy.agreement.terminated", 1, (short) 1);
+    }
+
     // --- Host Payout topic (booking → payment) ---
 
     @Bean

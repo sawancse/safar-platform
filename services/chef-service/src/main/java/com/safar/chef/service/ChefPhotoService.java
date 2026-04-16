@@ -21,14 +21,21 @@ public class ChefPhotoService {
     private final ChefProfileRepository chefProfileRepo;
 
     private static final int MAX_PHOTOS = 20;
+    private static final int MAX_VIDEOS = 5;
 
     @Transactional
-    public ChefPhoto addPhoto(UUID userId, String url, String caption, String photoType) {
+    public ChefPhoto addPhoto(UUID userId, String url, String caption, String photoType, String mediaType) {
         ChefProfile chef = chefProfileRepo.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Chef profile not found"));
 
-        if (photoRepo.countByChefId(chef.getId()) >= MAX_PHOTOS) {
-            throw new IllegalArgumentException("Maximum " + MAX_PHOTOS + " photos allowed");
+        String mt = "VIDEO".equalsIgnoreCase(mediaType) ? "VIDEO" : "IMAGE";
+        long count = photoRepo.countByChefId(chef.getId());
+        int limit = "VIDEO".equals(mt) ? MAX_VIDEOS : MAX_PHOTOS;
+        long typeCount = photoRepo.findByChefIdOrderBySortOrder(chef.getId()).stream()
+                .filter(p -> mt.equals(p.getMediaType())).count();
+
+        if (typeCount >= limit) {
+            throw new IllegalArgumentException("Maximum " + limit + " " + mt.toLowerCase() + "s allowed");
         }
 
         ChefPhoto photo = ChefPhoto.builder()
@@ -36,9 +43,10 @@ public class ChefPhotoService {
                 .url(url)
                 .caption(caption)
                 .photoType(photoType != null ? photoType : "FOOD")
-                .sortOrder(photoRepo.countByChefId(chef.getId()))
+                .mediaType(mt)
+                .sortOrder((int) count)
                 .build();
-        log.info("Chef {} added photo type={}", chef.getId(), photoType);
+        log.info("Chef {} added {} type={}", chef.getId(), mt, photoType);
         return photoRepo.save(photo);
     }
 

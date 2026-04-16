@@ -66,27 +66,40 @@ public class DishCatalogController {
         return ResponseEntity.noContent().build();
     }
 
+    private void requireAdmin(Authentication auth) {
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            throw new org.springframework.security.access.AccessDeniedException("Admin access required");
+        }
+    }
+
     // ── Admin: dish catalog CRUD ────────────────────────────────────────
 
     @GetMapping("/api/v1/dishes/admin/all")
-    public ResponseEntity<List<DishCatalog>> adminGetAllDishes() {
+    public ResponseEntity<List<DishCatalog>> adminGetAllDishes(Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(dishCatalogService.adminGetAllDishes());
     }
 
     @PostMapping("/api/v1/dishes/admin")
-    public ResponseEntity<DishCatalog> adminCreateDish(@RequestBody DishCatalog dish) {
+    public ResponseEntity<DishCatalog> adminCreateDish(@RequestBody DishCatalog dish, Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(dishCatalogService.adminCreateDish(dish));
     }
 
     @PutMapping("/api/v1/dishes/admin/{dishId}")
     public ResponseEntity<DishCatalog> adminUpdateDish(@PathVariable UUID dishId,
-                                                        @RequestBody DishCatalog dish) {
+                                                        @RequestBody DishCatalog dish,
+                                                        Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(dishCatalogService.adminUpdateDish(dishId, dish));
     }
 
     @DeleteMapping("/api/v1/dishes/admin/{dishId}")
-    public ResponseEntity<Void> adminDeleteDish(@PathVariable UUID dishId) {
+    public ResponseEntity<Void> adminDeleteDish(@PathVariable UUID dishId, Authentication auth) {
+        requireAdmin(auth);
         dishCatalogService.adminDeleteDish(dishId);
         return ResponseEntity.noContent().build();
     }

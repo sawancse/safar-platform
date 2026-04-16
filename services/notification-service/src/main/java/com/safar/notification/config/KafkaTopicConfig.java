@@ -47,6 +47,17 @@ public class KafkaTopicConfig {
     @Bean public NewTopic medicalBookingCreated() { return new NewTopic("medical.booking.created", 1, (short) 1); }
     @Bean public NewTopic donationCaptured() { return new NewTopic("donation.captured", 1, (short) 1); }
 
+    // Tenancy events consumed
+    @Bean public NewTopic tenancyCreated() { return new NewTopic("tenancy.created", 1, (short) 1); }
+    @Bean public NewTopic tenancyInvoiceGenerated() { return new NewTopic("tenancy.invoice.generated", 1, (short) 1); }
+    @Bean public NewTopic tenancyInvoiceOverdue() { return new NewTopic("tenancy.invoice.overdue", 1, (short) 1); }
+    @Bean public NewTopic tenancyRentReminder() { return new NewTopic("tenancy.rent.reminder", 1, (short) 1); }
+    @Bean public NewTopic tenancyRentReminderUrgent() { return new NewTopic("tenancy.rent.reminder.urgent", 1, (short) 1); }
+    @Bean public NewTopic tenancyRentReminderAdvance() { return new NewTopic("tenancy.rent.reminder.advance", 1, (short) 1); }
+    @Bean public NewTopic tenancyAgreementHostSigned() { return new NewTopic("tenancy.agreement.host-signed", 1, (short) 1); }
+    @Bean public NewTopic tenancyAgreementActive() { return new NewTopic("tenancy.agreement.active", 1, (short) 1); }
+    @Bean public NewTopic tenancyNotice() { return new NewTopic("tenancy.notice", 1, (short) 1); }
+
     // Lead management events consumed
     @Bean public NewTopic leadCaptured() { return new NewTopic("lead.captured", 1, (short) 1); }
     @Bean public NewTopic leadNurtureWelcome() { return new NewTopic("lead.nurture.welcome", 1, (short) 1); }

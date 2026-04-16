@@ -378,6 +378,12 @@ spring:
           predicates:
             - Path=/api/v1/chef-events,/api/v1/chef-events/**
 
+        # ── Flights (flight-service) ──────────────────────────────────────
+        - id: flights
+          uri: ${FLIGHT_SERVICE_URL:http://localhost:8094}
+          predicates:
+            - Path=/api/v1/flights,/api/v1/flights/**
+
         # ── Lead Capture (user-service) ──────────────────────────────────────
         - id: leads
           uri: ${USER_SERVICE_URL:http://localhost:8092}

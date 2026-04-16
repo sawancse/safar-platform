@@ -100,9 +100,16 @@ public class BuilderProjectService {
         return toResponse(project);
     }
 
-    public Page<BuilderProjectResponse> browseProjects(String city, Pageable pageable) {
-        Page<BuilderProject> projects = (city != null && !city.isBlank())
-                ? projectRepository.searchProjects(city, null, null, null, null, pageable)
+    public Page<BuilderProjectResponse> browseProjects(String state, String city, String locality,
+                                                        Long priceMin, Long priceMax, Integer bhk,
+                                                        Pageable pageable) {
+        boolean hasFilter = (state != null && !state.isBlank())
+                || (city != null && !city.isBlank())
+                || (locality != null && !locality.isBlank())
+                || priceMin != null || priceMax != null || bhk != null;
+
+        Page<BuilderProject> projects = hasFilter
+                ? projectRepository.searchProjects(state, city, locality, priceMin, priceMax, bhk, pageable)
                 : projectRepository.findByStatus(BuilderListingStatus.ACTIVE, pageable);
         return projects.map(this::toResponse);
     }
@@ -144,6 +151,13 @@ public class BuilderProjectService {
         if (req.photos() != null) p.setPhotos(req.photos());
         if (req.bankApprovals() != null) p.setBankApprovals(req.bankApprovals());
         if (req.paymentPlansJson() != null) p.setPaymentPlansJson(req.paymentPlansJson());
+        // Price & configuration fields (were missing — Bug fix)
+        if (req.minPricePaise() != null) p.setMinPricePaise(req.minPricePaise());
+        if (req.maxPricePaise() != null) p.setMaxPricePaise(req.maxPricePaise());
+        if (req.minBhk() != null) p.setMinBhk(req.minBhk());
+        if (req.maxBhk() != null) p.setMaxBhk(req.maxBhk());
+        if (req.minAreaSqft() != null) p.setMinAreaSqft(req.minAreaSqft());
+        if (req.maxAreaSqft() != null) p.setMaxAreaSqft(req.maxAreaSqft());
 
         p = projectRepository.save(p);
         if (p.getStatus() == BuilderListingStatus.ACTIVE) {

@@ -13,6 +13,7 @@ public class EmailContext {
     // Host info
     private String hostName;
     private String hostEmail;
+    private String hostPhone;
     private boolean starHost;
     private String hostAvatarUrl;
 
@@ -54,6 +55,9 @@ public class EmailContext {
     private String paymentMode;
     private String prepaidAmount;
     private String dueAtProperty;
+    private String securityDeposit;
+    private String insuranceAmount;
+    private String inclusionsTotal;
 
     // Chapter info
     private int chapterNumber;
@@ -171,6 +175,51 @@ public class EmailContext {
     private String donationTier;
     private String taxSaving;
 
+    // PG Tenancy fields
+    private String tenancyRef;
+    private String invoiceNumber;
+    private String rentAmount;        // formatted e.g. "₹8,000"
+    private String dueDate;
+    private int daysUntilDue;
+    private int daysOverdue;
+    private String penaltyAmount;
+    private String agreementNumber;
+    private String agreementUrl;
+    private String propertyName;
+    private String roomDescription;
+    private String moveInDate;
+    private String leaseMonths;
+    private String moveOutDate;
+    private String noticePeriodDays;
+
+    // Flight fields
+    private String bookingRef;
+    private String flightRoute;
+    private String flightDate;
+    private String airline;
+    private String flightNumber;
+    private String totalAmount;
+    private String refundAmount;
+    private boolean isInternational;
+
+    // Flight getters and setters
+    public String getBookingRef() { return bookingRef; }
+    public void setBookingRef(String bookingRef) { this.bookingRef = bookingRef; }
+    public String getFlightRoute() { return flightRoute; }
+    public void setFlightRoute(String flightRoute) { this.flightRoute = flightRoute; }
+    public String getFlightDate() { return flightDate; }
+    public void setFlightDate(String flightDate) { this.flightDate = flightDate; }
+    public String getAirline() { return airline; }
+    public void setAirline(String airline) { this.airline = airline; }
+    public String getFlightNumber() { return flightNumber; }
+    public void setFlightNumber(String flightNumber) { this.flightNumber = flightNumber; }
+    public String getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(String totalAmount) { this.totalAmount = totalAmount; }
+    public String getRefundAmount() { return refundAmount; }
+    public void setRefundAmount(String refundAmount) { this.refundAmount = refundAmount; }
+    public boolean getIsInternational() { return isInternational; }
+    public void setIsInternational(boolean isInternational) { this.isInternational = isInternational; }
+
     // Getters and setters
     public String getGuestName() { return guestName; }
     public void setGuestName(String guestName) { this.guestName = guestName; }
@@ -184,6 +233,8 @@ public class EmailContext {
     public void setHostName(String hostName) { this.hostName = hostName; }
     public String getHostEmail() { return hostEmail; }
     public void setHostEmail(String hostEmail) { this.hostEmail = hostEmail; }
+    public String getHostPhone() { return hostPhone; }
+    public void setHostPhone(String hostPhone) { this.hostPhone = hostPhone; }
     public boolean isStarHost() { return starHost; }
     public void setStarHost(boolean starHost) { this.starHost = starHost; }
     public String getHostAvatarUrl() { return hostAvatarUrl; }
@@ -244,6 +295,12 @@ public class EmailContext {
     public void setCleaningFee(String cleaningFee) { this.cleaningFee = cleaningFee; }
     public String getPlatformFee() { return platformFee; }
     public void setPlatformFee(String platformFee) { this.platformFee = platformFee; }
+    public String getSecurityDeposit() { return securityDeposit; }
+    public void setSecurityDeposit(String securityDeposit) { this.securityDeposit = securityDeposit; }
+    public String getInsuranceAmount() { return insuranceAmount; }
+    public void setInsuranceAmount(String insuranceAmount) { this.insuranceAmount = insuranceAmount; }
+    public String getInclusionsTotal() { return inclusionsTotal; }
+    public void setInclusionsTotal(String inclusionsTotal) { this.inclusionsTotal = inclusionsTotal; }
     public String getNonRefundableDiscount() { return nonRefundableDiscount; }
     public void setNonRefundableDiscount(String nonRefundableDiscount) { this.nonRefundableDiscount = nonRefundableDiscount; }
     public boolean isNonRefundable() { return nonRefundable; }
@@ -336,6 +393,9 @@ public class EmailContext {
     public void setRefundTimeline(String refundTimeline) { this.refundTimeline = refundTimeline; }
     public String getBookingUrl() { return bookingUrl; }
     public void setBookingUrl(String bookingUrl) { this.bookingUrl = bookingUrl; }
+    private String paymentUrl;
+    public String getPaymentUrl() { return paymentUrl; }
+    public void setPaymentUrl(String paymentUrl) { this.paymentUrl = paymentUrl; }
     public String getDashboardUrl() { return dashboardUrl; }
     public void setDashboardUrl(String dashboardUrl) { this.dashboardUrl = dashboardUrl; }
     public String getUnsubscribeUrl() { return unsubscribeUrl; }
@@ -369,6 +429,31 @@ public class EmailContext {
         if ("MONTH".equals(pricingUnit)) return "per month";
         if ("HOUR".equals(pricingUnit)) return "per hour";
         return "per night";
+    }
+    /** Line-item label for the base stay charge in price breakdown — includes duration. */
+    public String getStayChargesLabel() {
+        if ("MONTH".equals(pricingUnit)) {
+            long fullMonths = nights / 30;
+            long rem = nights % 30;
+            if (fullMonths == 0) return "Rent (" + nights + " day" + (nights != 1 ? "s" : "") + ")";
+            StringBuilder s = new StringBuilder("Rent (").append(fullMonths)
+                    .append(" month").append(fullMonths != 1 ? "s" : "");
+            if (rem > 0) s.append(" + ").append(rem).append(" day").append(rem != 1 ? "s" : "");
+            return s.append(")").toString();
+        }
+        if ("HOUR".equals(pricingUnit)) {
+            return "Stay charges";
+        }
+        return "Stay charges (" + nights + " night" + (nights != 1 ? "s" : "") + ")";
+    }
+    /** True when this booking is cash/pay-at-property and not yet paid online. */
+    public boolean getIsCashPayment() {
+        return "PAY_AT_PROPERTY".equals(paymentMode);
+    }
+    /** Deep link to the booking page with a flag that opens Razorpay to retry payment. */
+    public String getPayNowUrl() {
+        if (bookingUrl == null) return null;
+        return bookingUrl + (bookingUrl.contains("?") ? "&" : "?") + "payNow=1";
     }
     public String getTransactionRef() { return bookingRef; }
     public String getRecipientEmail() { return guestEmail; }
@@ -520,4 +605,70 @@ public class EmailContext {
         return "XXXXX" + donorPan.substring(donorPan.length() - 4) + "X";
     }
     public String getDonationImpactUrl() { return "https://ysafar.com/aashray/impact"; }
+
+    // Template aliases used by payment-receipt.html
+    public boolean getIsNonRefundable() { return nonRefundable; }
+    public String getPaymentDate() {
+        // Fall back to check-in date string if no explicit payment date was set
+        return checkIn != null && checkIn.length() >= 10 ? checkIn.substring(0, 10) : checkIn;
+    }
+    public String getPaymentMethod() {
+        if (paymentMode == null) return null;
+        return switch (paymentMode) {
+            case "PREPAID" -> "Online payment";
+            case "PAY_AT_PROPERTY" -> "Pay at property";
+            case "PARTIAL_PREPAID" -> "Partial online payment";
+            default -> paymentMode;
+        };
+    }
+
+    // PG Tenancy getters/setters
+    public String getTenancyRef() { return tenancyRef; }
+    public void setTenancyRef(String tenancyRef) { this.tenancyRef = tenancyRef; }
+    public String getInvoiceNumber() { return invoiceNumber; }
+    public void setInvoiceNumber(String invoiceNumber) { this.invoiceNumber = invoiceNumber; }
+    public String getRentAmount() { return rentAmount; }
+    public void setRentAmount(String rentAmount) { this.rentAmount = rentAmount; }
+    public String getDueDate() { return dueDate; }
+    public void setDueDate(String dueDate) { this.dueDate = dueDate; }
+    public int getDaysUntilDue() { return daysUntilDue; }
+    public void setDaysUntilDue(int daysUntilDue) { this.daysUntilDue = daysUntilDue; }
+    public int getDaysOverdue() { return daysOverdue; }
+    public void setDaysOverdue(int daysOverdue) { this.daysOverdue = daysOverdue; }
+    public String getPenaltyAmount() { return penaltyAmount; }
+    public void setPenaltyAmount(String penaltyAmount) { this.penaltyAmount = penaltyAmount; }
+    public String getAgreementNumber() { return agreementNumber; }
+    public void setAgreementNumber(String agreementNumber) { this.agreementNumber = agreementNumber; }
+    public String getAgreementUrl() { return agreementUrl; }
+    public void setAgreementUrl(String agreementUrl) { this.agreementUrl = agreementUrl; }
+    public String getPropertyName() { return propertyName; }
+    public void setPropertyName(String propertyName) { this.propertyName = propertyName; }
+    public String getRoomDescription() { return roomDescription; }
+    public void setRoomDescription(String roomDescription) { this.roomDescription = roomDescription; }
+    public String getMoveInDate() { return moveInDate; }
+    public void setMoveInDate(String moveInDate) { this.moveInDate = moveInDate; }
+    public String getLeaseMonths() { return leaseMonths; }
+    public void setLeaseMonths(String leaseMonths) { this.leaseMonths = leaseMonths; }
+    public String getMoveOutDate() { return moveOutDate; }
+    public void setMoveOutDate(String moveOutDate) { this.moveOutDate = moveOutDate; }
+    public String getNoticePeriodDays() { return noticePeriodDays; }
+    public void setNoticePeriodDays(String noticePeriodDays) { this.noticePeriodDays = noticePeriodDays; }
+
+    // Computed map URL for check-in email (Google Maps search link)
+    public String getMapUrl() {
+        StringBuilder q = new StringBuilder();
+        if (listingAddress != null && !listingAddress.isBlank()) q.append(listingAddress);
+        if (listingCity != null && !listingCity.isBlank()) {
+            if (q.length() > 0) q.append(", ");
+            q.append(listingCity);
+        }
+        if (listingState != null && !listingState.isBlank()) {
+            if (q.length() > 0) q.append(", ");
+            q.append(listingState);
+        }
+        if (q.length() == 0 && listingTitle != null) q.append(listingTitle);
+        if (q.length() == 0) return "#";
+        return "https://www.google.com/maps/search/?api=1&query="
+                + java.net.URLEncoder.encode(q.toString(), java.nio.charset.StandardCharsets.UTF_8);
+    }
 }

@@ -214,6 +214,16 @@ public class SearchController {
             @RequestParam(required = false) Boolean cornerProperty,
             @RequestParam(required = false) Boolean verified,
             @RequestParam(required = false) List<String> amenities,
+            // Land/agriculture filters
+            @RequestParam(required = false) Double minAcres,
+            @RequestParam(required = false) Double maxAcres,
+            @RequestParam(required = false) String roadAccess,
+            @RequestParam(required = false) String zoneType,
+            @RequestParam(required = false) String irrigationType,
+            @RequestParam(required = false) String ownershipType,
+            @RequestParam(required = false) Boolean titleClear,
+            @RequestParam(required = false) Boolean organicCertified,
+            // Geo
             @RequestParam(required = false) Double lat,
             @RequestParam(required = false) Double lng,
             @RequestParam(required = false) Double radiusKm,
@@ -226,6 +236,7 @@ public class SearchController {
                 minArea, maxArea, possessionStatus, furnishing, facing,
                 minFloor, maxFloor, maxAge, reraVerified, vastuCompliant,
                 gatedCommunity, petAllowed, cornerProperty, verified, amenities,
+                minAcres, maxAcres, roadAccess, zoneType, irrigationType, ownershipType, titleClear, organicCertified,
                 lat, lng, radiusKm, sort, page, size);
 
         return ResponseEntity.ok(saleSearchService.search(req));
@@ -248,6 +259,7 @@ public class SearchController {
     @GetMapping("/builder-projects")
     public ResponseEntity<Map<String, Object>> searchBuilderProjects(
             @RequestParam(required = false) String query,
+            @RequestParam(required = false) String state,
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String locality,
             @RequestParam(required = false) String projectStatus,
@@ -261,7 +273,7 @@ public class SearchController {
             @RequestParam(required = false, defaultValue = "relevance") String sort,
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false, defaultValue = "20") Integer size) {
-        return ResponseEntity.ok(builderSearchService.search(query, city, locality,
+        return ResponseEntity.ok(builderSearchService.search(query, state, city, locality,
                 projectStatus, priceMin, priceMax, bhk, reraVerified,
                 lat, lng, radiusKm, sort, page, size));
     }

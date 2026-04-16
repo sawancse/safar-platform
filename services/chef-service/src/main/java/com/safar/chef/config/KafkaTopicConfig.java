@@ -8,6 +8,11 @@ import org.springframework.context.annotation.Configuration;
 public class KafkaTopicConfig {
 
     @Bean
+    public NewTopic chefRegisteredTopic() {
+        return new NewTopic("chef.registered", 1, (short) 1);
+    }
+
+    @Bean
     public NewTopic chefBookingCreatedTopic() {
         return new NewTopic("chef.booking.created", 1, (short) 1);
     }

@@ -10,6 +10,7 @@ import com.safar.booking.entity.BookingGuest;
 import com.safar.booking.entity.BookingInclusion;
 import com.safar.booking.entity.BookingRoomSelection;
 import com.safar.booking.entity.PgTenancy;
+import com.safar.booking.dto.CreateAgreementRequest;
 import com.safar.booking.entity.enums.BookingStatus;
 import com.safar.booking.repository.BookingGuestRepository;
 import com.safar.booking.repository.BookingInclusionRepository;
@@ -25,6 +26,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -55,6 +57,7 @@ public class BookingService {
     private final KafkaTemplate<String, String> kafka;
     private final ListingServiceClient listingClient;
     private final PgTenancyService pgTenancyService;
+    private final TenancyAgreementService tenancyAgreementService;
 
     public ListingServiceClient getListingClient() { return listingClient; }
 
@@ -114,21 +117,43 @@ public class BookingService {
 
             int minAvailable = rtAvail.get("minAvailable") instanceof Number
                     ? ((Number) rtAvail.get("minAvailable")).intValue() : 0;
-            if (minAvailable < rooms) {
-                throw new IllegalArgumentException(
-                        "Only " + minAvailable + " rooms available for selected room type, requested " + rooms);
-            }
 
             maxGuestsPerRoom = rtAvail.get("maxGuests") instanceof Number
                     ? ((Number) rtAvail.get("maxGuests")).intValue() : null;
             maxRoomsAvailable = rtAvail.get("totalCount") instanceof Number
                     ? ((Number) rtAvail.get("totalCount")).intValue() : null;
+
+            // Auto-scale room count from guest count when per-room cap is tight
+            // (e.g. 5 guests on a PRIVATE room type with maxGuests=1 → need 5 rooms).
+            if (maxGuestsPerRoom != null && maxGuestsPerRoom > 0) {
+                int neededRooms = (int) Math.ceil((double) req.guestsCount() / maxGuestsPerRoom);
+                if (neededRooms > rooms) {
+                    log.info("Auto-scaling rooms from {} to {} for room type {} (guests={}, perRoom={})",
+                            rooms, neededRooms, req.roomTypeId(), req.guestsCount(), maxGuestsPerRoom);
+                    rooms = neededRooms;
+                }
+            }
+
+            if (minAvailable < rooms) {
+                throw new IllegalArgumentException(
+                        "Only " + minAvailable + " rooms available for selected room type, requested " + rooms);
+            }
         } else {
             // No room type selected — use listing-level limits
             maxGuestsPerRoom = availInfo.get("maxGuests") instanceof Number
                     ? ((Number) availInfo.get("maxGuests")).intValue() : null;
             maxRoomsAvailable = availInfo.get("totalRooms") instanceof Number
                     ? ((Number) availInfo.get("totalRooms")).intValue() : null;
+
+            // Auto-scale room count from guest count against listing-level maxGuests
+            if (maxGuestsPerRoom != null && maxGuestsPerRoom > 0) {
+                int neededRooms = (int) Math.ceil((double) req.guestsCount() / maxGuestsPerRoom);
+                if (neededRooms > rooms) {
+                    log.info("Auto-scaling rooms from {} to {} for listing {} (guests={}, perRoom={})",
+                            rooms, neededRooms, req.listingId(), req.guestsCount(), maxGuestsPerRoom);
+                    rooms = neededRooms;
+                }
+            }
         }
 
         // ── Step 4: Validate guest count (skip for multi-room — already validated per type in step 3) ──
@@ -256,6 +281,23 @@ public class BookingService {
                 default -> basePaise = baseRate * nights * rooms;
             }
         }
+        // PG/Co-living: charge only 1 month rent upfront (remaining months via monthly invoices)
+        int leaseDurationMonths = 0;
+        if (isPgColiving && "MONTH".equals(pricingUnit)) {
+            leaseDurationMonths = (int) Math.max(1, nights / 30);
+            // Override basePaise to 1 month only
+            if (req.roomSelections() != null && !req.roomSelections().isEmpty()) {
+                basePaise = 0;
+                for (var sel : req.roomSelections()) {
+                    long rtPrice = listingClient.getRoomTypePrice(req.listingId(), sel.roomTypeId());
+                    if (rtPrice <= 0) rtPrice = baseRate;
+                    basePaise += rtPrice * sel.count(); // 1 month per bed
+                }
+            } else {
+                basePaise = baseRate * rooms; // 1 month rent only
+            }
+        }
+
         long cleaningFee = "MONTH".equals(pricingUnit) ? 0L : listingClient.getCleaningFeePaise(req.listingId());
 
         // PG/Co-living: fetch notice period and security deposit from listing
@@ -290,7 +332,11 @@ public class BookingService {
             }
             securityDepositStatus = securityDepositPaise != null && securityDepositPaise > 0 ? "PENDING" : null;
         }
-        long insurancePaise = Math.min(INSURANCE_PER_NIGHT_PAISE * nights, INSURANCE_CAP_PAISE);
+        // Insurance is a stay-protection fee for short-term bookings; skip for
+        // residential monthly rentals (PG/co-living) — same as GST and cleaning fee.
+        long insurancePaise = "MONTH".equals(pricingUnit)
+                ? 0L
+                : Math.min(INSURANCE_PER_NIGHT_PAISE * nights, INSURANCE_CAP_PAISE);
 
         // Feature 1: Non-refundable discount
         boolean isNonRefundable = Boolean.TRUE.equals(req.nonRefundable());
@@ -456,6 +502,7 @@ public class BookingService {
                 .dueAtPropertyPaise(dueAtPropertyPaise)
                 .inclusionsTotalPaise(inclusionsTotalPaise)
                 .pricingUnit(pricingUnit)
+                .leaseDurationMonths(isPgColiving ? leaseDurationMonths : null)
                 .build();
 
         Booking saved = bookingRepo.save(booking);
@@ -519,6 +566,8 @@ public class BookingService {
                 // Decrement availability for each room type selection
                 listingClient.decrementRoomTypeAvailability(
                         sel.roomTypeId(), checkInDate, checkOutDate, sel.count());
+                // Reflect booking on host room board (occupiedBeds aggregate)
+                listingClient.incrementRoomTypeOccupancy(sel.roomTypeId(), sel.count());
             }
             log.info("Saved {} room selections for booking {}", req.roomSelections().size(), saved.getBookingRef());
         }
@@ -545,6 +594,8 @@ public class BookingService {
         if (req.roomTypeId() != null && (req.roomSelections() == null || req.roomSelections().isEmpty())) {
             listingClient.decrementRoomTypeAvailability(
                     req.roomTypeId(), checkInDate, checkOutDate, rooms);
+            // Reflect booking on host room board (occupiedBeds aggregate)
+            listingClient.incrementRoomTypeOccupancy(req.roomTypeId(), rooms);
 
             // For multi-room: only block listing calendar when ALL rooms of ALL types are booked
             Integer totalRooms = availInfo.get("totalRooms") instanceof Number
@@ -661,11 +712,16 @@ public class BookingService {
                     log.warn("Failed to release room type {} for cancelled booking {}: {}",
                             sel.getRoomTypeName(), booking.getBookingRef(), e.getMessage());
                 }
+                try {
+                    listingClient.decrementRoomTypeOccupancy(sel.getRoomTypeId(), sel.getCount());
+                } catch (Exception e) {
+                    log.warn("Failed to release room type occupancy for {}: {}", sel.getRoomTypeId(), e.getMessage());
+                }
             }
         } else if (booking.getRoomTypeId() != null) {
             // Single room type (legacy flow)
+            int rooms = booking.getRoomsCount() != null ? booking.getRoomsCount() : 1;
             try {
-                int rooms = booking.getRoomsCount() != null ? booking.getRoomsCount() : 1;
                 listingClient.incrementRoomTypeAvailability(
                         booking.getRoomTypeId(),
                         booking.getCheckIn().toLocalDate(),
@@ -674,6 +730,11 @@ public class BookingService {
             } catch (Exception e) {
                 log.warn("Failed to increment room type availability for cancelled booking {}: {}",
                         booking.getBookingRef(), e.getMessage());
+            }
+            try {
+                listingClient.decrementRoomTypeOccupancy(booking.getRoomTypeId(), rooms);
+            } catch (Exception e) {
+                log.warn("Failed to release room type occupancy for {}: {}", booking.getRoomTypeId(), e.getMessage());
             }
         }
 
@@ -771,7 +832,7 @@ public class BookingService {
                 // Find next available bed number
                 String bedNumber = calculateNextAvailableBed(booking.getRoomTypeId(), bedsPerRoom);
 
-                pgTenancyService.createTenancy(PgTenancy.builder()
+                PgTenancy createdTenancy = pgTenancyService.createTenancy(PgTenancy.builder()
                         .tenantId(booking.getGuestId())
                         .listingId(booking.getListingId())
                         .roomTypeId(booking.getRoomTypeId())
@@ -787,6 +848,31 @@ public class BookingService {
                         .billingDay(1)
                         .build());
                 log.info("Auto-created PG tenancy for booking {} with bed {}", booking.getBookingRef(), bedNumber);
+
+                // Auto-create agreement and host-sign (check-in = implicit host consent)
+                try {
+                    String tenantName = (booking.getGuestFirstName() != null ? booking.getGuestFirstName() : "")
+                            + " " + (booking.getGuestLastName() != null ? booking.getGuestLastName() : "");
+                    CreateAgreementRequest agreementReq = new CreateAgreementRequest(
+                            tenantName.trim(),
+                            booking.getGuestPhone(),
+                            booking.getGuestEmail(),
+                            null, // aadhaarLast4 — tenant adds later
+                            booking.getHostName(),
+                            null, // hostPhone
+                            booking.getListingAddress(),
+                            sharingType + " - Bed " + bedNumber,
+                            booking.getLeaseDurationMonths(), // lockInPeriodMonths
+                            0L,   // maintenanceChargesPaise
+                            null  // termsAndConditions — uses default template
+                    );
+                    tenancyAgreementService.createAgreement(createdTenancy.getId(), agreementReq);
+                    tenancyAgreementService.hostSign(createdTenancy.getId(), hostId, "auto-checkin");
+                    log.info("Auto-created and host-signed agreement for tenancy {}", createdTenancy.getTenancyRef());
+                } catch (Exception ae) {
+                    log.warn("Failed to auto-create agreement for tenancy {}: {}",
+                            createdTenancy.getTenancyRef(), ae.getMessage());
+                }
             } catch (Exception e) {
                 log.warn("Failed to auto-create PG tenancy for booking {}: {}", booking.getBookingRef(), e.getMessage());
             }
@@ -804,16 +890,69 @@ public class BookingService {
         if (booking.getStatus() != BookingStatus.CHECKED_IN) {
             throw new IllegalStateException("Only CHECKED_IN bookings can be completed");
         }
+        markBookingCompleted(booking);
+        log.info("Booking {} completed by host {}", booking.getBookingRef(), hostId);
+        return toResponse(booking);
+    }
+
+    /**
+     * Shared transition: COMPLETED status + release occupiedBeds for each booked
+     * room type so the room board reflects reality. Invoked from both the host
+     * "mark complete" action and the scheduled auto-complete job.
+     */
+    private void markBookingCompleted(Booking booking) {
         booking.setStatus(BookingStatus.COMPLETED);
         booking.setCompletedAt(OffsetDateTime.now());
-        Booking saved = bookingRepo.save(booking);
+        bookingRepo.save(booking);
+
+        // Release occupancy aggregates (room board / host dashboard)
+        List<BookingRoomSelection> roomSels = roomSelectionRepo.findByBookingId(booking.getId());
+        if (!roomSels.isEmpty()) {
+            for (BookingRoomSelection sel : roomSels) {
+                try {
+                    listingClient.decrementRoomTypeOccupancy(sel.getRoomTypeId(), sel.getCount());
+                } catch (Exception e) {
+                    log.warn("Failed to release occupancy for completed booking {} (sel {}): {}",
+                            booking.getBookingRef(), sel.getRoomTypeId(), e.getMessage());
+                }
+            }
+        } else if (booking.getRoomTypeId() != null) {
+            int rooms = booking.getRoomsCount() != null ? booking.getRoomsCount() : 1;
+            try {
+                listingClient.decrementRoomTypeOccupancy(booking.getRoomTypeId(), rooms);
+            } catch (Exception e) {
+                log.warn("Failed to release occupancy for completed booking {}: {}",
+                        booking.getBookingRef(), e.getMessage());
+            }
+        }
+
         try {
-            kafka.send("booking.completed", bookingId.toString());
+            kafka.send("booking.completed", booking.getId().toString());
         } catch (Exception e) {
             log.warn("Failed to send Kafka event for completed booking {}: {}", booking.getBookingRef(), e.getMessage());
         }
-        log.info("Booking {} completed by host {}", booking.getBookingRef(), hostId);
-        return toResponse(saved);
+    }
+
+    /**
+     * Scheduled auto-complete: every hour, transition CONFIRMED/CHECKED_IN
+     * bookings past their check-out timestamp into COMPLETED. Prevents host
+     * room boards from showing stale "occupied" after checkout.
+     */
+    @Scheduled(fixedRate = 3600000) // 1 hour
+    @Transactional
+    public void autoCompletePastCheckOuts() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Booking> candidates = bookingRepo.findByStatusInAndCheckOutBefore(
+                List.of(BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN), now);
+        if (candidates.isEmpty()) return;
+        log.info("Auto-completing {} bookings past check-out", candidates.size());
+        for (Booking b : candidates) {
+            try {
+                markBookingCompleted(b);
+            } catch (Exception e) {
+                log.warn("Auto-complete failed for booking {}: {}", b.getBookingRef(), e.getMessage());
+            }
+        }
     }
 
     @Transactional
@@ -1054,7 +1193,9 @@ public class BookingService {
                 // Room selections + guests
                 roomSelections, guests,
                 // Pricing unit
-                b.getPricingUnit()
+                b.getPricingUnit(),
+                // Payment mode
+                b.getPaymentMode()
         );
     }
 

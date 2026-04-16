@@ -43,18 +43,20 @@ public class TenancyAgreementController {
     @PostMapping("/host-sign")
     public ResponseEntity<AgreementResponse> hostSign(
             @PathVariable UUID tenancyId,
+            @RequestHeader("X-User-Id") UUID userId,
             HttpServletRequest request) {
         String ip = extractIp(request);
-        TenancyAgreement agreement = agreementService.hostSign(tenancyId, ip);
+        TenancyAgreement agreement = agreementService.hostSign(tenancyId, userId, ip);
         return ResponseEntity.ok(agreementService.toResponse(agreement));
     }
 
     @PostMapping("/tenant-sign")
     public ResponseEntity<AgreementResponse> tenantSign(
             @PathVariable UUID tenancyId,
+            @RequestHeader("X-User-Id") UUID userId,
             HttpServletRequest request) {
         String ip = extractIp(request);
-        TenancyAgreement agreement = agreementService.tenantSign(tenancyId, ip);
+        TenancyAgreement agreement = agreementService.tenantSign(tenancyId, userId, ip);
         return ResponseEntity.ok(agreementService.toResponse(agreement));
     }
 

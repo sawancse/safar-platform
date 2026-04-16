@@ -27,6 +27,9 @@ public class TenancyInvoice {
     @Column(name = "tenancy_id", nullable = false)
     private UUID tenancyId;
 
+    @Column(name = "tenant_id", nullable = false)
+    private UUID tenantId;
+
     @Column(name = "invoice_number", nullable = false, unique = true, length = 30)
     private String invoiceNumber;
 
@@ -81,6 +84,14 @@ public class TenancyInvoice {
     @Column(name = "water_paise", nullable = false)
     @Builder.Default
     private long waterPaise = 0;
+
+    @Column(name = "reminder_5d_sent", nullable = false)
+    @Builder.Default
+    private boolean reminder5dSent = false;
+
+    @Column(name = "reminder_1d_sent", nullable = false)
+    @Builder.Default
+    private boolean reminder1dSent = false;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -28,27 +28,41 @@ public class EventBookingController {
         return ResponseEntity.ok(eventBookingService.browseEvents(pageable));
     }
 
+    private void requireAdmin(Authentication auth) {
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            throw new org.springframework.security.access.AccessDeniedException("Admin access required");
+        }
+    }
+
     // ── Admin ─────────────────────────────────────────────────
 
     @GetMapping("/admin/all")
-    public ResponseEntity<Page<EventBooking>> adminListAll(Pageable pageable) {
+    public ResponseEntity<Page<EventBooking>> adminListAll(Pageable pageable, Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(eventBookingService.browseEvents(pageable));
     }
 
     @PostMapping("/admin/{id}/assign")
     public ResponseEntity<EventBooking> adminAssignChef(@PathVariable UUID id,
-                                                         @RequestParam UUID chefId) {
+                                                         @RequestParam UUID chefId,
+                                                         Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(eventBookingService.adminAssignChef(id, chefId));
     }
 
     @PostMapping("/admin/{id}/cancel")
     public ResponseEntity<EventBooking> adminCancel(@PathVariable UUID id,
-                                                     @RequestParam(required = false) String reason) {
+                                                     @RequestParam(required = false) String reason,
+                                                     Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(eventBookingService.adminCancelEvent(id, reason));
     }
 
     @PostMapping("/admin/{id}/complete")
-    public ResponseEntity<EventBooking> adminComplete(@PathVariable UUID id) {
+    public ResponseEntity<EventBooking> adminComplete(@PathVariable UUID id, Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(eventBookingService.adminCompleteEvent(id));
     }
 

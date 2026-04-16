@@ -24,27 +24,41 @@ public class ChefBookingController {
 
     private final ChefBookingService chefBookingService;
 
+    private void requireAdmin(Authentication auth) {
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            throw new org.springframework.security.access.AccessDeniedException("Admin access required");
+        }
+    }
+
     // ── Admin ─────────────────────────────────────────────────
 
     @GetMapping("/admin/all")
-    public ResponseEntity<Page<ChefBooking>> adminListAll(Pageable pageable) {
+    public ResponseEntity<Page<ChefBooking>> adminListAll(Pageable pageable, Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(chefBookingService.adminListAll(pageable));
     }
 
     @PostMapping("/admin/{id}/assign")
     public ResponseEntity<ChefBooking> adminAssignChef(@PathVariable UUID id,
-                                                        @RequestParam UUID chefId) {
+                                                        @RequestParam UUID chefId,
+                                                        Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(chefBookingService.adminAssignChef(id, chefId));
     }
 
     @PostMapping("/admin/{id}/cancel")
     public ResponseEntity<ChefBooking> adminCancel(@PathVariable UUID id,
-                                                    @RequestParam(required = false) String reason) {
+                                                    @RequestParam(required = false) String reason,
+                                                    Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(chefBookingService.adminCancelBooking(id, reason));
     }
 
     @PostMapping("/admin/{id}/complete")
-    public ResponseEntity<ChefBooking> adminComplete(@PathVariable UUID id) {
+    public ResponseEntity<ChefBooking> adminComplete(@PathVariable UUID id, Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(chefBookingService.adminCompleteBooking(id));
     }
 

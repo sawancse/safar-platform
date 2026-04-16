@@ -11,10 +11,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @Service
@@ -23,12 +28,24 @@ import java.util.UUID;
 public class ChefProfileService {
 
     private final ChefProfileRepository chefProfileRepo;
+    private final KafkaTemplate<String, String> kafka;
+    private final RestTemplate restTemplate;
+
+    @Value("${services.auth-service.url}")
+    private String authServiceUrl;
 
     @Transactional
     public ChefProfile registerChef(UUID userId, CreateChefProfileRequest req) {
         chefProfileRepo.findByUserId(userId).ifPresent(existing -> {
             throw new IllegalArgumentException("Chef profile already exists for this user");
         });
+
+        if (req.phone() != null && !req.phone().isBlank()) {
+            chefProfileRepo.findByPhone(req.phone()).ifPresent(existing -> {
+                throw new IllegalArgumentException(
+                        "A chef profile is already registered with this mobile number");
+            });
+        }
 
         ChefProfile profile = ChefProfile.builder()
                 .userId(userId)
@@ -61,16 +78,95 @@ public class ChefProfileService {
 
         ChefProfile saved = chefProfileRepo.save(profile);
         log.info("Chef profile registered: {} for userId={}", saved.getId(), userId);
+
+        // Publish event for notification-service (welcome email) and user-service (profile sync)
+        try {
+            String event = String.format(
+                    "{\"userId\":\"%s\",\"chefId\":\"%s\",\"name\":\"%s\",\"city\":\"%s\",\"phone\":\"%s\",\"email\":\"%s\"}",
+                    userId, saved.getId(),
+                    saved.getName() != null ? saved.getName() : "",
+                    saved.getCity() != null ? saved.getCity() : "",
+                    saved.getPhone() != null ? saved.getPhone() : "",
+                    saved.getEmail() != null ? saved.getEmail() : "");
+            kafka.send("chef.registered", userId.toString(), event);
+        } catch (Exception e) {
+            log.warn("Failed to publish chef.registered event: {}", e.getMessage());
+        }
+
         return saved;
+    }
+
+    /**
+     * Link an orphaned chef profile to the current logged-in user when their verified
+     * phone/email matches the chef profile. Handles the case where one person has
+     * multiple auth accounts (phone-login and email-login create separate userIds).
+     */
+    @Transactional
+    public ChefProfile claimByIdentity(UUID currentUserId) {
+        chefProfileRepo.findByUserId(currentUserId).ifPresent(existing -> {
+            throw new IllegalArgumentException("You already have a chef profile linked");
+        });
+
+        Map<String, Object> user = fetchAuthUser(currentUserId);
+        String phone = (String) user.get("phone");
+        String email = (String) user.get("email");
+
+        ChefProfile orphan = null;
+        if (phone != null && !phone.isBlank()) {
+            orphan = chefProfileRepo.findByPhone(phone).orElse(null);
+        }
+        if (orphan == null && email != null && !email.isBlank()) {
+            orphan = chefProfileRepo.findByEmail(email).orElse(null);
+        }
+        if (orphan == null) {
+            throw new NoSuchElementException(
+                    "No existing chef profile found matching your phone or email");
+        }
+        if (orphan.getUserId().equals(currentUserId)) {
+            return orphan; // already linked — shouldn't happen due to check above
+        }
+
+        UUID oldUserId = orphan.getUserId();
+        orphan.setUserId(currentUserId);
+        ChefProfile saved = chefProfileRepo.save(orphan);
+        log.info("Chef profile {} claimed: userId {} → {}", saved.getId(), oldUserId, currentUserId);
+        return saved;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> fetchAuthUser(UUID userId) {
+        try {
+            String url = authServiceUrl + "/api/v1/internal/users/" + userId;
+            Map<String, Object> body = restTemplate.getForObject(url, Map.class);
+            if (body == null) {
+                throw new IllegalStateException("Auth service returned empty user lookup");
+            }
+            return body;
+        } catch (Exception e) {
+            log.warn("Failed to fetch auth user {}: {}", userId, e.getMessage());
+            throw new IllegalStateException("Unable to verify your account identity right now");
+        }
     }
 
     @Transactional
     public ChefProfile updateProfile(UUID userId, UpdateChefProfileRequest req) {
         ChefProfile profile = chefProfileRepo.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Chef profile not found"));
+        if (profile.getVerificationStatus() == VerificationStatus.SUSPENDED) {
+            throw new IllegalStateException(
+                    "Your chef account is suspended. Contact support to restore it.");
+        }
 
         if (req.name() != null) profile.setName(req.name());
-        if (req.phone() != null) profile.setPhone(req.phone());
+        if (req.phone() != null && !req.phone().equals(profile.getPhone())) {
+            chefProfileRepo.findByPhone(req.phone()).ifPresent(other -> {
+                if (!other.getId().equals(profile.getId())) {
+                    throw new IllegalArgumentException(
+                            "A chef profile is already registered with this mobile number");
+                }
+            });
+            profile.setPhone(req.phone());
+        }
         if (req.email() != null) profile.setEmail(req.email());
         if (req.bio() != null) profile.setBio(req.bio());
         if (req.chefType() != null) profile.setChefType(ChefType.valueOf(req.chefType()));
@@ -87,6 +183,8 @@ public class ChefProfileService {
         if (req.languages() != null) profile.setLanguages(req.languages());
         if (req.eventMinPax() != null) profile.setEventMinPax(req.eventMinPax());
         if (req.eventMaxPax() != null) profile.setEventMaxPax(req.eventMaxPax());
+        if (req.profilePhotoUrl() != null) profile.setProfilePhotoUrl(req.profilePhotoUrl());
+        if (req.introVideoUrl() != null) profile.setIntroVideoUrl(req.introVideoUrl());
 
         log.info("Chef profile updated: {} for userId={}", profile.getId(), userId);
         return chefProfileRepo.save(profile);
@@ -201,6 +299,10 @@ public class ChefProfileService {
     public ChefProfile toggleAvailability(UUID userId) {
         ChefProfile profile = chefProfileRepo.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Chef profile not found"));
+        if (profile.getVerificationStatus() == VerificationStatus.SUSPENDED) {
+            throw new IllegalStateException(
+                    "Your chef account is suspended. You cannot go online.");
+        }
         profile.setAvailable(!profile.getAvailable());
         log.info("Chef {} availability toggled to {}", profile.getId(), profile.getAvailable());
         return chefProfileRepo.save(profile);

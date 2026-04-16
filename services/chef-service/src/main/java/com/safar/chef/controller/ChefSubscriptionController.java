@@ -23,10 +23,19 @@ public class ChefSubscriptionController {
 
     private final ChefSubscriptionService subscriptionService;
 
+    private void requireAdmin(Authentication auth) {
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            throw new org.springframework.security.access.AccessDeniedException("Admin access required");
+        }
+    }
+
     // ── Admin ─────────────────────────────────────────────────
 
     @GetMapping("/admin/all")
-    public ResponseEntity<Page<ChefSubscription>> adminListAll(Pageable pageable) {
+    public ResponseEntity<Page<ChefSubscription>> adminListAll(Pageable pageable, Authentication auth) {
+        requireAdmin(auth);
         return ResponseEntity.ok(subscriptionService.adminListAll(pageable));
     }
 

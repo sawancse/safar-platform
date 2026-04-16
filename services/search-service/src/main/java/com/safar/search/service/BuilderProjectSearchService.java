@@ -25,7 +25,7 @@ public class BuilderProjectSearchService {
 
     private final ElasticsearchOperations esOps;
 
-    public Map<String, Object> search(String query, String city, String locality,
+    public Map<String, Object> search(String query, String state, String city, String locality,
                                        String projectStatus, Long priceMin, Long priceMax,
                                        List<Integer> bhk, Boolean reraVerified,
                                        Double lat, Double lng, Double radiusKm,
@@ -39,13 +39,16 @@ public class BuilderProjectSearchService {
         if (query != null && !query.isBlank()) {
             bool.must(Query.of(q -> q.multiMatch(m -> m
                     .query(query)
-                    .fields("projectName^3", "builderName^2", "description", "city^2", "locality^2", "address")
+                    .fields("projectName^3", "builderName^2", "description", "city^2", "locality^2", "state", "address")
                     .fuzziness("AUTO")
             )));
         }
 
+        if (state != null) {
+            bool.filter(Query.of(q -> q.term(t -> t.field("state").value(state))));
+        }
         if (city != null) {
-            bool.filter(Query.of(q -> q.match(m -> m.field("city").query(city))));
+            bool.filter(Query.of(q -> q.term(t -> t.field("city").value(city))));
         }
         if (locality != null) {
             bool.filter(Query.of(q -> q.match(m -> m.field("locality").query(locality))));
@@ -53,12 +56,17 @@ public class BuilderProjectSearchService {
         if (projectStatus != null) {
             bool.filter(Query.of(q -> q.term(t -> t.field("projectStatus").value(projectStatus))));
         }
-        if (priceMin != null || priceMax != null) {
+        // Price range: project overlaps with user's budget
+        // User wants minPrice–maxPrice range; project has minPricePaise–maxPricePaise
+        // Overlap: project.maxPrice >= user.minPrice AND project.minPrice <= user.maxPrice
+        if (priceMin != null) {
             bool.filter(Query.of(q -> q.range(r -> r.number(n -> {
-                n.field("minPricePaise");
-                if (priceMin != null) n.gte(priceMin.doubleValue());
-                if (priceMax != null) n.lte(priceMax.doubleValue());
-                return n;
+                n.field("maxPricePaise"); n.gte(priceMin.doubleValue()); return n;
+            }))));
+        }
+        if (priceMax != null) {
+            bool.filter(Query.of(q -> q.range(r -> r.number(n -> {
+                n.field("minPricePaise"); n.lte(priceMax.doubleValue()); return n;
             }))));
         }
         if (bhk != null && !bhk.isEmpty()) {
