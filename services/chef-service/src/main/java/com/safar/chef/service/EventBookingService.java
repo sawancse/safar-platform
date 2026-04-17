@@ -196,9 +196,14 @@ public class EventBookingService {
     }
 
     @Transactional
-    public EventBooking markAdvancePaid(UUID eventId) {
+    public EventBooking markAdvancePaid(UUID customerId, UUID eventId) {
         EventBooking event = eventRepo.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Event booking not found"));
+
+        if (!event.getCustomerId().equals(customerId)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You can only pay advance for your own event bookings");
+        }
 
         if (event.getStatus() != EventBookingStatus.CONFIRMED) {
             throw new IllegalArgumentException("Event must be CONFIRMED before marking advance paid");

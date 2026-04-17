@@ -66,14 +66,12 @@ public class BookingExpiryService {
                 continue;
             }
 
-            // Send payment reminders via Kafka events (notification-service handles emails)
-            String reminder1Key = "booking:reminder1:" + booking.getId();
-            String reminder2Key = "booking:reminder2:" + booking.getId();
-
-            if (minutesElapsed >= REMINDER_2_MINUTES) {
-                sendReminderIfNeeded(booking, reminder2Key, "payment.reminder.urgent");
-            } else if (minutesElapsed >= REMINDER_1_MINUTES) {
-                sendReminderIfNeeded(booking, reminder1Key, "payment.reminder");
+            // Send payment reminders via Kafka events (notification-service handles emails).
+            // Each reminder fires at most once per booking — guarded by DB timestamps.
+            if (minutesElapsed >= REMINDER_2_MINUTES && booking.getReminderUrgentSentAt() == null) {
+                sendReminderOnce(booking, "payment.reminder.urgent", /*urgent=*/true);
+            } else if (minutesElapsed >= REMINDER_1_MINUTES && booking.getReminderSentAt() == null) {
+                sendReminderOnce(booking, "payment.reminder", /*urgent=*/false);
             }
         }
     }
@@ -133,9 +131,7 @@ public class BookingExpiryService {
         }
     }
 
-    private void sendReminderIfNeeded(Booking booking, String redisKey, String topic) {
-        // Simple dedup: use Kafka key to avoid duplicate reminders
-        // In production, use Redis SET NX with TTL
+    private void sendReminderOnce(Booking booking, String topic, boolean urgent) {
         try {
             String event = String.format(
                     "{\"bookingId\":\"%s\",\"bookingRef\":\"%s\",\"guestEmail\":\"%s\",\"guestName\":\"%s %s\",\"totalAmountPaise\":%d}",
@@ -145,6 +141,12 @@ public class BookingExpiryService {
                     booking.getGuestLastName() != null ? booking.getGuestLastName() : "",
                     booking.getTotalAmountPaise() != null ? booking.getTotalAmountPaise() : 0);
             kafka.send(topic, booking.getId().toString(), event);
+
+            // Mark as sent so subsequent scheduler ticks skip this booking.
+            OffsetDateTime now = OffsetDateTime.now();
+            if (urgent) booking.setReminderUrgentSentAt(now);
+            else        booking.setReminderSentAt(now);
+            bookingRepo.save(booking);
         } catch (Exception e) {
             log.warn("Failed to send payment reminder for {}: {}", booking.getBookingRef(), e.getMessage());
         }

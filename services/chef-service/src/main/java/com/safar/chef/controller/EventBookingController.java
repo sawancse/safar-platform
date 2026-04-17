@@ -90,8 +90,10 @@ public class EventBookingController {
     }
 
     @PostMapping("/{id}/advance-paid")
-    public ResponseEntity<EventBooking> markAdvancePaid(@PathVariable UUID id) {
-        return ResponseEntity.ok(eventBookingService.markAdvancePaid(id));
+    public ResponseEntity<EventBooking> markAdvancePaid(Authentication auth,
+                                                         @PathVariable UUID id) {
+        UUID customerId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(eventBookingService.markAdvancePaid(customerId, id));
     }
 
     @PostMapping("/{id}/complete")

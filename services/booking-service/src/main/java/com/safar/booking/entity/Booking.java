@@ -126,6 +126,12 @@ public class Booking {
     private OffsetDateTime checkedInAt;
     private OffsetDateTime completedAt;
 
+    @Column(name = "reminder_sent_at")
+    private OffsetDateTime reminderSentAt;
+
+    @Column(name = "reminder_urgent_sent_at")
+    private OffsetDateTime reminderUrgentSentAt;
+
     @Builder.Default
     private Long walletCreditsAppliedPaise = 0L;
 
