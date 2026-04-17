@@ -11,8 +11,10 @@ aws:
   s3:
     bucket: ${S3_BUCKET:safar-media-dev}
     region: ${AWS_REGION:ap-south-1}
-    access-key: ${AWS_ACCESS_KEY_ID:AKIAZC3VOSQUHZCIFDVR}
-    secret-key: ${AWS_SECRET_ACCESS_KEY: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}
+    # Leave blank to use the default credential chain (IAM task role in prod,
+    # env vars / ~/.aws/credentials locally). Never commit real keys here.
+    access-key: ${AWS_ACCESS_KEY_ID:}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:}
   cloudfront:
     domain: ${CDN_DOMAIN:d1pei2hufbgxoj.cloudfront.net}
 

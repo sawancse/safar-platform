@@ -116,7 +116,8 @@ class ListingControllerTest {
                 // Insurance
                 null, null, null,
                 // Hotel fields
-                null, null, null, null
+                null, null, null, null,
+                null
         );
 
         mockMvc.perform(post("/api/v1/listings")

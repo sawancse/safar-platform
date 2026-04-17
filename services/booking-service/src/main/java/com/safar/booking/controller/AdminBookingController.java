@@ -4,14 +4,19 @@ import com.safar.booking.dto.BookingResponse;
 import com.safar.booking.entity.Booking;
 import com.safar.booking.entity.enums.BookingStatus;
 import com.safar.booking.repository.BookingRepository;
+import com.safar.booking.repository.PgTenancyRepository;
 import com.safar.booking.service.BookingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -25,6 +30,12 @@ public class AdminBookingController {
 
     private final BookingService bookingService;
     private final BookingRepository bookingRepository;
+    private final PgTenancyRepository pgTenancyRepository;
+    private final KafkaTemplate<String, String> kafka;
+    private final RestTemplate restTemplate;
+
+    @Value("${services.chef-service.url}")
+    private String chefServiceUrl;
 
     // ── All bookings (paginated, filterable) ─────────────────────────────────
 
@@ -178,18 +189,27 @@ public class AdminBookingController {
         requireAdmin(auth);
 
         List<Booking> all = bookingRepository.findAll();
-        Map<UUID, List<Booking>> byGuest = all.stream()
-                .collect(Collectors.groupingBy(Booking::getGuestId));
 
-        List<Map<String, Object>> guests = byGuest.entrySet().stream().map(e -> {
-            UUID guestId = e.getKey();
-            List<Booking> bookings = e.getValue();
+        // Dedupe by identity: same phone (normalized) → same person across multiple auth accounts;
+        // fall back to email, then guestId. Collapses duplicates created by phone+email+Google logins.
+        Map<String, List<Booking>> byIdentity = all.stream()
+                .collect(Collectors.groupingBy(AdminBookingController::identityKey));
+
+        List<Map<String, Object>> guests = byIdentity.values().stream().map(bookings -> {
             Booking latest = bookings.stream()
                     .max(Comparator.comparing(b -> b.getCreatedAt() != null ? b.getCreatedAt() : java.time.OffsetDateTime.MIN))
                     .orElse(bookings.get(0));
 
+            // Collect all distinct guestIds merged under this identity (for admin drill-down)
+            List<UUID> mergedGuestIds = bookings.stream()
+                    .map(Booking::getGuestId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .toList();
+
             Map<String, Object> guest = new LinkedHashMap<>();
-            guest.put("guestId", guestId);
+            guest.put("guestId", latest.getGuestId());
+            guest.put("mergedGuestIds", mergedGuestIds);
             guest.put("name", (latest.getGuestFirstName() != null ? latest.getGuestFirstName() : "") + " "
                     + (latest.getGuestLastName() != null ? latest.getGuestLastName() : ""));
             guest.put("email", latest.getGuestEmail());
@@ -203,6 +223,93 @@ public class AdminBookingController {
                 .toList();
 
         return ResponseEntity.ok(guests);
+    }
+
+    private static String identityKey(Booking b) {
+        String phone = normalizePhone(b.getGuestPhone());
+        if (phone != null) return "p:" + phone;
+        String email = b.getGuestEmail();
+        if (email != null && !email.isBlank()) return "e:" + email.trim().toLowerCase();
+        return "u:" + (b.getGuestId() != null ? b.getGuestId().toString() : "unknown");
+    }
+
+    private static String normalizePhone(String raw) {
+        if (raw == null) return null;
+        String digits = raw.replaceAll("\\D+", "");
+        if (digits.length() < 10) return null;
+        // Strip leading country code / zero so "+917367034296" and "7367034296" collapse
+        return digits.substring(digits.length() - 10);
+    }
+
+    // ── Merge duplicate guest accounts ───────────────────────────────────────
+
+    /**
+     * Repoint bookings and PG tenancies from loserId to keeperId, then publish
+     * a user.merged Kafka event so every other service can repoint its own FKs
+     * (chef_profiles, user_profiles, listings, reviews, donations, etc.).
+     * The actual auth.users row deletion happens in auth-service on the event.
+     */
+    @PostMapping("/guests/merge")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> mergeGuests(
+            Authentication auth,
+            @RequestBody Map<String, String> body) {
+        requireAdmin(auth);
+
+        UUID keeperId = UUID.fromString(body.get("keeperId"));
+        UUID loserId = UUID.fromString(body.get("loserId"));
+        if (keeperId.equals(loserId)) {
+            throw new IllegalArgumentException("keeperId and loserId must differ");
+        }
+
+        int bookingsMoved = 0;
+        for (Booking b : bookingRepository.findByGuestId(loserId)) {
+            b.setGuestId(keeperId);
+            bookingRepository.save(b);
+            bookingsMoved++;
+        }
+
+        int tenanciesMoved = 0;
+        for (var t : pgTenancyRepository.findByTenantId(loserId,
+                org.springframework.data.domain.Pageable.unpaged())) {
+            t.setTenantId(keeperId);
+            pgTenancyRepository.save(t);
+            tenanciesMoved++;
+        }
+
+        // Synchronously repoint chef_profiles.user_id in chef-service.
+        int chefProfilesMoved = 0;
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> resp = restTemplate.postForObject(
+                    chefServiceUrl + "/api/v1/internal/chefs/merge",
+                    Map.of("keeperId", keeperId.toString(), "loserId", loserId.toString()),
+                    Map.class);
+            if (resp != null && resp.get("chefProfilesMoved") instanceof Number n) {
+                chefProfilesMoved = n.intValue();
+            }
+        } catch (Exception e) {
+            // Non-fatal — don't roll back bookings merge if chef-service is unreachable.
+        }
+
+        // Kafka broadcast for any other services that want to subscribe later
+        // (user-service, listing-service, review-service, payment-service).
+        try {
+            String event = String.format(
+                    "{\"keeperId\":\"%s\",\"loserId\":\"%s\",\"mergedBy\":\"%s\"}",
+                    keeperId, loserId, auth.getName());
+            kafka.send("user.merged", keeperId.toString(), event);
+        } catch (Exception e) {
+            // Non-fatal.
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("keeperId", keeperId);
+        result.put("loserId", loserId);
+        result.put("bookingsMoved", bookingsMoved);
+        result.put("tenanciesMoved", tenanciesMoved);
+        result.put("chefProfilesMoved", chefProfilesMoved);
+        return ResponseEntity.ok(result);
     }
 
     private void requireAdmin(Authentication auth) {

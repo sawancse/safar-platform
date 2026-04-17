@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -45,13 +46,14 @@ public class AuthService {
             throw new IllegalArgumentException("Invalid or expired OTP");
         }
 
-        User user = userRepository.findByPhone(request.phone())
-                .orElseGet(() -> {
-                    if (request.name() == null || request.name().isBlank()) {
-                        throw new IllegalArgumentException("Name is required for new users");
-                    }
-                    return createUser(request.phone(), request.name());
-                });
+        User user = userRepository.findByPhone(request.phone()).orElse(null);
+        if (user == null) {
+            if (request.name() == null || request.name().isBlank()) {
+                throw new IllegalArgumentException("Name is required for new users");
+            }
+            user = signupNewUserWithPhone(request.phone(), request.name(),
+                    normalizeEmail(request.email()));
+        }
 
         syncProfileAsync(user);
         return buildAuthResponse(user);
@@ -63,16 +65,77 @@ public class AuthService {
             throw new IllegalArgumentException("Invalid or expired OTP");
         }
 
-        User user = userRepository.findByEmail(request.email())
-                .orElseGet(() -> {
-                    if (request.name() == null || request.name().isBlank()) {
-                        throw new IllegalArgumentException("Name is required for new users");
-                    }
-                    return createEmailUser(request.email(), request.name());
-                });
+        String email = normalizeEmail(request.email());
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            if (request.name() == null || request.name().isBlank()) {
+                throw new IllegalArgumentException("Name is required for new users");
+            }
+            user = signupNewUserWithEmail(email, request.name(),
+                    normalizePhone(request.phone()));
+        }
 
         syncProfileAsync(user);
         return buildAuthResponse(user);
+    }
+
+    private User signupNewUserWithPhone(String phone, String name, String email) {
+        // If caller also supplied an email, cross-check to avoid creating a duplicate account.
+        if (email != null) {
+            User existingByEmail = userRepository.findByEmail(email).orElse(null);
+            if (existingByEmail != null) {
+                if (existingByEmail.getPhone() != null && !existingByEmail.getPhone().equals(phone)) {
+                    throw new DuplicateAccountException(
+                            "This email is already registered with another phone number. "
+                                    + "Please sign in using email OTP instead.");
+                }
+                // Email exists and either has no phone or same phone → link the verified phone
+                existingByEmail.setPhone(phone);
+                log.info("Linked verified phone {} to existing email account {}", phone, existingByEmail.getId());
+                return userRepository.save(existingByEmail);
+            }
+        }
+        return userRepository.save(User.builder()
+                .phone(phone)
+                .email(email)
+                .name(name)
+                .role(UserRole.GUEST)
+                .build());
+    }
+
+    private User signupNewUserWithEmail(String email, String name, String phone) {
+        // Mirror of above for email-first signup.
+        if (phone != null) {
+            User existingByPhone = userRepository.findByPhone(phone).orElse(null);
+            if (existingByPhone != null) {
+                if (existingByPhone.getEmail() != null && !existingByPhone.getEmail().equals(email)) {
+                    throw new DuplicateAccountException(
+                            "This phone number is already registered with another email. "
+                                    + "Please sign in using phone OTP instead.");
+                }
+                existingByPhone.setEmail(email);
+                log.info("Linked verified email {} to existing phone account {}", email, existingByPhone.getId());
+                return userRepository.save(existingByPhone);
+            }
+        }
+        return userRepository.save(User.builder()
+                .email(email)
+                .phone(phone)
+                .name(name)
+                .role(UserRole.GUEST)
+                .build());
+    }
+
+    private static String normalizeEmail(String email) {
+        if (email == null) return null;
+        String trimmed = email.trim();
+        return trimmed.isEmpty() ? null : trimmed.toLowerCase();
+    }
+
+    private static String normalizePhone(String phone) {
+        if (phone == null) return null;
+        String trimmed = phone.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     @Transactional
@@ -214,6 +277,42 @@ public class AuthService {
         log.info("Device untrusted for user {}", userId);
     }
 
+    /**
+     * List all trusted devices for a user.
+     * Scans Redis for keys matching trusted:device:{userId}:*
+     */
+    public List<Map<String, String>> listTrustedDevices(UUID userId) {
+        String pattern = DEVICE_PREFIX + userId + ":*";
+        java.util.Set<String> keys = redis.keys(pattern);
+        List<Map<String, String>> devices = new java.util.ArrayList<>();
+        if (keys != null) {
+            String prefix = DEVICE_PREFIX + userId + ":";
+            for (String key : keys) {
+                String fingerprint = key.substring(prefix.length());
+                String name = redis.opsForValue().get(key);
+                Long ttl = redis.getExpire(key, java.util.concurrent.TimeUnit.DAYS);
+                devices.add(Map.of(
+                        "fingerprint", fingerprint,
+                        "deviceName", name != null ? name : "Unknown",
+                        "expiresInDays", ttl != null ? String.valueOf(ttl) : "?"
+                ));
+            }
+        }
+        return devices;
+    }
+
+    /**
+     * Revoke all trusted devices for a user.
+     */
+    public void revokeAllDevices(UUID userId) {
+        String pattern = DEVICE_PREFIX + userId + ":*";
+        java.util.Set<String> keys = redis.keys(pattern);
+        if (keys != null && !keys.isEmpty()) {
+            redis.delete(keys);
+            log.info("All trusted devices revoked for user {}", userId);
+        }
+    }
+
     private void syncProfileAsync(User user) {
         try {
             String url = userServiceUrl + "/api/v1/internal/users/" + user.getId() + "/sync-profile";
@@ -226,22 +325,6 @@ public class AuthService {
         } catch (Exception e) {
             log.warn("Failed to sync profile for user {}: {}", user.getId(), e.getMessage());
         }
-    }
-
-    private User createUser(String phone, String name) {
-        return userRepository.save(User.builder()
-                .phone(phone)
-                .name(name)
-                .role(UserRole.GUEST)
-                .build());
-    }
-
-    private User createEmailUser(String email, String name) {
-        return userRepository.save(User.builder()
-                .email(email)
-                .name(name)
-                .role(UserRole.GUEST)
-                .build());
     }
 
     private AuthResponse buildAuthResponse(User user) {

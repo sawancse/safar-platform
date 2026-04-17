@@ -18,6 +18,7 @@ public class EmailContext {
     private String hostAvatarUrl;
 
     // Booking info
+    private String bookingId;   // UUID — used by email CTAs that deep-link to the booking detail page
     private String bookingRef;
     private String checkIn;
     private String checkOut;
@@ -192,19 +193,14 @@ public class EmailContext {
     private String moveOutDate;
     private String noticePeriodDays;
 
-    // Flight fields
-    private String bookingRef;
+    // Flight fields (bookingRef/totalAmount/refundAmount reuse the existing top-level fields)
     private String flightRoute;
     private String flightDate;
     private String airline;
     private String flightNumber;
-    private String totalAmount;
-    private String refundAmount;
     private boolean isInternational;
 
     // Flight getters and setters
-    public String getBookingRef() { return bookingRef; }
-    public void setBookingRef(String bookingRef) { this.bookingRef = bookingRef; }
     public String getFlightRoute() { return flightRoute; }
     public void setFlightRoute(String flightRoute) { this.flightRoute = flightRoute; }
     public String getFlightDate() { return flightDate; }
@@ -213,10 +209,6 @@ public class EmailContext {
     public void setAirline(String airline) { this.airline = airline; }
     public String getFlightNumber() { return flightNumber; }
     public void setFlightNumber(String flightNumber) { this.flightNumber = flightNumber; }
-    public String getTotalAmount() { return totalAmount; }
-    public void setTotalAmount(String totalAmount) { this.totalAmount = totalAmount; }
-    public String getRefundAmount() { return refundAmount; }
-    public void setRefundAmount(String refundAmount) { this.refundAmount = refundAmount; }
     public boolean getIsInternational() { return isInternational; }
     public void setIsInternational(boolean isInternational) { this.isInternational = isInternational; }
 
@@ -239,6 +231,8 @@ public class EmailContext {
     public void setStarHost(boolean starHost) { this.starHost = starHost; }
     public String getHostAvatarUrl() { return hostAvatarUrl; }
     public void setHostAvatarUrl(String hostAvatarUrl) { this.hostAvatarUrl = hostAvatarUrl; }
+    public String getBookingId() { return bookingId; }
+    public void setBookingId(String bookingId) { this.bookingId = bookingId; }
     public String getBookingRef() { return bookingRef; }
     public void setBookingRef(String bookingRef) { this.bookingRef = bookingRef; }
     public String getCheckIn() { return checkIn; }

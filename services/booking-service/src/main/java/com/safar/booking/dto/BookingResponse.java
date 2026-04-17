@@ -86,5 +86,7 @@ public record BookingResponse(
         // Guest list
         List<BookingGuestResponse> guests,
         // Pricing unit
-        String pricingUnit
+        String pricingUnit,
+        // Payment mode: PREPAID / PAY_AT_PROPERTY / PARTIAL_PREPAID
+        String paymentMode
 ) {}

@@ -29,6 +29,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        // Internal service-to-service (admin merge, etc.) — restricted to VPC in prod
+                        .requestMatchers("/api/v1/internal/**").permitAll()
                         // Admin: dish catalog CRUD (must be before public GET dishes rule)
                         .requestMatchers("/api/v1/dishes/admin/**").authenticated()
                         // Public: dish catalog & cook matching

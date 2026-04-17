@@ -23,33 +23,33 @@ public class S3StorageService {
     private final S3Client s3Client;
     private final String bucket;
     private final String cdnDomain;
+    private final boolean localMode;
 
     public S3StorageService(
             @Value("${aws.s3.bucket}") String bucket,
             @Value("${aws.s3.region}") String region,
             @Value("${aws.s3.access-key:}") String accessKey,
             @Value("${aws.s3.secret-key:}") String secretKey,
-            @Value("${aws.cloudfront.domain}") String cdnDomain) {
+            @Value("${aws.cloudfront.domain}") String cdnDomain,
+            @Value("${storage.local-mode:false}") boolean localMode) {
         this.bucket = bucket;
         this.cdnDomain = cdnDomain;
-        if (accessKey != null && !accessKey.isBlank() && secretKey != null && !secretKey.isBlank()) {
+        this.localMode = localMode;
+
+        if (localMode || accessKey == null || accessKey.isBlank() || secretKey == null || secretKey.isBlank()) {
+            this.s3Client = null;
+            log.info("S3 storage in LOCAL MODE — files saved to ./uploads/");
+        } else {
             this.s3Client = S3Client.builder()
                     .region(Region.of(region))
                     .credentialsProvider(StaticCredentialsProvider.create(
                             AwsBasicCredentials.create(accessKey, secretKey)))
                     .build();
-        } else {
-            // Use IAM task role on ECS (default credential chain)
-            this.s3Client = S3Client.builder()
-                    .region(Region.of(region))
-                    .credentialsProvider(DefaultCredentialsProvider.create())
-                    .build();
-            log.info("Using default AWS credential chain (IAM task role) for S3");
         }
     }
 
     /**
-     * Uploads a file to S3 and returns the CDN URL.
+     * Uploads a file to S3 (or local disk in local mode) and returns the URL.
      */
     public String upload(UUID listingId, MultipartFile file, String mediaType) throws IOException {
         String originalFilename = file.getOriginalFilename();
@@ -60,8 +60,17 @@ public class S3StorageService {
         String s3Key = "listings/" + listingId + "/" + mediaType.toLowerCase() + "/" + UUID.randomUUID() + ext;
 
         if (s3Client == null) {
-            log.warn("S3 not configured — returning placeholder URL for {}", s3Key);
-            return "https://" + cdnDomain + "/" + s3Key;
+            // Local mode: save to disk (absolute path to avoid Tomcat temp dir issues)
+            java.nio.file.Path uploadDir = java.nio.file.Paths.get(System.getProperty("user.dir"),
+                    "uploads", "listings", listingId.toString(), mediaType.toLowerCase()).toAbsolutePath();
+            java.nio.file.Files.createDirectories(uploadDir);
+            java.nio.file.Path target = uploadDir.resolve(s3Key.substring(s3Key.lastIndexOf('/') + 1));
+            try (var in = file.getInputStream(); var out = java.nio.file.Files.newOutputStream(target)) {
+                in.transferTo(out);
+            }
+            String localUrl = "http://localhost:8083/uploads/" + s3Key;
+            log.info("Local upload: {} → {}", originalFilename, target);
+            return localUrl;
         }
 
         PutObjectRequest putRequest = PutObjectRequest.builder()

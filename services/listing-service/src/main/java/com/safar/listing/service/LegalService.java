@@ -204,18 +204,24 @@ public class LegalService {
 
         List<LegalVerification> verifications = legalVerificationRepository.findByLegalCaseId(caseId);
 
-        // Analyze verifications for risk level
-        boolean anyIssuefound = verifications.stream()
-                .anyMatch(v -> v.getStatus() == VerificationStatus.ISSUE_FOUND);
+        // Analyze verifications for risk level — count severity, not just presence
+        long issueCount = verifications.stream()
+                .filter(v -> v.getStatus() == VerificationStatus.ISSUE_FOUND).count();
         boolean allClean = verifications.stream()
                 .allMatch(v -> v.getStatus() == VerificationStatus.CLEAN);
+        long pendingCount = verifications.stream()
+                .filter(v -> v.getStatus() == VerificationStatus.PENDING).count();
 
         if (allClean) {
             legalCase.setRiskLevel(RiskLevel.GREEN);
-        } else if (anyIssuefound) {
-            legalCase.setRiskLevel(RiskLevel.RED);
+        } else if (issueCount >= 2) {
+            legalCase.setRiskLevel(RiskLevel.RED);     // Multiple issues = high risk
+        } else if (issueCount == 1) {
+            legalCase.setRiskLevel(RiskLevel.YELLOW);  // Single issue = medium risk
+        } else if (pendingCount > 0) {
+            legalCase.setRiskLevel(RiskLevel.YELLOW);  // Still pending = yellow
         } else {
-            legalCase.setRiskLevel(RiskLevel.YELLOW);
+            legalCase.setRiskLevel(RiskLevel.GREEN);
         }
 
         legalCase.setStatus(LegalCaseStatus.REPORT_READY);

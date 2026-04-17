@@ -27,8 +27,10 @@ public class InteriorController {
 
     @GetMapping("/admin/projects")
     public ResponseEntity<Page<InteriorProjectResponse>> getAllProjects(
+            @RequestHeader(value = "X-User-Role", required = false) String role,
             @RequestParam(required = false) String status,
             Pageable pageable) {
+        if (!"ADMIN".equalsIgnoreCase(role)) throw new org.springframework.security.access.AccessDeniedException("Admin access required");
         return ResponseEntity.ok(interiorService.getAllProjects(status, pageable));
     }
 
@@ -37,7 +39,9 @@ public class InteriorController {
     @PostMapping("/projects/{id}/designer")
     public ResponseEntity<InteriorProjectResponse> assignDesigner(
             @PathVariable UUID id,
-            @RequestParam UUID designerId) {
+            @RequestParam UUID designerId,
+            @RequestHeader(value = "X-User-Role", required = false) String role) {
+        if (!"ADMIN".equalsIgnoreCase(role)) throw new org.springframework.security.access.AccessDeniedException("Admin access required");
         return ResponseEntity.ok(interiorService.assignDesigner(id, designerId));
     }
 
@@ -192,13 +196,7 @@ public class InteriorController {
         return ResponseEntity.ok(interiorService.getQualityChecks(id));
     }
 
-    // ── List Designers ───────────────────────────────────────
-
-    @GetMapping("/designers")
-    public ResponseEntity<List<DesignerResponse>> listDesigners(
-            @RequestParam(required = false) String city) {
-        return ResponseEntity.ok(interiorService.listDesigners(city));
-    }
+    // Designers CRUD moved to ProfessionalController
 
     // ── Submit Review ────────────────────────────────────────
 

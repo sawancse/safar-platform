@@ -1,5 +1,7 @@
 package com.safar.booking.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.safar.booking.entity.MaintenanceRequest;
 import com.safar.booking.entity.TenancySettlement;
 import com.safar.booking.entity.TicketComment;
@@ -29,6 +31,17 @@ public class TicketEscalationScheduler {
     private final TicketCommentRepository commentRepository;
     private final TenancySettlementRepository settlementRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ObjectMapper objectMapper;
+
+    /** Kafka producer uses StringSerializer — JSON-stringify before send. */
+    private void sendEvent(String topic, String key, Object payload, UUID entityId) {
+        try {
+            kafkaTemplate.send(topic, key, objectMapper.writeValueAsString(payload));
+        } catch (JsonProcessingException e) {
+            log.warn("Kafka {} payload serialization failed for {}: {}", topic, entityId, e.getMessage());
+            kafkaTemplate.send(topic, key, "{\"id\":\"" + entityId + "\"}");
+        }
+    }
 
     private static final List<MaintenanceStatus> ACTIVE_STATUSES = List.of(
             MaintenanceStatus.OPEN, MaintenanceStatus.ASSIGNED,
@@ -64,13 +77,13 @@ public class TicketEscalationScheduler {
                 addSystemComment(ticket,
                         "SLA breached. Auto-escalated to " + levelLabel + ".");
 
-                kafkaTemplate.send("ticket.escalated", ticket.getId().toString(), ticket);
+                sendEvent("ticket.escalated", ticket.getId().toString(), ticket, ticket.getId());
                 log.warn("Ticket {} SLA breached — escalated to L{}",
                         ticket.getRequestNumber(), ticket.getEscalationLevel());
             } else {
                 addSystemComment(ticket,
                         "SLA breached. Already at highest escalation level (L3).");
-                kafkaTemplate.send("ticket.sla.breached", ticket.getId().toString(), ticket);
+                sendEvent("ticket.sla.breached", ticket.getId().toString(), ticket, ticket.getId());
             }
 
             requestRepository.save(ticket);
@@ -101,7 +114,7 @@ public class TicketEscalationScheduler {
             settlement.setOverdue(true);
             settlementRepository.save(settlement);
 
-            kafkaTemplate.send("settlement.refund.overdue", settlement.getId().toString(), settlement);
+            sendEvent("settlement.refund.overdue", settlement.getId().toString(), settlement, settlement.getId());
             log.warn("Settlement {} is overdue — deadline was {}",
                     settlement.getSettlementRef(), settlement.getRefundDeadlineDate());
         }

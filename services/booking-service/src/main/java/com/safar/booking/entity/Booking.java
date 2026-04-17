@@ -239,6 +239,9 @@ public class Booking {
     @Builder.Default
     private String pricingUnit = "NIGHT"; // NIGHT, MONTH, HOUR
 
+    @Column(name = "lease_duration_months")
+    private Integer leaseDurationMonths;
+
     @CreationTimestamp
     private OffsetDateTime createdAt;
 

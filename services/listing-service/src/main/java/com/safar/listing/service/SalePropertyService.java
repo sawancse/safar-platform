@@ -228,6 +228,18 @@ public class SalePropertyService {
     }
 
     @Transactional
+    /**
+     * Host-facing status changes:
+     *   PENDING → DRAFT (withdraw before review)
+     *   VERIFIED → PAUSED (temporarily hide)
+     *   VERIFIED → ARCHIVED (host archives, reversible)
+     *   VERIFIED → SOLD (mark sold)
+     *   PAUSED → PENDING (re-submit for review)
+     *   ARCHIVED → PENDING (restore, re-submit)
+     *   DRAFT → PENDING (submit for review)
+     *
+     * Host CANNOT: VERIFIED (admin only), REJECTED (admin only), SUSPENDED (admin only)
+     */
     public SalePropertyResponse updateStatus(UUID id, SalePropertyStatus newStatus, UUID sellerId) {
         SaleProperty sp = salePropertyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sale property not found: " + id));
@@ -235,20 +247,18 @@ public class SalePropertyService {
             throw new RuntimeException("Not authorized");
         }
 
-        SalePropertyStatus old = sp.getStatus();
-        sp.setStatus(newStatus);
-
-        if (newStatus == SalePropertyStatus.ACTIVE && old == SalePropertyStatus.DRAFT) {
-            sp.setApprovedAt(java.time.OffsetDateTime.now());
-            sp.setExpiresAt(java.time.OffsetDateTime.now().plusDays(90));
+        // Host cannot set admin-only statuses
+        if (newStatus == SalePropertyStatus.VERIFIED || newStatus == SalePropertyStatus.REJECTED
+                || newStatus == SalePropertyStatus.SUSPENDED) {
+            throw new IllegalStateException("Only admin can set status to " + newStatus);
         }
 
+        SalePropertyStatus old = sp.getStatus();
+        sp.setStatus(newStatus);
         sp = salePropertyRepository.save(sp);
 
-        // Index/deindex in ES
-        if (newStatus == SalePropertyStatus.ACTIVE) {
-            kafkaTemplate.send("sale.property.indexed", sp.getId().toString(), toJson(sp));
-        } else {
+        // Deindex from ES if was VERIFIED (visible)
+        if (old == SalePropertyStatus.VERIFIED && newStatus != SalePropertyStatus.VERIFIED) {
             kafkaTemplate.send("sale.property.deleted", sp.getId().toString(), sp.getId().toString());
         }
 
@@ -285,14 +295,17 @@ public class SalePropertyService {
     }
 
     // Admin methods
+    /** Admin verify = approve listing. PENDING → VERIFIED (goes live in search). */
     public SalePropertyResponse adminVerify(UUID id) {
         SaleProperty sp = salePropertyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Not found: " + id));
         sp.setVerified(true);
+        sp.setStatus(SalePropertyStatus.VERIFIED);
+        sp.setApprovedAt(java.time.OffsetDateTime.now());
+        sp.setExpiresAt(java.time.OffsetDateTime.now().plusDays(90));
         sp = salePropertyRepository.save(sp);
-        if (sp.getStatus() == SalePropertyStatus.ACTIVE) {
-            kafkaTemplate.send("sale.property.indexed", sp.getId().toString(), toJson(sp));
-        }
+        kafkaTemplate.send("sale.property.indexed", sp.getId().toString(), toJson(sp));
+        log.info("Sale property {} verified and activated", id);
         return toResponse(sp);
     }
 
@@ -310,6 +323,39 @@ public class SalePropertyService {
         sp.setStatus(SalePropertyStatus.SUSPENDED);
         sp = salePropertyRepository.save(sp);
         kafkaTemplate.send("sale.property.deleted", sp.getId().toString(), sp.getId().toString());
+        return toResponse(sp);
+    }
+
+    /**
+     * Admin: set any status.
+     * PENDING → VERIFIED (approve), PENDING → REJECTED (reject)
+     * Any → SUSPENDED (policy), SUSPENDED → VERIFIED (unsuspend)
+     * VERIFIED = visible in search (indexed in ES)
+     */
+    @Transactional
+    public SalePropertyResponse adminSetStatus(UUID id, SalePropertyStatus newStatus) {
+        SaleProperty sp = salePropertyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Not found: " + id));
+        SalePropertyStatus old = sp.getStatus();
+        sp.setStatus(newStatus);
+
+        // Set approval timestamp when verifying
+        if (newStatus == SalePropertyStatus.VERIFIED && old != SalePropertyStatus.VERIFIED) {
+            sp.setApprovedAt(java.time.OffsetDateTime.now());
+            sp.setExpiresAt(java.time.OffsetDateTime.now().plusDays(90));
+        }
+
+        sp = salePropertyRepository.save(sp);
+
+        // VERIFIED = visible in search → index in ES
+        if (newStatus == SalePropertyStatus.VERIFIED) {
+            kafkaTemplate.send("sale.property.indexed", sp.getId().toString(), toJson(sp));
+        } else if (old == SalePropertyStatus.VERIFIED) {
+            // Was visible, now hidden → remove from ES
+            kafkaTemplate.send("sale.property.deleted", sp.getId().toString(), sp.getId().toString());
+        }
+
+        log.info("Admin changed sale property {} status: {} -> {}", id, old, newStatus);
         return toResponse(sp);
     }
 

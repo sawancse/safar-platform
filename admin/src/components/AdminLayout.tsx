@@ -44,6 +44,7 @@ const menuItems = [
   { key: '/home-loans',     icon: <BankOutlined />,          label: 'Home Loans' },
   { key: '/legal-cases',    icon: <SafetyOutlined />,        label: 'Legal Cases' },
   { key: '/interiors',      icon: <FormatPainterOutlined />, label: 'Interiors' },
+  { key: '/professionals', icon: <TeamOutlined />,           label: 'Professionals' },
   { key: '/pg-management', icon: <ToolOutlined />,           label: 'PG Management' },
   { key: '/users',         icon: <TeamOutlined />,           label: 'Users & Leads' },
 ];

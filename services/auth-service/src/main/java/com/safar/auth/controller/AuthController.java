@@ -1,6 +1,7 @@
 package com.safar.auth.controller;
 
 import com.safar.auth.dto.*;
+import com.safar.auth.repository.UserRepository;
 import com.safar.auth.service.AuthService;
 import com.safar.auth.service.OtpService;
 import com.safar.auth.service.PasswordService;
@@ -22,6 +23,7 @@ public class AuthController {
     private final AuthService     authService;
     private final PasswordService passwordService;
     private final PinService      pinService;
+    private final UserRepository  userRepository;
 
     @PostMapping("/otp/send")
     public ResponseEntity<Map<String, Object>> sendOtp(
@@ -134,6 +136,21 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
+    /** List all trusted devices for the current user */
+    @GetMapping("/devices")
+    public ResponseEntity<java.util.List<Map<String, String>>> listDevices(
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(authService.listTrustedDevices(userId));
+    }
+
+    /** Revoke all trusted devices (sign out everywhere) */
+    @DeleteMapping("/devices/all")
+    public ResponseEntity<Void> revokeAllDevices(
+            @RequestHeader("X-User-Id") UUID userId) {
+        authService.revokeAllDevices(userId);
+        return ResponseEntity.noContent().build();
+    }
+
     // ── Password authentication endpoints ──────────────────────────────
 
     @PostMapping("/password/signin")
@@ -170,6 +187,55 @@ public class AuthController {
         return ResponseEntity.ok(passwordService.checkMethod(email));
     }
 
+    /**
+     * Lightweight existence check — used by the signup UI to validate a second
+     * identifier (phone/email) BEFORE the user finishes OTP verification, so
+     * they can be warned early if it already belongs to someone else.
+     */
+    @GetMapping("/identifier/exists")
+    public ResponseEntity<Map<String, Boolean>> identifierExists(
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) String email) {
+        Map<String, Boolean> out = new java.util.LinkedHashMap<>();
+        if (phone != null && !phone.isBlank()) {
+            out.put("phone", userRepository.findByPhone(phone.trim()).isPresent());
+        }
+        if (email != null && !email.isBlank()) {
+            out.put("email", userRepository.findByEmail(email.trim().toLowerCase()).isPresent());
+        }
+        return ResponseEntity.ok(out);
+    }
+
+    /**
+     * Unified auth options — returns all available login methods for a phone or email.
+     * Frontend uses this to show: "Login with OTP", "Login with Password", "Login with PIN"
+     */
+    @GetMapping("/auth-options")
+    public ResponseEntity<Map<String, Object>> getAuthOptions(
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) String email) {
+        Map<String, Object> options = new java.util.LinkedHashMap<>();
+        options.put("otp", true); // OTP always available
+
+        if (email != null && !email.isBlank()) {
+            CheckMethodResponse cm = passwordService.checkMethod(email);
+            options.put("exists", cm.exists());
+            options.put("password", cm.hasPassword());
+            options.put("methods", cm.methods());
+        }
+
+        if (phone != null && !phone.isBlank()) {
+            Map<String, Object> pinStatus = pinService.checkPinStatus(phone, null);
+            options.put("exists", true);
+            options.put("pin", pinStatus.get("hasPin"));
+            options.put("pinLocked", pinStatus.get("pinLocked"));
+            boolean hasPassword = passwordService.hasPassword(phone);
+            options.put("password", hasPassword);
+        }
+
+        return ResponseEntity.ok(options);
+    }
+
     // ── PIN-based quick login (HDFC-style) ──────────────────────────────
 
     @PostMapping("/pin/set")
@@ -200,6 +266,22 @@ public class AuthController {
             @Valid @RequestBody SetPinRequest request) {
         pinService.resetPinAfterOtp(userId, request);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Forgot PIN — pre-auth flow. User provides phone + OTP + new PIN.
+     * No login required. Verifies OTP, resets PIN, auto-logs in.
+     */
+    @PostMapping("/pin/forgot")
+    public ResponseEntity<AuthResponse> forgotPin(
+            @RequestBody Map<String, String> body) {
+        String phone = body.get("phone");
+        String otp = body.get("otp");
+        String newPin = body.get("newPin");
+        if (phone == null || otp == null || newPin == null) {
+            throw new IllegalArgumentException("phone, otp, and newPin are required");
+        }
+        return ResponseEntity.ok(pinService.forgotPin(phone, otp, newPin));
     }
 
     @DeleteMapping("/pin")

@@ -134,7 +134,9 @@ public class ListingDraftService {
                 // Insurance
                 null, null, null,
                 // Hotel fields
-                null, null, null, null
+                null, null, null, null,
+                // Wizard room types
+                null
         );
 
         ListingResponse listing = listingService.createListing(hostId, req);

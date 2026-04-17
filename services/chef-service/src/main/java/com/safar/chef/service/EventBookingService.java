@@ -129,6 +129,7 @@ public class EventBookingService {
 
         ChefProfile chef = chefProfileRepo.findByUserId(chefId)
                 .orElseThrow(() -> new IllegalArgumentException("Chef profile not found"));
+        chef.ensureNotSuspended();
 
         if (event.getChefId() != null && !event.getChefId().equals(chef.getId())) {
             throw new IllegalArgumentException("Not authorized to quote this event");
@@ -223,6 +224,7 @@ public class EventBookingService {
 
         ChefProfile chef = chefProfileRepo.findByUserId(chefId)
                 .orElseThrow(() -> new IllegalArgumentException("Chef profile not found"));
+        chef.ensureNotSuspended();
 
         if (event.getChefId() == null || !event.getChefId().equals(chef.getId())) {
             throw new IllegalArgumentException("Not authorized to complete this event");
@@ -261,6 +263,9 @@ public class EventBookingService {
 
         if (!isChef && !isCustomer) {
             throw new IllegalArgumentException("Not authorized to cancel this event");
+        }
+        if (isChef) {
+            chefProfile.ensureNotSuspended();
         }
         if (event.getStatus() == EventBookingStatus.CANCELLED || event.getStatus() == EventBookingStatus.COMPLETED) {
             throw new IllegalArgumentException("Event cannot be cancelled in current status");

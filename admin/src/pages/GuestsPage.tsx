@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Table, Tag, Typography, Input, Spin, Card, Row, Col, Statistic, Modal } from 'antd';
-import { UserOutlined, SearchOutlined, TeamOutlined, DollarOutlined } from '@ant-design/icons';
+import { Table, Tag, Typography, Input, Spin, Card, Row, Col, Statistic, Modal, Button, message } from 'antd';
+import { UserOutlined, SearchOutlined, TeamOutlined, DollarOutlined, MergeCellsOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { adminApi } from '../lib/api';
 
@@ -14,6 +14,7 @@ const statusColor: Record<string, string> = {
 
 interface Guest {
   guestId: string;
+  mergedGuestIds?: string[];
   name: string;
   email: string;
   phone: string;
@@ -58,18 +59,58 @@ export default function GuestsPage() {
     }
   };
 
+  const handleMerge = (guest: Guest) => {
+    const ids = guest.mergedGuestIds || [];
+    if (ids.length < 2) return;
+    const keeperId = guest.guestId;
+    const losers = ids.filter(id => id !== keeperId);
+    Modal.confirm({
+      title: 'Merge duplicate accounts?',
+      content: (
+        <div>
+          <p>This will repoint all bookings, PG tenancies and chef profiles from the duplicate account(s) into the keeper account.</p>
+          <p style={{ fontSize: 12, color: '#6b7280' }}>Keeper: <code>{keeperId.slice(0, 8)}…</code></p>
+          <p style={{ fontSize: 12, color: '#6b7280' }}>Losing: {losers.map(l => <code key={l} style={{ marginRight: 6 }}>{l.slice(0, 8)}…</code>)}</p>
+          <p style={{ fontSize: 12, color: '#dc2626', marginTop: 8 }}>This is irreversible.</p>
+        </div>
+      ),
+      okText: 'Merge',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          for (const loserId of losers) {
+            await adminApi.mergeGuests(keeperId, loserId, token);
+          }
+          message.success(`Merged ${losers.length} duplicate account${losers.length > 1 ? 's' : ''}`);
+          setLoading(true);
+          const data = await adminApi.getGuests(token);
+          setGuests(Array.isArray(data) ? data : []);
+          setLoading(false);
+        } catch (e: any) {
+          message.error(`Merge failed: ${e?.response?.data?.detail || e?.message || 'unknown'}`);
+        }
+      },
+    });
+  };
+
   const columns: ColumnsType<Guest> = [
     {
-      title: 'Guest', width: 200,
-      render: (_, r) => (
-        <a onClick={() => openGuestDetail(r)} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <UserOutlined style={{ color: '#f97316' }} />
-          <div>
-            <div style={{ fontWeight: 600 }}>{r.name?.trim() || '—'}</div>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>{r.phone || '—'}</div>
-          </div>
-        </a>
-      ),
+      title: 'Guest', width: 220,
+      render: (_, r) => {
+        const dupes = (r.mergedGuestIds?.length ?? 0) - 1;
+        return (
+          <a onClick={() => openGuestDetail(r)} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <UserOutlined style={{ color: '#f97316' }} />
+            <div>
+              <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                {r.name?.trim() || '—'}
+                {dupes > 0 && <Tag color="red" style={{ marginLeft: 4 }}>{dupes + 1} accounts</Tag>}
+              </div>
+              <div style={{ fontSize: 12, color: '#6b7280' }}>{r.phone || '—'}</div>
+            </div>
+          </a>
+        );
+      },
     },
     { title: 'Email', dataIndex: 'email', width: 180, ellipsis: true, render: (e) => e || '—' },
     { title: 'Bookings', dataIndex: 'totalBookings', width: 100, sorter: (a, b) => a.totalBookings - b.totalBookings,
@@ -78,6 +119,17 @@ export default function GuestsPage() {
       render: (v) => v ? INR(v) : '—', sorter: (a, b) => a.totalSpendPaise - b.totalSpendPaise },
     { title: 'Last Booking', dataIndex: 'lastBookingDate', width: 120,
       render: (d) => d ? new Date(d).toLocaleDateString('en-IN') : '—' },
+    {
+      title: 'Action', width: 130,
+      render: (_, r) => {
+        const dupes = (r.mergedGuestIds?.length ?? 0) - 1;
+        return dupes > 0 ? (
+          <Button size="small" type="primary" danger icon={<MergeCellsOutlined />} onClick={() => handleMerge(r)}>
+            Merge
+          </Button>
+        ) : null;
+      },
+    },
   ];
 
   const bookingCols: ColumnsType<any> = [

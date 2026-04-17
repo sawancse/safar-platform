@@ -80,6 +80,8 @@ services:
     url: ${PAYMENT_SERVICE_URL:http://localhost:8086}
   user-service:
     url: ${USER_SERVICE_URL:http://localhost:8092}
+  chef-service:
+    url: ${CHEF_SERVICE_URL:http://localhost:8093}
 
 resilience4j:
   circuitbreaker:

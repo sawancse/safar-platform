@@ -78,6 +78,43 @@ public class InteriorDesigner {
     @Column(columnDefinition = "TEXT")
     private String bio;
 
+    // Onboarding fields
+    @Column(name = "user_id")
+    private UUID userId;
+
+    @Column(name = "verification_status", length = 20)
+    @Builder.Default
+    private String verificationStatus = "PENDING";
+
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
+
+    @Column(name = "verified_by")
+    private UUID verifiedBy;
+
+    private OffsetDateTime verifiedAt;
+
+    @Column(name = "id_proof_url", columnDefinition = "TEXT")
+    private String idProofUrl;
+
+    @Column(name = "license_url", columnDefinition = "TEXT")
+    private String licenseUrl;
+
+    @Column(name = "certificate_urls", columnDefinition = "TEXT")
+    private String certificateUrls;
+
+    @Column(name = "iiid_membership", length = 50)
+    private String iiidMembership; // Institute of Indian Interior Designers
+
+    @Column(name = "gst_number", length = 20)
+    private String gstNumber;
+
+    @Column(name = "service_areas", columnDefinition = "TEXT")
+    private String serviceAreas; // JSON array of cities/localities served
+
+    @Column(name = "min_budget_paise")
+    private Long minBudgetPaise; // minimum project budget they accept
+
     @CreationTimestamp
     private OffsetDateTime createdAt;
 

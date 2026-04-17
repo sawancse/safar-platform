@@ -2,6 +2,7 @@ package com.safar.listing.service;
 
 import com.safar.listing.dto.CreateListingRequest;
 import com.safar.listing.dto.ListingResponse;
+import com.safar.listing.dto.RoomTypeRequest;
 import com.safar.listing.dto.UpdateListingRequest;
 import com.safar.listing.entity.Listing;
 import com.safar.listing.entity.enums.HostTier;
@@ -14,14 +15,21 @@ import com.safar.listing.entity.enums.ModerationStatus;
 import com.safar.listing.entity.HospitalPartner;
 import com.safar.listing.entity.ListingMedia;
 import com.safar.listing.entity.MedicalStayPackage;
+import com.safar.listing.entity.RoomType;
+import com.safar.listing.entity.enums.RoomVariant;
+import com.safar.listing.entity.enums.SharingType;
+import com.safar.listing.entity.enums.StayMode;
 import com.safar.listing.repository.HospitalPartnerRepository;
 import com.safar.listing.repository.ListingMediaRepository;
 import com.safar.listing.repository.ListingRepository;
 import com.safar.listing.repository.MedicalStayPackageRepository;
+import com.safar.listing.repository.RoomTypeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -44,6 +52,7 @@ public class ListingService {
     private final ListingMediaRepository listingMediaRepository;
     private final MedicalStayPackageRepository medicalStayPackageRepository;
     private final HospitalPartnerRepository hospitalPartnerRepository;
+    private final RoomTypeRepository roomTypeRepository;
     private final SubscriptionTierClient subscriptionTierClient;
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final GeocodingService geocodingService;
@@ -172,6 +181,15 @@ public class ListingService {
         }
 
         Listing saved = listingRepository.save(listing);
+
+        // PG/COLIVING room types: use wizard-provided list if present, else seed a default
+        if (saved.getType() == ListingType.PG || saved.getType() == ListingType.COLIVING) {
+            if (req.roomTypes() != null && !req.roomTypes().isEmpty()) {
+                createWizardRoomTypes(saved, req.roomTypes());
+            } else {
+                seedDefaultPgRoomType(saved);
+            }
+        }
 
         // Publish host.registered event on first listing (async, non-blocking)
         long totalCount = listingRepository.findByHostId(hostId).size();
@@ -635,6 +653,119 @@ public class ListingService {
         }
         log.info("Batch geocoded {}/{} listings", updated, missing.size());
         return updated;
+    }
+
+    /**
+     * One-shot backfill on startup: any existing PG/COLIVING listing without a
+     * RoomType row gets a default one. Safe to run repeatedly — only acts on
+     * listings whose room_types collection is empty.
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    @Transactional
+    public void backfillMissingPgRoomTypes() {
+        try {
+            List<Listing> pgListings = listingRepository.findAll().stream()
+                    .filter(l -> l.getType() == ListingType.PG || l.getType() == ListingType.COLIVING)
+                    .toList();
+            int seeded = 0;
+            for (Listing l : pgListings) {
+                if (roomTypeRepository.findByListingIdOrderBySortOrder(l.getId()).isEmpty()) {
+                    seedDefaultPgRoomType(l);
+                    seeded++;
+                }
+            }
+            if (seeded > 0) {
+                log.info("Backfilled default RoomType for {} PG/COLIVING listings", seeded);
+            }
+        } catch (Exception e) {
+            log.warn("PG RoomType backfill failed: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Create a sensible default RoomType for newly created PG/COLIVING listings so
+     * the host & admin room board show occupancy immediately. The host can edit
+     * sharingType, count, price, etc. via the Room Types tab.
+     */
+    private void seedDefaultPgRoomType(Listing listing) {
+        try {
+            int rooms = listing.getTotalRooms() != null && listing.getTotalRooms() > 0
+                    ? listing.getTotalRooms() : 1;
+            RoomType defaultRoom = RoomType.builder()
+                    .listingId(listing.getId())
+                    .name("Standard Room")
+                    .description("Default room — please update sharing type, beds, and price.")
+                    .count(rooms)
+                    .basePricePaise(listing.getBasePricePaise())
+                    .maxGuests(1)
+                    .bedCount(1)
+                    .stayMode(StayMode.MONTHLY)
+                    .sharingType(SharingType.PRIVATE)
+                    .totalBeds(rooms) // PRIVATE → 1 bed per room
+                    .occupiedBeds(0)
+                    .securityDepositPaise(listing.getSecurityDepositPaise())
+                    .depositType(listing.getDepositType() != null ? listing.getDepositType() : "REFUNDABLE")
+                    .sortOrder(0)
+                    .build();
+            roomTypeRepository.save(defaultRoom);
+            log.info("Seeded default RoomType for PG listing {} ({} rooms)", listing.getId(), rooms);
+        } catch (Exception e) {
+            // Non-fatal — host can add room types manually if this fails
+            log.warn("Failed to seed default RoomType for listing {}: {}", listing.getId(), e.getMessage());
+        }
+    }
+
+    /**
+     * Create room types from the wizard-provided list instead of the default seed.
+     */
+    private void createWizardRoomTypes(Listing listing, List<RoomTypeRequest> roomTypes) {
+        try {
+            int order = 0;
+            for (var rt : roomTypes) {
+                SharingType sharing = rt.sharingType() != null
+                        ? SharingType.valueOf(rt.sharingType()) : SharingType.PRIVATE;
+                int beds = deriveTotalBeds(sharing, rt.count() != null ? rt.count() : 1);
+                RoomType room = RoomType.builder()
+                        .listingId(listing.getId())
+                        .name(rt.name())
+                        .description(rt.description())
+                        .count(rt.count() != null ? rt.count() : 1)
+                        .basePricePaise(rt.basePricePaise())
+                        .maxGuests(rt.maxGuests() != null ? rt.maxGuests() : 1)
+                        .bedCount(rt.bedCount() != null ? rt.bedCount() : 1)
+                        .stayMode(StayMode.MONTHLY)
+                        .sharingType(sharing)
+                        .roomVariant(rt.roomVariant() != null ? RoomVariant.valueOf(rt.roomVariant()) : null)
+                        .totalBeds(beds)
+                        .occupiedBeds(0)
+                        .securityDepositPaise(rt.securityDepositPaise() != null
+                                ? rt.securityDepositPaise() : listing.getSecurityDepositPaise())
+                        .depositType(rt.depositType() != null ? rt.depositType()
+                                : (listing.getDepositType() != null ? listing.getDepositType() : "REFUNDABLE"))
+                        .sortOrder(order++)
+                        .build();
+                roomTypeRepository.save(room);
+            }
+            log.info("Created {} wizard-provided room types for PG listing {}", roomTypes.size(), listing.getId());
+        } catch (Exception e) {
+            log.warn("Failed to create wizard room types for listing {}: {} — falling back to default seed",
+                    listing.getId(), e.getMessage());
+            seedDefaultPgRoomType(listing);
+        }
+    }
+
+    /**
+     * Derive total beds from sharing type × room count.
+     */
+    private int deriveTotalBeds(SharingType sharing, int roomCount) {
+        int bedsPerRoom = switch (sharing) {
+            case PRIVATE -> 1;
+            case TWO_SHARING -> 2;
+            case THREE_SHARING -> 3;
+            case FOUR_SHARING -> 4;
+            case DORMITORY -> 6; // sensible default for dorm
+        };
+        return bedsPerRoom * roomCount;
     }
 
     private ListingResponse toResponse(Listing l) {

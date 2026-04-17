@@ -76,7 +76,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/otp/verify")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new VerifyOtpRequest(VALID_PHONE, "123456", "Rahul"))))
+                                new VerifyOtpRequest(VALID_PHONE, "123456", "Rahul", null))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("access_token"))
                 .andExpect(jsonPath("$.refreshToken").value("refresh_token"))
@@ -91,7 +91,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/otp/verify")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new VerifyOtpRequest(VALID_PHONE, "000000", "Rahul"))))
+                                new VerifyOtpRequest(VALID_PHONE, "000000", "Rahul", null))))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -100,7 +100,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/otp/verify")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new VerifyOtpRequest(VALID_PHONE, "123", "Rahul"))))
+                                new VerifyOtpRequest(VALID_PHONE, "123", "Rahul", null))))
                 .andExpect(status().isBadRequest());
     }
 

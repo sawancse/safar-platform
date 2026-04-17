@@ -101,6 +101,14 @@ public class SalePropertyController {
         return ResponseEntity.ok(salePropertyService.adminSuspend(id));
     }
 
+    /** Admin: set any status (ACTIVE, DRAFT, SUSPENDED, PAUSED, SOLD) */
+    @PatchMapping("/{id}/admin-status")
+    public ResponseEntity<SalePropertyResponse> adminSetStatus(
+            @PathVariable UUID id,
+            @RequestParam SalePropertyStatus status) {
+        return ResponseEntity.ok(salePropertyService.adminSetStatus(id, status));
+    }
+
     @GetMapping("/admin/list")
     public ResponseEntity<Page<Map<String, Object>>> adminList(
             @RequestParam(required = false) SalePropertyStatus status,

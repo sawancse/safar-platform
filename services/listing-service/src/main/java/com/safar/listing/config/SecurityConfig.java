@@ -26,11 +26,26 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
-                .cors(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(request -> {
+                    // Only add CORS headers for direct requests (not via gateway)
+                    // Gateway-forwarded requests already have X-User-Id and their own CORS headers
+                    if (request.getHeader("X-Forwarded-Host") != null
+                            || request.getHeader("X-User-Id") != null) {
+                        return null; // skip CORS — gateway handles it
+                    }
+                    var config = new org.springframework.web.cors.CorsConfiguration();
+                    config.setAllowedOriginPatterns(java.util.List.of("http://localhost:*", "https://ysafar.com", "https://*.ysafar.com"));
+                    config.setAllowedMethods(java.util.List.of("*"));
+                    config.setAllowedHeaders(java.util.List.of("*"));
+                    config.setAllowCredentials(true);
+                    config.setMaxAge(3600L);
+                    return config;
+                }))
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/listings/*/investment-signal").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/listings/*/verification-readiness").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/listings/*/ical/export").permitAll()

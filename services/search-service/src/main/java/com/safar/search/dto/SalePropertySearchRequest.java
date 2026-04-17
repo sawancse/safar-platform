@@ -27,6 +27,16 @@ public record SalePropertySearchRequest(
         Boolean cornerProperty,
         Boolean verified,
         List<String> amenities,
+        // Land/agriculture filters
+        Double minAcres,
+        Double maxAcres,
+        String roadAccess,
+        String zoneType,
+        String irrigationType,
+        String ownershipType,
+        Boolean titleClear,
+        Boolean organicCertified,
+        // Geo
         Double lat,
         Double lng,
         Double radiusKm,

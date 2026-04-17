@@ -30,6 +30,8 @@ public interface ListingServiceClient {
     String getRoomTypeName(UUID listingId, UUID roomTypeId);
     void decrementRoomTypeAvailability(UUID roomTypeId, LocalDate from, LocalDate to, int count);
     void incrementRoomTypeAvailability(UUID roomTypeId, LocalDate from, LocalDate to, int count);
+    default void incrementRoomTypeOccupancy(UUID roomTypeId, int rooms) {}
+    default void decrementRoomTypeOccupancy(UUID roomTypeId, int rooms) {}
 
     // PG/Hotel listing type support
     String getListingType(UUID listingId);

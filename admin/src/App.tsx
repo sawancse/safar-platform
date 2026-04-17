@@ -21,6 +21,7 @@ import HomeLoanPage from './pages/HomeLoanPage';
 import LegalCasesPage from './pages/LegalCasesPage';
 import InteriorsPage from './pages/InteriorsPage';
 import BuilderProjectsPage from './pages/BuilderProjectsPage';
+import ProfessionalsPage from './pages/ProfessionalsPage';
 import PgManagementPage from './pages/PgManagementPage';
 import UsersPage from './pages/UsersPage';
 
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="home-loans" element={<HomeLoanPage />} />
         <Route path="legal-cases" element={<LegalCasesPage />} />
         <Route path="interiors" element={<InteriorsPage />} />
+        <Route path="professionals" element={<ProfessionalsPage />} />
         <Route path="pg-management" element={<PgManagementPage />} />
         <Route path="users" element={<UsersPage />} />
       </Route>

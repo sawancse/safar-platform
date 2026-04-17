@@ -85,10 +85,13 @@ public class UserLead {
     @Builder.Default
     private String nurtureStage = "NONE";
     @Builder.Default
+    @Column(name = "nurture_day0_sent")
     private Boolean nurtureDay0Sent = false;
     @Builder.Default
+    @Column(name = "nurture_day3_sent")
     private Boolean nurtureDay3Sent = false;
     @Builder.Default
+    @Column(name = "nurture_day7_sent")
     private Boolean nurtureDay7Sent = false;
 
     private OffsetDateTime convertedAt;

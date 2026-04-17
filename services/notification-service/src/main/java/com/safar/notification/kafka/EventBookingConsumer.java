@@ -63,6 +63,7 @@ public class EventBookingConsumer {
 
             // Build shared context
             EmailContext ctx = new EmailContext();
+            ctx.setBookingId(bookingId);
             ctx.setBookingRef(bookingRef);
             ctx.setChefName(chefName);
             ctx.setCustomerName(customerName);

@@ -25,6 +25,12 @@ JAVA_SERVICES=(
   "booking-service"
   "user-service"
   "search-service"
+  "media-service"
+  "messaging-service"
+  "notification-service"
+  "payment-service"
+  "review-service"
+  "chef-service"
 )
 PYTHON_SERVICES=("ai-service")
 ALL_SERVICES=("${JAVA_SERVICES[@]}" "${PYTHON_SERVICES[@]}")
@@ -103,36 +109,34 @@ if [ "$BUILD" = true ]; then
     ok "Pushed: $IMAGE:$IMAGE_TAG"
   done
 
-  # Build web frontend
-  info "Building web frontend..."
-  WEB_IMAGE="$ECR_REGISTRY/$PROJECT/$WEB_SERVICE"
-  docker build \
-    --build-arg NEXT_PUBLIC_API_URL=https://api.ysafar.com \
-    -t $WEB_IMAGE:$IMAGE_TAG -t $WEB_IMAGE:latest frontend/web
-  docker push $WEB_IMAGE:$IMAGE_TAG
-  docker push $WEB_IMAGE:latest
-  ok "Pushed: web-frontend"
+  # Web frontend deploys via AWS Amplify (git push to safar-web repo)
+  info "Skipping web frontend build — deploys via Amplify (safar-web repo)"
 
-  # Build & deploy admin to S3
-  info "Building admin dashboard..."
-  cd admin
-  npm ci --silent
-  VITE_API_URL=https://api.ysafar.com npm run build 2>&1 | tail -3
-  ok "Admin built"
+  # Admin dashboard — build & deploy to S3 if admin/ exists
+  if [ -d "admin" ]; then
+    info "Building admin dashboard..."
+    cd admin
+    npm ci --silent
+    VITE_API_URL=https://api.ysafar.com npm run build 2>&1 | tail -3
+    ok "Admin built"
 
-  info "Syncing admin to S3..."
-  aws s3 sync dist/ s3://$ADMIN_BUCKET/ --delete \
-    --cache-control "public, max-age=31536000, immutable" \
-    --exclude "index.html" --exclude "*.json"
-  aws s3 cp dist/index.html s3://$ADMIN_BUCKET/index.html \
-    --cache-control "no-cache, no-store, must-revalidate"
-  ok "Admin deployed to S3"
+    info "Syncing admin to S3..."
+    aws s3 sync dist/ s3://$ADMIN_BUCKET/ --delete \
+      --cache-control "public, max-age=31536000, immutable" \
+      --exclude "index.html" --exclude "*.json"
+    aws s3 cp dist/index.html s3://$ADMIN_BUCKET/index.html \
+      --cache-control "no-cache, no-store, must-revalidate"
+    ok "Admin deployed to S3"
 
-  # Invalidate CloudFront
-  ADMIN_CF_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[0].DomainName,'admin')].Id" --output text 2>/dev/null || echo "")
-  if [ -n "$ADMIN_CF_ID" ]; then
-    aws cloudfront create-invalidation --distribution-id $ADMIN_CF_ID --paths "/*" > /dev/null
-    ok "CloudFront cache invalidated"
+    # Invalidate CloudFront
+    ADMIN_CF_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[0].DomainName,'admin')].Id" --output text 2>/dev/null || echo "")
+    if [ -n "$ADMIN_CF_ID" ]; then
+      aws cloudfront create-invalidation --distribution-id $ADMIN_CF_ID --paths "/*" > /dev/null
+      ok "CloudFront cache invalidated"
+    fi
+    cd "$REPO_ROOT"
+  else
+    info "Skipping admin build — admin/ directory not found"
   fi
 
   cd "$REPO_ROOT"
@@ -253,13 +257,10 @@ if [ "$DEPLOY" = true ]; then
     deploy_ecs_service $SERVICE
   done
 
-  # Deploy web frontend
-  deploy_ecs_service $WEB_SERVICE
-
   # ── Wait for all services to stabilize ──
   step "5. Waiting for services to stabilize"
 
-  ALL_DEPLOY_SERVICES=("${ALL_SERVICES[@]}" "$WEB_SERVICE")
+  ALL_DEPLOY_SERVICES=("${ALL_SERVICES[@]}")
   for SERVICE in "${ALL_DEPLOY_SERVICES[@]}"; do
     info "Waiting for $SERVICE..."
     aws ecs wait services-stable \

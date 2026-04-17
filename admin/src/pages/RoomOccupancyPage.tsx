@@ -22,6 +22,7 @@ interface RoomType {
   sharingType: string | null;
   totalBeds: number | null;
   occupiedBeds: number | null;
+  bedCount: number | null;
 }
 
 interface Tenancy {
@@ -54,7 +55,8 @@ const STATUS_COLOR: Record<string, string> = {
   TERMINATED: 'red',
 };
 
-const PG_TYPES = ['PG', 'HOSTEL', 'CO_LIVING', 'DORMITORY'];
+// Must match backend ListingType enum exactly: COLIVING (no underscore), HOSTEL_DORM (with underscore)
+const PG_TYPES = ['PG', 'HOSTEL', 'COLIVING', 'HOSTEL_DORM'];
 
 export default function RoomOccupancyPage() {
   const [properties, setProperties] = useState<PropertyOccupancy[]>([]);
@@ -96,7 +98,19 @@ export default function RoomOccupancyPage() {
           const totalBeds = roomTypes.reduce((s, rt) => s + (rt.totalBeds || rt.count), 0);
           const occupiedBeds = roomTypes.reduce((s, rt) => s + (rt.occupiedBeds || 0), 0);
           const activeTenancies = tenancies.filter(t => t.status === 'ACTIVE' || t.status === 'NOTICE_PERIOD');
-          const monthlyRevenue = activeTenancies.reduce((s, t) => s + t.monthlyRentPaise, 0);
+          const tenancyRevenue = activeTenancies.reduce((s, t) => s + t.monthlyRentPaise, 0);
+          // Monthly run-rate from current occupancy: covers both bookings (short/multi-month
+          // PG stays, which never create a Tenancy row) AND tenancies. For shared room types
+          // basePrice is per-bed; for PRIVATE it's per-room, so we divide by bedsPerRoom.
+          const occupancyRevenue = roomTypes.reduce((s, rt) => {
+            const occupied = rt.occupiedBeds || 0;
+            if (occupied === 0) return s;
+            const isPrivate = (rt.sharingType || 'PRIVATE') === 'PRIVATE';
+            const bedsPerRoom = rt.bedCount && rt.bedCount > 0 ? rt.bedCount : 1;
+            const ratePerBed = isPrivate ? rt.basePricePaise / bedsPerRoom : rt.basePricePaise;
+            return s + occupied * ratePerBed;
+          }, 0);
+          const monthlyRevenue = Math.max(tenancyRevenue, Math.round(occupancyRevenue));
 
           results.push({
             listing,

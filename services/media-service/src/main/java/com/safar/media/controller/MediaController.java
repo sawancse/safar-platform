@@ -6,8 +6,10 @@ import com.safar.media.service.MediaService;
 import com.safar.media.service.S3Gateway;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 
 import java.util.Map;
@@ -56,6 +58,20 @@ public class MediaController {
             @RequestHeader("X-User-Id") UUID userId) {
         String ext = contentType.contains("/") ? contentType.split("/")[1] : "jpg";
         String key = "avatars/" + userId + "/avatar-" + System.currentTimeMillis() + "." + ext;
+        String uploadUrl = s3Gateway.generatePresignedUrl(key, contentType);
+        String publicUrl = uploadUrl.split("\\?")[0];
+        return ResponseEntity.ok(Map.of("uploadUrl", uploadUrl, "publicUrl", publicUrl, "key", key));
+    }
+
+    /** Presign upload for chat attachments */
+    @PostMapping("/upload/chat-presign")
+    public ResponseEntity<Map<String, String>> chatPresign(
+            @RequestParam String contentType,
+            @RequestParam String fileName,
+            @RequestHeader("X-User-Id") UUID userId) {
+        String ext = fileName.contains(".") ? fileName.substring(fileName.lastIndexOf('.')) : "";
+        String key = "chat/" + userId + "/" + System.currentTimeMillis() + "-"
+                + UUID.randomUUID().toString().substring(0, 8) + ext;
         String uploadUrl = s3Gateway.generatePresignedUrl(key, contentType);
         String publicUrl = uploadUrl.split("\\?")[0];
         return ResponseEntity.ok(Map.of("uploadUrl", uploadUrl, "publicUrl", publicUrl, "key", key));

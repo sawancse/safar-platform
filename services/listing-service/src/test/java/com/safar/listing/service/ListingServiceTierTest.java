@@ -50,7 +50,7 @@ class ListingServiceTierTest {
                 // Insurance
                 null, null, null,
                 // Hotel fields
-                null, null, null, null);
+                null, null, null, null, null);
     }
 
     private Listing draftListing() {
@@ -109,7 +109,7 @@ class ListingServiceTierTest {
                 // Insurance
                 null, null, null,
                 // Hotel fields
-                null, null, null, null);
+                null, null, null, null, null);
 
         assertThatThrownBy(() -> listingService.createListing(hostId, req))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -140,7 +140,7 @@ class ListingServiceTierTest {
                 // Insurance
                 null, null, null,
                 // Hotel fields
-                null, null, null, null);
+                null, null, null, null, null);
 
         var response = listingService.createListing(hostId, req);
 

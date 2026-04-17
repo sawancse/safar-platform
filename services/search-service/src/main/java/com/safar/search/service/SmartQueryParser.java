@@ -54,6 +54,31 @@ public class SmartQueryParser {
         TYPE_KEYWORDS.put("office", "COMMERCIAL");
         TYPE_KEYWORDS.put("guesthouse", "GUESTHOUSE");
         TYPE_KEYWORDS.put("guest house", "GUESTHOUSE");
+        // Sale property type keywords (for /buy search)
+        TYPE_KEYWORDS.put("plot", "PLOT");
+        TYPE_KEYWORDS.put("plots", "PLOT");
+        TYPE_KEYWORDS.put("land", "RESIDENTIAL_PLOT");
+        TYPE_KEYWORDS.put("residential plot", "RESIDENTIAL_PLOT");
+        TYPE_KEYWORDS.put("agricultural land", "AGRICULTURAL_LAND");
+        TYPE_KEYWORDS.put("agriculture land", "AGRICULTURAL_LAND");
+        TYPE_KEYWORDS.put("agriculture", "AGRICULTURAL_LAND");
+        TYPE_KEYWORDS.put("farming land", "FARMING_LAND");
+        TYPE_KEYWORDS.put("farm land", "FARMING_LAND");
+        TYPE_KEYWORDS.put("farmland", "FARMING_LAND");
+        TYPE_KEYWORDS.put("farmhouse", "FARM_HOUSE");
+        TYPE_KEYWORDS.put("farm house", "FARM_HOUSE");
+        TYPE_KEYWORDS.put("independent house", "INDEPENDENT_HOUSE");
+        TYPE_KEYWORDS.put("individual house", "INDEPENDENT_HOUSE");
+        TYPE_KEYWORDS.put("commercial land", "COMMERCIAL_LAND");
+        TYPE_KEYWORDS.put("industrial land", "INDUSTRIAL_LAND");
+        TYPE_KEYWORDS.put("warehouse", "COMMERCIAL_WAREHOUSE");
+        TYPE_KEYWORDS.put("shop", "COMMERCIAL_SHOP");
+        TYPE_KEYWORDS.put("showroom", "COMMERCIAL_SHOWROOM");
+        TYPE_KEYWORDS.put("penthouse", "PENTHOUSE");
+        TYPE_KEYWORDS.put("row house", "ROW_HOUSE");
+        TYPE_KEYWORDS.put("rowhouse", "ROW_HOUSE");
+        TYPE_KEYWORDS.put("builder floor", "BUILDER_FLOOR");
+        TYPE_KEYWORDS.put("studio", "STUDIO");
     }
 
     // Known Indian cities for extraction
@@ -74,7 +99,28 @@ public class SmartQueryParser {
             "Ranthambore", "Khajuraho", "Kovalam", "Thekkady", "Varkala",
             "Lakshadweep", "Andaman", "Daman", "Diu", "Ganpatipule",
             "Bhubaneswar", "Cuttack", "Ranchi", "Patna", "Trivandrum",
-            "Navi Mumbai", "Thane", "Secunderabad"
+            "Navi Mumbai", "Thane", "Secunderabad",
+            // Bihar tier-2/3
+            "Gaya", "Muzaffarpur", "Bhagalpur", "Darbhanga", "Purnia", "Arrah", "Begusarai",
+            "Chhapra", "Saharsa", "Motihari", "Bettiah", "Hajipur", "Siwan", "Pipra", "Raxaul",
+            "Kishanganj", "Sitamarhi", "Madhubani", "Nawada", "Samastipur", "Munger",
+            // UP tier-2/3
+            "Gorakhpur", "Moradabad", "Bareilly", "Aligarh", "Saharanpur", "Firozabad",
+            "Jhansi", "Mathura", "Ayodhya", "Sultanpur", "Mirzapur", "Prayagraj",
+            // Jharkhand
+            "Jamshedpur", "Dhanbad", "Bokaro", "Deoghar", "Hazaribagh",
+            // Odisha
+            "Rourkela", "Sambalpur", "Puri", "Berhampur",
+            // Other tier-2/3
+            "Hubli", "Belgaum", "Mangalore", "Davangere", "Hassan", "Shimoga",
+            "Warangal", "Nizamabad", "Karimnagar", "Khammam", "Nalgonda",
+            "Vijayawada", "Guntur", "Nellore", "Kurnool", "Rajahmundry", "Kakinada",
+            "Rajkot", "Bhavnagar", "Jamnagar", "Junagadh", "Morbi", "Anand",
+            "Kozhikode", "Thrissur", "Kannur", "Kollam", "Palakkad", "Kottayam",
+            "Siliguri", "Durgapur", "Asansol", "Howrah", "Malda", "Kharagpur",
+            "Jalandhar", "Patiala", "Bathinda", "Panipat", "Karnal", "Ambala", "Hisar",
+            "Raipur", "Bilaspur", "Korba",
+            "Salem", "Tirunelveli", "Erode", "Vellore", "Dindigul", "Thanjavur", "Hosur"
         ));
     }
 

@@ -51,12 +51,54 @@ public class EmailContextBuilder {
         if (host != null) {
             ctx.setHostName(host.name() != null ? host.name() : "Your Host");
             ctx.setHostEmail(host.email());
+            ctx.setHostPhone(host.phone());
         }
 
         // Booking info
         ctx.setBookingRef(booking.bookingRef());
+        if (booking.checkIn() != null && !booking.checkIn().isBlank()) {
+            ctx.setCheckIn(formatDate(booking.checkIn()));
+        }
+        if (booking.checkOut() != null && !booking.checkOut().isBlank()) {
+            ctx.setCheckOut(formatDate(booking.checkOut()));
+        }
+        ctx.setNights(booking.nights());
+        ctx.setGuests(booking.guestsCount());
+        ctx.setAdults(booking.adultsCount());
+        ctx.setChildren(booking.childrenCount());
+        ctx.setInfants(booking.infantsCount());
+        ctx.setRooms(booking.roomsCount());
+        ctx.setPaymentMode(booking.paymentMode());
+        if (booking.cancellationReason() != null && !booking.cancellationReason().isBlank()) {
+            ctx.setCancellationReason(booking.cancellationReason());
+        }
+        ctx.setPricingUnit(booking.pricingUnit());
+        ctx.setTotalAmount(formatPaiseToRupeesWithSymbol(booking.totalAmountPaise()));
+        if (booking.baseAmountPaise() > 0)
+            ctx.setBaseAmount(formatPaiseToRupeesWithSymbol(booking.baseAmountPaise()));
+        if (booking.gstAmountPaise() > 0)
+            ctx.setGstAmount(formatPaiseToRupeesWithSymbol(booking.gstAmountPaise()));
+        if (booking.cleaningFeePaise() > 0)
+            ctx.setCleaningFee(formatPaiseToRupeesWithSymbol(booking.cleaningFeePaise()));
+        if (booking.platformFeePaise() > 0)
+            ctx.setPlatformFee(formatPaiseToRupeesWithSymbol(booking.platformFeePaise()));
+        if (booking.insuranceAmountPaise() > 0)
+            ctx.setInsuranceAmount(formatPaiseToRupeesWithSymbol(booking.insuranceAmountPaise()));
+        if (booking.securityDepositPaise() > 0)
+            ctx.setSecurityDeposit(formatPaiseToRupeesWithSymbol(booking.securityDepositPaise()));
+        if (booking.inclusionsTotalPaise() > 0)
+            ctx.setInclusionsTotal(formatPaiseToRupeesWithSymbol(booking.inclusionsTotalPaise()));
 
         // Listing info
+        if (booking.listingTitle() != null && !booking.listingTitle().isBlank()) {
+            ctx.setListingTitle(booking.listingTitle());
+        }
+        if (booking.listingCity() != null && !booking.listingCity().isBlank()) {
+            ctx.setListingCity(booking.listingCity());
+        }
+        if (booking.listingAddress() != null && !booking.listingAddress().isBlank()) {
+            ctx.setListingAddress(booking.listingAddress());
+        }
         if (listingType != null) {
             ctx.setListingType(listingType);
         }
@@ -84,6 +126,21 @@ public class EmailContextBuilder {
         ctx.setPreferencesUrl(baseUrl + "/settings/email-preferences");
 
         return ctx;
+    }
+
+    /**
+     * Format an ISO-8601 datetime string to "Mon 15 Jun 2026" for display.
+     * Falls back to the raw string if parsing fails.
+     */
+    private static String formatDate(String iso) {
+        if (iso == null || iso.isBlank()) return iso;
+        try {
+            String trimmed = iso.length() > 10 ? iso.substring(0, 10) : iso;
+            java.time.LocalDate d = java.time.LocalDate.parse(trimmed);
+            return d.format(java.time.format.DateTimeFormatter.ofPattern("EEE dd MMM yyyy"));
+        } catch (Exception e) {
+            return iso;
+        }
     }
 
     /**

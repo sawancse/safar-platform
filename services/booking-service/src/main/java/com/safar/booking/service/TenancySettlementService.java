@@ -1,5 +1,7 @@
 package com.safar.booking.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.safar.booking.dto.*;
 import com.safar.booking.entity.*;
 import com.safar.booking.entity.enums.*;
@@ -27,6 +29,7 @@ public class TenancySettlementService {
     private final PgTenancyRepository tenancyRepository;
     private final TenancyInvoiceRepository invoiceRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
     private final String paymentServiceUrl;
 
@@ -37,6 +40,7 @@ public class TenancySettlementService {
             PgTenancyRepository tenancyRepository,
             TenancyInvoiceRepository invoiceRepository,
             KafkaTemplate<String, Object> kafkaTemplate,
+            ObjectMapper objectMapper,
             RestTemplate restTemplate,
             @Value("${services.payment-service.url:http://localhost:8086}") String paymentServiceUrl) {
         this.settlementRepository = settlementRepository;
@@ -45,8 +49,19 @@ public class TenancySettlementService {
         this.tenancyRepository = tenancyRepository;
         this.invoiceRepository = invoiceRepository;
         this.kafkaTemplate = kafkaTemplate;
+        this.objectMapper = objectMapper;
         this.restTemplate = restTemplate;
         this.paymentServiceUrl = paymentServiceUrl;
+    }
+
+    /** Kafka producer uses StringSerializer — JSON-stringify before send. */
+    private void sendEvent(String topic, String key, Object payload, UUID entityId) {
+        try {
+            kafkaTemplate.send(topic, key, objectMapper.writeValueAsString(payload));
+        } catch (JsonProcessingException e) {
+            log.warn("Kafka {} payload serialization failed for {}: {}", topic, entityId, e.getMessage());
+            kafkaTemplate.send(topic, key, "{\"id\":\"" + entityId + "\"}");
+        }
     }
 
     private static long settlementCounter = 1000;
@@ -123,7 +138,7 @@ public class TenancySettlementService {
                     .description("Accumulated late payment penalties").amountPaise(latePenalties).build());
         }
 
-        kafkaTemplate.send("tenancy.settlement.initiated", saved.getId().toString(), saved);
+        sendEvent("tenancy.settlement.initiated", saved.getId().toString(), saved, saved.getId());
         log.info("Settlement {} initiated for tenancy {} — deposit: {}, deductions: {}, refund: {}, deadline: {}",
                 saved.getSettlementRef(), tenancy.getTenancyRef(), deposit, totalDeductions, refund, saved.getRefundDeadlineDate());
         return saved;
@@ -246,7 +261,7 @@ public class TenancySettlementService {
         settlement.setDisputeRaisedAt(OffsetDateTime.now());
         settlementRepository.save(settlement);
 
-        kafkaTemplate.send("settlement.disputed", settlement.getId().toString(), settlement);
+        sendEvent("settlement.disputed", settlement.getId().toString(), settlement, settlement.getId());
         log.info("Deduction {} disputed in settlement {}: {}", deductionId, settlement.getSettlementRef(), reason);
     }
 
@@ -258,7 +273,7 @@ public class TenancySettlementService {
         settlement.setDisputeRaisedAt(OffsetDateTime.now());
         settlementRepository.save(settlement);
 
-        kafkaTemplate.send("settlement.disputed", settlement.getId().toString(), settlement);
+        sendEvent("settlement.disputed", settlement.getId().toString(), settlement, settlement.getId());
         log.info("Settlement {} disputed by tenant: {}", settlement.getSettlementRef(), reason);
     }
 
@@ -296,7 +311,7 @@ public class TenancySettlementService {
 
         if (allResolved && settlement.getStatus() == SettlementStatus.DISPUTED) {
             settlement.setStatus(SettlementStatus.ADMIN_RESOLVED);
-            kafkaTemplate.send("settlement.admin.resolved", settlement.getId().toString(), settlement);
+            sendEvent("settlement.admin.resolved", settlement.getId().toString(), settlement, settlement.getId());
         }
 
         recalculateTotals(settlement);
@@ -325,7 +340,7 @@ public class TenancySettlementService {
         settlement.setApprovedByTenantAt(OffsetDateTime.now());
 
         TenancySettlement saved = settlementRepository.save(settlement);
-        kafkaTemplate.send("settlement.admin.resolved", saved.getId().toString(), saved);
+        sendEvent("settlement.admin.resolved", saved.getId().toString(), saved, saved.getId());
         log.info("Admin override on settlement {}: refund={} paise", saved.getSettlementRef(), saved.getRefundAmountPaise());
         return saved;
     }
@@ -363,7 +378,7 @@ public class TenancySettlementService {
 
         if (settlement.getApprovedByHostAt() != null && settlement.getApprovedByTenantAt() != null) {
             settlement.setStatus(SettlementStatus.APPROVED);
-            kafkaTemplate.send("tenancy.settlement.approved", settlement.getId().toString(), settlement);
+            sendEvent("tenancy.settlement.approved", settlement.getId().toString(), settlement, settlement.getId());
             log.info("Settlement {} approved by both parties", settlement.getSettlementRef());
         }
 
@@ -431,7 +446,7 @@ public class TenancySettlementService {
             tenancyRepository.save(tenancy);
         });
 
-        kafkaTemplate.send("tenancy.settled", saved.getId().toString(), saved);
+        sendEvent("tenancy.settled", saved.getId().toString(), saved, saved.getId());
         log.info("Settlement {} marked SETTLED, tenancy vacated", saved.getSettlementRef());
         return saved;
     }

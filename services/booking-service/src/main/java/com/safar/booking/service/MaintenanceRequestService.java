@@ -1,5 +1,7 @@
 package com.safar.booking.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.safar.booking.dto.*;
 import com.safar.booking.entity.MaintenanceRequest;
 import com.safar.booking.entity.PgTenancy;
@@ -36,8 +38,27 @@ public class MaintenanceRequestService {
     private final PgTenancyRepository tenancyRepository;
     private final BookingRepository bookingRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ObjectMapper objectMapper;
 
     private static long requestCounter = 1000;
+
+    /**
+     * Kafka producer uses StringSerializer — entities must be JSON-stringified
+     * before send. Falls back to a minimal {id, requestNumber} payload if
+     * serialization fails (e.g. Hibernate lazy-proxy loops) so the caller
+     * never fails on publish.
+     */
+    private void sendEvent(String topic, String key, MaintenanceRequest req) {
+        try {
+            kafkaTemplate.send(topic, key, objectMapper.writeValueAsString(req));
+        } catch (JsonProcessingException e) {
+            log.warn("Kafka {} payload serialization failed for {}: {}",
+                    topic, req.getId(), e.getMessage());
+            String fallback = "{\"id\":\"" + req.getId() + "\",\"requestNumber\":\""
+                    + req.getRequestNumber() + "\"}";
+            kafkaTemplate.send(topic, key, fallback);
+        }
+    }
 
     // SLA hours per priority (PG / general maintenance)
     private static final Map<MaintenancePriority, Integer> SLA_HOURS = Map.of(
@@ -97,7 +118,7 @@ public class MaintenanceRequestService {
         // Add system comment
         addSystemComment(saved, "Ticket created. SLA deadline: " + SLA_HOURS.get(priority) + " hours.");
 
-        kafkaTemplate.send("maintenance.request.created", saved.getId().toString(), saved);
+        sendEvent("maintenance.request.created", saved.getId().toString(), saved);
         log.info("Ticket {} created for tenancy {}: {}", saved.getRequestNumber(), tenancyId, req.title());
         return saved;
     }
@@ -149,7 +170,7 @@ public class MaintenanceRequestService {
                 : SLA_HOURS.get(priority) + " hours";
         addSystemComment(saved, "Service request created. SLA deadline: " + slaLabel + ".");
 
-        kafkaTemplate.send("maintenance.request.created", saved.getId().toString(), saved);
+        sendEvent("maintenance.request.created", saved.getId().toString(), saved);
         log.info("Service request {} created for booking {}: {}", saved.getRequestNumber(), bookingId, req.title());
         return saved;
     }
@@ -178,12 +199,12 @@ public class MaintenanceRequestService {
             if (newStatus == MaintenanceStatus.ASSIGNED && request.getAssignedAt() == null) {
                 request.setAssignedAt(OffsetDateTime.now());
                 addSystemComment(request, "Ticket assigned to: " + (req.assignedTo() != null ? req.assignedTo() : request.getAssignedTo()));
-                kafkaTemplate.send("ticket.assigned", request.getId().toString(), request);
+                sendEvent("ticket.assigned", request.getId().toString(), request);
             }
             if (newStatus == MaintenanceStatus.RESOLVED) {
                 request.setResolvedAt(OffsetDateTime.now());
                 addSystemComment(request, "Ticket resolved.");
-                kafkaTemplate.send("maintenance.request.resolved", request.getId().toString(), request);
+                sendEvent("maintenance.request.resolved", request.getId().toString(), request);
             }
             if (newStatus == MaintenanceStatus.IN_PROGRESS) {
                 addSystemComment(request, "Ticket is now in progress.");
@@ -231,7 +252,7 @@ public class MaintenanceRequestService {
 
         MaintenanceRequest saved = requestRepository.save(request);
         addSystemComment(saved, "Ticket reopened by tenant. Reason: " + reason);
-        kafkaTemplate.send("ticket.reopened", saved.getId().toString(), saved);
+        sendEvent("ticket.reopened", saved.getId().toString(), saved);
         log.info("Ticket {} reopened (count: {})", saved.getRequestNumber(), saved.getReopenCount());
         return saved;
     }

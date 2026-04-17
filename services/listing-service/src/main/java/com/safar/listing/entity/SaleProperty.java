@@ -192,7 +192,7 @@ public class SaleProperty {
     // ── STATUS ──
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private SalePropertyStatus status = SalePropertyStatus.DRAFT;
+    private SalePropertyStatus status = SalePropertyStatus.PENDING;
 
     @Builder.Default
     private Boolean featured = false;
@@ -207,6 +207,84 @@ public class SaleProperty {
     private Integer inquiriesCount = 0;
 
     private OffsetDateTime expiresAt;
+
+    // ── LAND/PLOT FIELDS ──
+    @Column(name = "total_acres", precision = 10, scale = 2)
+    private BigDecimal totalAcres;
+
+    @Column(name = "plot_length_ft", precision = 10, scale = 2)
+    private BigDecimal plotLengthFt;
+
+    @Column(name = "plot_breadth_ft", precision = 10, scale = 2)
+    private BigDecimal plotBreadthFt;
+
+    @Builder.Default
+    private Boolean boundaryWall = false;
+
+    @Builder.Default
+    private Boolean cornerPlot = false;
+
+    @Column(name = "road_width_ft", precision = 10, scale = 2)
+    private BigDecimal roadWidthFt;
+
+    @Column(name = "road_access", length = 30)
+    private String roadAccess; // MAIN_ROAD, INTERNAL, NO_ROAD
+
+    @Column(name = "zone_type", length = 30)
+    private String zoneType; // RESIDENTIAL, COMMERCIAL, INDUSTRIAL, AGRICULTURAL, MIXED
+
+    // ── AGRICULTURE FIELDS ──
+    @Column(name = "irrigation_type", length = 30)
+    private String irrigationType; // BOREWELL, CANAL, RIVER, RAIN_FED, DRIP
+
+    @Column(name = "soil_type", length = 30)
+    private String soilType; // BLACK, RED, ALLUVIAL, LATERITE
+
+    @Column(name = "water_source", length = 30)
+    private String waterSource;
+
+    @Builder.Default
+    private Integer borewellCount = 0;
+
+    @Column(name = "fencing_type", length = 30)
+    private String fencingType;
+
+    @Builder.Default
+    private Boolean organicCertified = false;
+
+    @Column(name = "current_crop", length = 100)
+    private String currentCrop;
+
+    // ── LEGAL ──
+    @Column(name = "ownership_type", length = 30)
+    private String ownershipType; // FREEHOLD, LEASEHOLD, COOPERATIVE, POWER_OF_ATTORNEY
+
+    private Boolean titleClear;
+
+    private Boolean encumbranceFree;
+
+    @Column(name = "rera_number", length = 50)
+    private String reraNumber;
+
+    @Builder.Default
+    private Boolean govtApproved = false;
+
+    // ── MEDIA (virtual tour, floor plans — brochureUrl already exists above) ──
+    @Column(name = "virtual_tour_url", columnDefinition = "TEXT")
+    private String virtualTourUrl;
+
+    @Column(name = "floor_plan_urls", columnDefinition = "TEXT")
+    private String floorPlanUrls; // JSON array
+
+    // ── AGENT ──
+    @Column(name = "agent_id")
+    private UUID agentId;
+
+    @Column(name = "agent_name", length = 100)
+    private String agentName;
+
+    @Column(name = "agent_phone", length = 20)
+    private String agentPhone;
 
     // ── AUDIT ──
     @CreationTimestamp

@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -24,20 +23,20 @@ public class TenancyPaymentListener {
 
     private final PgTenancyRepository tenancyRepository;
     private final TenancyInvoiceRepository invoiceRepository;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaJsonPublisher kafkaJsonPublisher;
     private final RestTemplate restTemplate;
     private final String userServiceUrl;
     private final String listingServiceUrl;
 
     public TenancyPaymentListener(PgTenancyRepository tenancyRepository,
                                    TenancyInvoiceRepository invoiceRepository,
-                                   KafkaTemplate<String, Object> kafkaTemplate,
+                                   KafkaJsonPublisher kafkaJsonPublisher,
                                    RestTemplate restTemplate,
                                    @Value("${services.user-service.url}") String userServiceUrl,
                                    @Value("${services.listing-service.url}") String listingServiceUrl) {
         this.tenancyRepository = tenancyRepository;
         this.invoiceRepository = invoiceRepository;
-        this.kafkaTemplate = kafkaTemplate;
+        this.kafkaJsonPublisher = kafkaJsonPublisher;
         this.restTemplate = restTemplate;
         this.userServiceUrl = userServiceUrl;
         this.listingServiceUrl = listingServiceUrl;
@@ -73,7 +72,7 @@ public class TenancyPaymentListener {
             // Fetch host's commission rate from user-service subscription
             int commissionBps = fetchHostCommissionBps(tenancy.getListingId());
 
-            kafkaTemplate.send("tenancy.rent.collected", tenancyId.toString(), Map.of(
+            kafkaJsonPublisher.publish("tenancy.rent.collected", tenancyId.toString(), Map.of(
                     "tenancyId", tenancyId.toString(),
                     "invoiceId", invoice.getId().toString(),
                     "amountPaise", invoice.getGrandTotalPaise(),

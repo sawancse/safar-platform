@@ -186,4 +186,18 @@ public class PropertyInquiryService {
                 inq.getCreatedAt(), inq.getUpdatedAt()
         );
     }
+
+    /** Static mapper for use by InquiryPaymentService (no property enrichment). */
+    static InquiryResponse toResponse(PropertyInquiry inq) {
+        return new InquiryResponse(
+                inq.getId(), inq.getSalePropertyId(), inq.getBuyerId(), inq.getSellerId(),
+                inq.getStatus(), inq.getMessage(),
+                inq.getBuyerName(), inq.getBuyerPhone(), inq.getBuyerEmail(),
+                inq.getPreferredVisitDate(), inq.getPreferredVisitTime(),
+                inq.getFinancingType(), inq.getBudgetMinPaise(), inq.getBudgetMaxPaise(),
+                inq.getNotes(),
+                null, null, null, null,
+                inq.getCreatedAt(), inq.getUpdatedAt()
+        );
+    }
 }

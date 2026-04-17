@@ -148,6 +148,26 @@ public class ChefProfileService {
         }
     }
 
+    /**
+     * Admin merge: repoint chef_profiles.user_id from loserId → keeperId.
+     * Skips if keeper already has a chef profile (conflict → admin resolves manually).
+     */
+    @Transactional
+    public int mergeUserId(UUID keeperId, UUID loserId) {
+        if (keeperId.equals(loserId)) return 0;
+        if (chefProfileRepo.findByUserId(keeperId).isPresent()) {
+            log.warn("Cannot merge chef profile for loser {}: keeper {} already has one; manual resolution required",
+                    loserId, keeperId);
+            return 0;
+        }
+        return chefProfileRepo.findByUserId(loserId).map(profile -> {
+            profile.setUserId(keeperId);
+            chefProfileRepo.save(profile);
+            log.info("Chef profile {} user_id merged: {} → {}", profile.getId(), loserId, keeperId);
+            return 1;
+        }).orElse(0);
+    }
+
     @Transactional
     public ChefProfile updateProfile(UUID userId, UpdateChefProfileRequest req) {
         ChefProfile profile = chefProfileRepo.findByUserId(userId)

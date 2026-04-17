@@ -213,7 +213,7 @@
                                             <td style="padding:8px 0; border-bottom:1px solid #F0F0F0;">
                                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                                     <tr>
-                                                        <td style="font-size:14px; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.priceLabel ?: 'Stay charges'}">Stay charges</td>
+                                                        <td style="font-size:14px; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.stayChargesLabel ?: 'Stay charges'}">Stay charges</td>
                                                         <td align="right" style="font-size:14px; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.baseAmount}">&#8377;5,000</td>
                                                     </tr>
                                                 </table>
@@ -243,6 +243,30 @@
                                                 </tr></table>
                                             </td>
                                         </tr>
+                                        <tr th:if="${ctx.inclusionsTotal}">
+                                            <td style="padding:8px 0; border-bottom:1px solid #F0F0F0;">
+                                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr>
+                                                    <td style="font-size:14px; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Inclusions & add-ons</td>
+                                                    <td align="right" style="font-size:14px; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.inclusionsTotal}">&#8377;0</td>
+                                                </tr></table>
+                                            </td>
+                                        </tr>
+                                        <tr th:if="${ctx.insuranceAmount}">
+                                            <td style="padding:8px 0; border-bottom:1px solid #F0F0F0;">
+                                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr>
+                                                    <td style="font-size:14px; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Insurance</td>
+                                                    <td align="right" style="font-size:14px; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.insuranceAmount}">&#8377;0</td>
+                                                </tr></table>
+                                            </td>
+                                        </tr>
+                                        <tr th:if="${ctx.securityDeposit}">
+                                            <td style="padding:8px 0; border-bottom:1px solid #F0F0F0;">
+                                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr>
+                                                    <td style="font-size:14px; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Security deposit (refundable)</td>
+                                                    <td align="right" style="font-size:14px; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.securityDeposit}">&#8377;0</td>
+                                                </tr></table>
+                                            </td>
+                                        </tr>
                                         <tr th:if="${ctx.nonRefundableDiscount}">
                                             <td style="padding:8px 0; border-bottom:1px solid #F0F0F0;">
                                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr>
@@ -258,6 +282,20 @@
                                                     <td style="font-size:18px; font-weight:700; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Total</td>
                                                     <td align="right" style="font-size:18px; font-weight:700; color:#FF5A5F; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.totalAmount}">&#8377;6,200</td>
                                                 </tr></table>
+                                            </td>
+                                        </tr>
+                                        <!-- Pay at property notice + retry-online CTA -->
+                                        <tr th:if="${ctx.isCashPayment}">
+                                            <td style="padding:20px 0 0;">
+                                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#FFF8E1; border:1px solid #FFE082; border-radius:10px;">
+                                                    <tr>
+                                                        <td style="padding:16px 18px;">
+                                                            <p style="margin:0 0 6px; font-size:14px; font-weight:700; color:#8D6E00; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Pay at property</p>
+                                                            <p style="margin:0 0 12px; font-size:13px; line-height:1.5; color:#6F5A00; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">You've chosen to pay at the property. Want to clear it now? You can still pay online anytime before check-in.</p>
+                                                            <a th:href="${ctx.payNowUrl}" href="#" style="display:inline-block; background-color:#FF5A5F; color:#FFFFFF; text-decoration:none; font-size:14px; font-weight:600; padding:10px 22px; border-radius:8px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Pay online now</a>
+                                                        </td>
+                                                    </tr>
+                                                </table>
                                             </td>
                                         </tr>
                                     </table>

@@ -45,10 +45,20 @@ public class HomeLoanService {
         long currentEmis = req.currentEmisPaise() != null ? req.currentEmisPaise() : 0L;
         int tenureMonths = req.desiredTenureMonths() != null ? req.desiredTenureMonths() : 240;
 
-        // Max eligible = (monthlyIncome - currentEMIs) * 0.5 * tenureMonths * 0.85
+        // Max affordable EMI = 50% of disposable income (FOIR = 50%)
         long disposable = monthlyIncome - currentEmis;
-        long maxEligible = (long) (disposable * 0.5 * tenureMonths * 0.85);
         long maxEmi = (long) (disposable * 0.5);
+
+        // Max eligible loan = PV of annuity at assumed 8.5% p.a. over tenure
+        // PV = EMI × [(1+r)^n - 1] / [r × (1+r)^n]
+        double assumedRate = 8.5 / 12.0 / 100.0; // monthly rate
+        double factor = Math.pow(1 + assumedRate, tenureMonths);
+        long maxEligible;
+        if (assumedRate == 0) {
+            maxEligible = maxEmi * tenureMonths;
+        } else {
+            maxEligible = (long) (maxEmi * (factor - 1) / (assumedRate * factor));
+        }
 
         boolean eligible = req.desiredLoanAmountPaise() == null
                 || req.desiredLoanAmountPaise() <= maxEligible;

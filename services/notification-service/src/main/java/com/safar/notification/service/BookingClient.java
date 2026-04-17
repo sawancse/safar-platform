@@ -31,16 +31,38 @@ public class BookingClient {
         String url = bookingServiceUrl + "/api/v1/internal/bookings/" + bookingId;
         String json = restTemplate.getForObject(url, String.class);
         try {
-            JsonNode node = objectMapper.readTree(json);
+            JsonNode n = objectMapper.readTree(json);
             return new BookingInfo(
-                    node.path("id").asText(),
-                    node.path("bookingRef").asText(),
-                    node.path("guestId").asText(),
-                    node.path("hostId").asText(),
-                    node.path("listingId").asText(),
-                    node.path("guestEmail").asText(""),
-                    node.path("guestFirstName").asText(""),
-                    node.path("guestLastName").asText("")
+                    n.path("id").asText(),
+                    n.path("bookingRef").asText(),
+                    n.path("guestId").asText(),
+                    n.path("hostId").asText(),
+                    n.path("listingId").asText(),
+                    n.path("guestEmail").asText(""),
+                    n.path("guestFirstName").asText(""),
+                    n.path("guestLastName").asText(""),
+                    n.path("checkIn").asText(null),
+                    n.path("checkOut").asText(null),
+                    n.path("nights").asInt(0),
+                    n.path("guestsCount").asInt(0),
+                    n.path("adultsCount").asInt(0),
+                    n.path("childrenCount").asInt(0),
+                    n.path("infantsCount").asInt(0),
+                    n.path("roomsCount").asInt(0),
+                    n.path("listingTitle").asText(""),
+                    n.path("listingCity").asText(""),
+                    n.path("listingAddress").asText(""),
+                    n.path("totalAmountPaise").asLong(0L),
+                    n.path("baseAmountPaise").asLong(0L),
+                    n.path("gstAmountPaise").asLong(0L),
+                    n.path("cleaningFeePaise").asLong(0L),
+                    n.path("platformFeePaise").asLong(0L),
+                    n.path("insuranceAmountPaise").asLong(0L),
+                    n.path("securityDepositPaise").asLong(0L),
+                    n.path("inclusionsTotalPaise").asLong(0L),
+                    n.path("paymentMode").asText(""),
+                    n.path("cancellationReason").asText(""),
+                    n.path("pricingUnit").asText("NIGHT")
             );
         } catch (Exception e) {
             log.warn("Failed to parse booking {}: {}", bookingId, e.getMessage());
@@ -56,7 +78,15 @@ public class BookingClient {
     public record BookingInfo(
             String id, String bookingRef,
             String guestId, String hostId, String listingId,
-            String guestEmail, String guestFirstName, String guestLastName
+            String guestEmail, String guestFirstName, String guestLastName,
+            String checkIn, String checkOut, int nights,
+            int guestsCount, int adultsCount, int childrenCount, int infantsCount,
+            int roomsCount,
+            String listingTitle, String listingCity, String listingAddress,
+            long totalAmountPaise, long baseAmountPaise, long gstAmountPaise,
+            long cleaningFeePaise, long platformFeePaise, long insuranceAmountPaise,
+            long securityDepositPaise, long inclusionsTotalPaise,
+            String paymentMode, String cancellationReason, String pricingUnit
     ) {
         public String guestName() {
             String name = (guestFirstName + " " + guestLastName).trim();

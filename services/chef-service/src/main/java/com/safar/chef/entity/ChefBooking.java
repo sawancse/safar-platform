@@ -95,6 +95,17 @@ public class ChefBooking {
     @Column(name = "chef_earnings_paise")
     private Long chefEarningsPaise;
 
+    @Column(name = "advance_paid_paise")
+    @Builder.Default
+    private Long advancePaidPaise = 0L;
+
+    @Column(name = "payment_adjustment_paise")
+    @Builder.Default
+    private Long paymentAdjustmentPaise = 0L;
+
+    @Column(name = "previous_total_paise")
+    private Long previousTotalPaise;
+
     @Column(name = "razorpay_order_id")
     private String razorpayOrderId;
 

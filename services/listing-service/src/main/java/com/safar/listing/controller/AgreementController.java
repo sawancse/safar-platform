@@ -96,9 +96,11 @@ public class AgreementController {
 
     @GetMapping("/admin/list")
     public ResponseEntity<Page<java.util.Map<String, Object>>> adminListAll(
+            @RequestHeader(value = "X-User-Role", required = false) String role,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String type,
             Pageable pageable) {
+        if (!"ADMIN".equalsIgnoreCase(role)) throw new org.springframework.security.access.AccessDeniedException("Admin access required");
         return ResponseEntity.ok(agreementService.adminListAll(status, type, pageable));
     }
 
@@ -107,7 +109,9 @@ public class AgreementController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<AgreementResponse> adminUpdateStatus(
             @PathVariable UUID id,
-            @RequestParam String status) {
+            @RequestParam String status,
+            @RequestHeader(value = "X-User-Role", required = false) String role) {
+        if (!"ADMIN".equalsIgnoreCase(role)) throw new org.springframework.security.access.AccessDeniedException("Admin access required");
         return ResponseEntity.ok(agreementService.adminUpdateStatus(id, status));
     }
 

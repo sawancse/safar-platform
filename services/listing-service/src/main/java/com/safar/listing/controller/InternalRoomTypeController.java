@@ -55,6 +55,37 @@ public class InternalRoomTypeController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/{roomTypeId}/occupy-booking")
+    public ResponseEntity<Void> occupyBooking(
+            @PathVariable UUID roomTypeId,
+            @RequestParam int rooms) {
+        roomTypeService.incrementOccupancyForBooking(roomTypeId, rooms);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{roomTypeId}/release-booking")
+    public ResponseEntity<Void> releaseBooking(
+            @PathVariable UUID roomTypeId,
+            @RequestParam int rooms) {
+        roomTypeService.decrementOccupancyForBooking(roomTypeId, rooms);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Force-set occupied beds. Used to reconcile drift caused by cross-version
+     * bookings (e.g. semantic change in how PRIVATE vs shared types count beds).
+     * Clamped to [0, totalBeds] by the service layer.
+     *
+     * Example: curl -X POST "http://localhost:8083/api/v1/internal/room-types/{id}/set-occupancy?beds=0"
+     */
+    @PostMapping("/{roomTypeId}/set-occupancy")
+    public ResponseEntity<Void> setOccupancy(
+            @PathVariable UUID roomTypeId,
+            @RequestParam int beds) {
+        roomTypeService.setOccupiedBeds(roomTypeId, beds);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/{roomTypeId}")
     public ResponseEntity<RoomTypeResponse> getRoomType(@PathVariable UUID roomTypeId) {
         return ResponseEntity.ok(roomTypeService.getRoomTypeById(roomTypeId));

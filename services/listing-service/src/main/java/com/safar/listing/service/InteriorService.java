@@ -226,9 +226,9 @@ public class InteriorService {
                 .mapToLong(m -> m.getTotalPricePaise() != null ? m.getTotalPricePaise() : 0L)
                 .sum();
 
-        // Labour = 30% of materials, Hardware = 10%, Overhead = 10%
+        // Labour = 30% of materials, Hardware + Overhead = 20% of materials
         long labourCost = materialCost * 30 / 100;
-        long overheadCost = materialCost * 20 / 100; // hardware + overhead combined
+        long overheadCost = materialCost * 20 / 100; // 10% hardware + 10% overhead
         long taxPaise = (materialCost + labourCost + overheadCost) * 18 / 100; // 18% GST
         long total = materialCost + labourCost + overheadCost + taxPaise;
 

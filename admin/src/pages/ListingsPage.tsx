@@ -393,6 +393,10 @@ export default function ListingsPage() {
   const [listings, setListings]     = useState<Listing[]>([]);
   const [loading, setLoading]       = useState(true);
   const [activeTab, setActiveTab]   = useState('ALL');
+  // Filters
+  const [filterName, setFilterName]   = useState('');
+  const [filterCity, setFilterCity]   = useState('');
+  const [filterType, setFilterType]   = useState('');
   const [rejectModal, setRejectModal] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
   const [rejectNotes, setRejectNotes] = useState('');
   const [suspendModal, setSuspendModal] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
@@ -459,6 +463,14 @@ export default function ListingsPage() {
       })
       .catch(() => {});
   }, [token]);
+
+  // Apply client-side filters
+  const filteredListings = listings.filter(l => {
+    if (filterName && !l.title?.toLowerCase().includes(filterName.toLowerCase())) return false;
+    if (filterCity && !l.city?.toLowerCase().includes(filterCity.toLowerCase())) return false;
+    if (filterType && !l.type?.toLowerCase().includes(filterType.toLowerCase())) return false;
+    return true;
+  });
 
   async function handleVerify(id: string) {
     setActionLoading(true);
@@ -681,12 +693,28 @@ export default function ListingsPage() {
         style={{ marginBottom: 16 }}
       />
 
+      {/* Filter Bar */}
+      <Row gutter={12} style={{ marginBottom: 16 }}>
+        <Col span={8}>
+          <Input placeholder="Search by name / title" value={filterName} onChange={e => setFilterName(e.target.value)} allowClear />
+        </Col>
+        <Col span={6}>
+          <Input placeholder="Filter by city" value={filterCity} onChange={e => setFilterCity(e.target.value)} allowClear />
+        </Col>
+        <Col span={6}>
+          <Input placeholder="Filter by type (e.g. PG, HOTEL)" value={filterType} onChange={e => setFilterType(e.target.value)} allowClear />
+        </Col>
+        <Col span={4}>
+          <Text type="secondary" style={{ lineHeight: '32px' }}>{filteredListings.length} of {listings.length} listings</Text>
+        </Col>
+      </Row>
+
       {loading ? (
         <Spin size="large" style={{ display: 'block', margin: '60px auto' }} />
       ) : (
         <Table
           columns={columns}
-          dataSource={listings}
+          dataSource={filteredListings}
           rowKey="id"
           scroll={{ x: 1200 }}
           pagination={{ pageSize: 20, showSizeChanger: false }}

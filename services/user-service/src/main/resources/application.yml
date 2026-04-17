@@ -72,9 +72,10 @@ services:
     url: ${MEDIA_SERVICE_URL:http://localhost:8088}
 
 encryption:
+  # Must be provided via env var — rotating this value requires re-encrypting
+  # every PII row. Keep the SAME value across dev and prod environments or
+  # plan a data migration. Generate a fresh one with: openssl rand -base64 32
   aes-key: ${ENCRYPTION_AES_KEY:t+YZDpLpyNyfaZcSbH9Ak2CMYbJjBKzEdJYZR130CDI=}
-  # ↑ CHANGE IN PRODUCTION — this is a 32-byte dev placeholder
-  # Generate with: openssl rand -base64 32
 
 jwt:
   secret: ${JWT_SECRET:l0UNaBuoYCf7Y/G8G1bihPxkUI7NZuPaZdzTbbEYqzM=}

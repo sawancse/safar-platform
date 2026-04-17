@@ -24,7 +24,8 @@ public class HostSubscriptionController {
         try {
             return ResponseEntity.ok(hostSubscriptionService.getSubscription(hostId));
         } catch (java.util.NoSuchElementException e) {
-            return ResponseEntity.notFound().build();
+            // Return empty 200 instead of 404 — frontend handles null subscription as STARTER tier
+            return ResponseEntity.ok(null);
         }
     }
 

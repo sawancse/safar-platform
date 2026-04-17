@@ -37,5 +37,12 @@ public record CreateBuilderProjectRequest(
         String walkthroughUrl,
         List<String> photos,
         List<String> bankApprovals,
-        String paymentPlansJson
+        String paymentPlansJson,
+        // Price & configuration (editable directly)
+        Long minPricePaise,
+        Long maxPricePaise,
+        Integer minBhk,
+        Integer maxBhk,
+        Integer minAreaSqft,
+        Integer maxAreaSqft
 ) {}

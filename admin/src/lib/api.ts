@@ -244,6 +244,11 @@ export const adminApi = {
     return axios.get(`${BASE}/admin/guests`, { headers: authHeaders(token) }).then(r => r.data).catch(() => []);
   },
 
+  mergeGuests(keeperId: string, loserId: string, token: string) {
+    return axios.post(`${BASE}/admin/guests/merge`, { keeperId, loserId },
+      { headers: authHeaders(token) }).then(r => r.data);
+  },
+
   // ── Manual Settlement & Payout ────────────────────────────────────────────
 
   processSettlement(planId: string, token: string) {

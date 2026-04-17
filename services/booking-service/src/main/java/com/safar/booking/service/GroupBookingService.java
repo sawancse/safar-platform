@@ -188,7 +188,8 @@ public class GroupBookingService {
                                 g.getPhone(), g.getAge(), g.getIdType(), g.getIdNumber(),
                                 g.getRoomAssignment(), g.getIsPrimary()))
                         .toList(),
-                b.getPricingUnit()
+                b.getPricingUnit(),
+                b.getPaymentMode()
         );
     }
 }

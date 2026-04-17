@@ -188,7 +188,7 @@ public class AgreementService {
         agreement = agreementRequestRepository.save(agreement);
 
         log.info("Payment processed for agreement {}: paymentId={}", id, paymentId);
-        kafkaTemplate.send("agreement.payment.processed", id.toString(), id);
+        kafkaTemplate.send("agreement.payment.processed", id.toString(), id.toString());
 
         List<AgreementParty> parties = agreementPartyRepository.findByAgreementRequestId(id);
         return toResponse(agreement, parties);
@@ -219,7 +219,7 @@ public class AgreementService {
             agreement.setStatus(AgreementStatus.SIGNED);
             agreementRequestRepository.save(agreement);
             log.info("All parties signed. Agreement {} is now SIGNED", id);
-            kafkaTemplate.send("agreement.signed", id.toString(), id);
+            kafkaTemplate.send("agreement.signed", id.toString(), id.toString());
         }
 
         return toPartyResponse(party);

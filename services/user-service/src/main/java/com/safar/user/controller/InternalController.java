@@ -39,7 +39,8 @@ public class InternalController {
             var profile = profileService.getMyProfile(userId);
             String email = profile.email() != null ? profile.email() : "";
             String name = profile.name() != null ? profile.name() : "";
-            return ResponseEntity.ok(java.util.Map.of("email", email, "name", name));
+            String phone = profile.phone() != null ? profile.phone() : "";
+            return ResponseEntity.ok(java.util.Map.of("email", email, "name", name, "phone", phone));
         } catch (Exception e) {
             return ResponseEntity.ok(java.util.Map.of("email", "", "name", ""));
         }

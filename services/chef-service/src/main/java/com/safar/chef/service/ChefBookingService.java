@@ -137,6 +137,7 @@ public class ChefBookingService {
         booking.setRazorpayOrderId(razorpayOrderId);
         booking.setRazorpayPaymentId(razorpayPaymentId);
         booking.setPaymentStatus("ADVANCE_PAID");
+        booking.setAdvancePaidPaise(booking.getAdvanceAmountPaise()); // track what was actually paid
         booking.setStatus(ChefBookingStatus.PENDING);
 
         ChefBooking saved = bookingRepo.save(booking);
@@ -158,6 +159,7 @@ public class ChefBookingService {
 
         ChefProfile chef = chefProfileRepo.findByUserId(chefId)
                 .orElseThrow(() -> new IllegalArgumentException("Chef profile not found"));
+        chef.ensureNotSuspended();
 
         if (!booking.getChefId().equals(chef.getId())) {
             throw new IllegalArgumentException("Not authorized to confirm this booking");
@@ -186,6 +188,9 @@ public class ChefBookingService {
 
         if (!isChef && !isCustomer) {
             throw new IllegalArgumentException("Not authorized to cancel this booking");
+        }
+        if (isChef) {
+            chefProfile.ensureNotSuspended();
         }
         if (booking.getStatus() == ChefBookingStatus.CANCELLED || booking.getStatus() == ChefBookingStatus.COMPLETED) {
             throw new IllegalArgumentException("Booking cannot be cancelled in current status");
@@ -262,6 +267,7 @@ public class ChefBookingService {
 
         ChefProfile chef = chefProfileRepo.findByUserId(chefId)
                 .orElseThrow(() -> new IllegalArgumentException("Chef profile not found"));
+        chef.ensureNotSuspended();
 
         if (!booking.getChefId().equals(chef.getId())) {
             throw new IllegalArgumentException("Not authorized to complete this booking");
@@ -347,6 +353,9 @@ public class ChefBookingService {
             int guests = booking.getGuestsCount() != null ? booking.getGuestsCount() : 1;
             int meals = booking.getNumberOfMeals() != null ? booking.getNumberOfMeals() : 1;
 
+            // Save previous total for audit
+            booking.setPreviousTotalPaise(booking.getTotalAmountPaise());
+
             long totalAmountPaise;
             if (booking.getMenuId() != null) {
                 ChefMenu menu = menuRepo.findById(booking.getMenuId())
@@ -361,14 +370,45 @@ public class ChefBookingService {
 
             long platformFeePaise = totalAmountPaise * 15 / 100;
             long chefEarningsPaise = totalAmountPaise - platformFeePaise;
-            long advanceAmountPaise = Math.max(totalAmountPaise * 10 / 100, 100);
-            long balanceAmountPaise = totalAmountPaise - advanceAmountPaise;
+            long newAdvanceRequired = Math.max(totalAmountPaise * 10 / 100, 100);
+
+            // What was actually paid so far (immutable on modify)
+            long alreadyPaid = booking.getAdvancePaidPaise() != null ? booking.getAdvancePaidPaise() : 0;
+            boolean hasPaid = "ADVANCE_PAID".equals(booking.getPaymentStatus())
+                    || "PAID".equals(booking.getPaymentStatus())
+                    || "FULLY_PAID".equals(booking.getPaymentStatus());
 
             booking.setTotalAmountPaise(totalAmountPaise);
             booking.setPlatformFeePaise(platformFeePaise);
             booking.setChefEarningsPaise(chefEarningsPaise);
-            booking.setAdvanceAmountPaise(advanceAmountPaise);
-            booking.setBalanceAmountPaise(balanceAmountPaise);
+            booking.setAdvanceAmountPaise(newAdvanceRequired);
+
+            if (hasPaid && alreadyPaid > 0) {
+                // Compute adjustment: positive = user owes more, negative = overpaid (credit to balance)
+                long adjustment = newAdvanceRequired - alreadyPaid;
+                booking.setPaymentAdjustmentPaise(adjustment);
+
+                if (adjustment > 0) {
+                    // Price increased: user needs to pay the difference
+                    booking.setBalanceAmountPaise(totalAmountPaise - alreadyPaid);
+                    booking.setPaymentStatus("ADDITIONAL_PAYMENT_REQUIRED");
+                    log.info("Booking {} modified: price increased, additional payment required: {} paise",
+                            booking.getBookingRef(), adjustment);
+                } else if (adjustment < 0) {
+                    // Price decreased: advance overpaid, credit the excess to balance
+                    // alreadyPaid covers the new advance + some extra → balance is reduced
+                    booking.setBalanceAmountPaise(totalAmountPaise - alreadyPaid);
+                    booking.setPaymentStatus("ADVANCE_PAID"); // still paid, balance just reduced
+                    log.info("Booking {} modified: price decreased, {} paise credit applied to balance",
+                            booking.getBookingRef(), Math.abs(adjustment));
+                } else {
+                    // Same advance needed, just update balance
+                    booking.setBalanceAmountPaise(totalAmountPaise - alreadyPaid);
+                }
+            } else {
+                // Not yet paid — standard calculation
+                booking.setBalanceAmountPaise(totalAmountPaise - newAdvanceRequired);
+            }
         }
 
         booking.setModifiedAt(OffsetDateTime.now());

@@ -78,5 +78,7 @@ public record CreateListingRequest(
         String hotelChain,
         Boolean frontDesk24h,
         String checkoutTime,
-        String checkinTime
+        String checkinTime,
+        // Wizard-provided room types (PG/COLIVING) — skips default seed when non-empty
+        List<RoomTypeRequest> roomTypes
 ) {}

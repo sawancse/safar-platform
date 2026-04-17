@@ -62,7 +62,8 @@ class ListingServiceTest {
                 // Insurance
                 null, null, null,
                 // Hotel fields
-                null, null, null, null
+                null, null, null, null,
+                null
         );
     }
 
@@ -103,7 +104,8 @@ class ListingServiceTest {
                 // Insurance
                 null, null, null,
                 // Hotel fields
-                null, null, null, null
+                null, null, null, null,
+                null
         );
         assertThatThrownBy(() -> listingService.createListing(hostId, req))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -130,7 +132,8 @@ class ListingServiceTest {
                 // Insurance
                 null, null, null,
                 // Hotel fields
-                null, null, null, null
+                null, null, null, null,
+                null
         );
         when(subscriptionTierClient.getTier(hostId)).thenReturn(HostTier.COMMERCIAL);
         when(listingRepository.findByHostId(hostId)).thenReturn(List.of());

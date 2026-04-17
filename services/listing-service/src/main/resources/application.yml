@@ -62,12 +62,19 @@ spring:
         fetch.max.bytes: 5242880
         max.partition.fetch.bytes: 1048576
 
+storage:
+  local-mode: ${STORAGE_LOCAL_MODE:false}
+
 aws:
   s3:
     bucket: ${S3_BUCKET:safar-media-dev}
     region: ${AWS_REGION:ap-south-1}
-    access-key: ${AWS_ACCESS_KEY_ID:AKIAZC3VOSQUHZCIFDVR}
-    secret-key: ${AWS_SECRET_ACCESS_KEY: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}
+    # Leave access-key/secret-key blank to use the AWS default credential chain:
+    # - Prod (ECS/Fargate): IAM task role — no keys in config
+    # - Local dev: set AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY in .env,
+    #   or rely on ~/.aws/credentials / `aws sso login`
+    access-key: ${AWS_ACCESS_KEY_ID:}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:}
   cloudfront:
     domain: ${CDN_DOMAIN:d1pei2hufbgxoj.cloudfront.net}
 

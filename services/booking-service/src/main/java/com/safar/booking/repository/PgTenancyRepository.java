@@ -5,6 +5,8 @@ import com.safar.booking.entity.enums.TenancyStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -30,4 +32,7 @@ public interface PgTenancyRepository extends JpaRepository<PgTenancy, UUID> {
     List<PgTenancy> findByStatusAndMoveOutDateLessThanEqual(TenancyStatus status, LocalDate date);
 
     List<PgTenancy> findByRoomTypeIdAndStatus(UUID roomTypeId, TenancyStatus status);
+
+    @Query("SELECT MAX(t.tenancyRef) FROM PgTenancy t WHERE t.tenancyRef LIKE :prefix")
+    Optional<String> findMaxTenancyRefLike(@Param("prefix") String prefix);
 }

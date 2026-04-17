@@ -19,5 +19,6 @@ public interface BookingRepository extends JpaRepository<Booking, UUID>, JpaSpec
     List<Booking> findByGroupBookingId(UUID groupBookingId);
     List<Booking> findByHostIdAndCheckInBetween(UUID hostId, LocalDateTime from, LocalDateTime to);
     List<Booking> findByStatus(BookingStatus status);
+    List<Booking> findByStatusInAndCheckOutBefore(List<BookingStatus> statuses, LocalDateTime checkOut);
     Page<Booking> findBySecurityDepositStatusIn(List<String> statuses, Pageable pageable);
 }

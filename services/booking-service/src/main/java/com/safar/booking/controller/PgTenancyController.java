@@ -57,6 +57,17 @@ public class PgTenancyController {
         return ResponseEntity.ok(tenancyService.giveNotice(id));
     }
 
+    /**
+     * Tenant gives 1-month notice to terminate their PG stay.
+     * Terminates the agreement and sets move-out date = today + noticePeriodDays.
+     */
+    @PostMapping("/{id}/tenant-notice")
+    public ResponseEntity<PgTenancy> tenantGiveNotice(
+            @PathVariable UUID id,
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(tenancyService.tenantGiveNotice(id, userId));
+    }
+
     @PostMapping("/{id}/vacate")
     public ResponseEntity<PgTenancy> vacate(@PathVariable UUID id) {
         return ResponseEntity.ok(tenancyService.vacate(id));
@@ -94,7 +105,7 @@ public class PgTenancyController {
         // Find active tenancy for tenant
         Page<PgTenancy> tenancies = tenancyService.getTenancies(null, null, userId, PageRequest.of(0, 1));
         if (tenancies.isEmpty()) {
-            throw new RuntimeException("No tenancy found for user: " + userId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
         PgTenancy tenancy = tenancies.getContent().get(0);

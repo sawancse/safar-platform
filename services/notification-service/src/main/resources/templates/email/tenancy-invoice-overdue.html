@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Rent Overdue</title>
+    <style>
+        body { margin: 0; padding: 0; width: 100% !important; background-color: #F7F7F7; }
+        @media only screen and (max-width: 620px) { .email-container { width: 100% !important; } .mobile-padding { padding-left: 16px !important; padding-right: 16px !important; } }
+    </style>
+</head>
+<body style="margin:0; padding:0; background-color:#F7F7F7; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#F7F7F7;">
+        <tr><td align="center" style="padding:20px 0;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="email-container" style="max-width:600px; background-color:#FFFFFF; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+                <tr>
+                    <td style="background:linear-gradient(135deg,#B71C1C 0%,#C62828 100%); padding:28px 40px;" class="mobile-padding">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr>
+                            <td style="font-family:'Georgia','Times New Roman',serif; font-size:32px; font-weight:bold; color:#FFFFFF;"><span style="font-style:italic;">S</span>afar</td>
+                            <td align="right" style="font-size:13px; color:rgba(255,255,255,0.9);">Payment Overdue</td>
+                        </tr></table>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding:32px 40px 16px;" class="mobile-padding">
+                        <h2 style="margin:0 0 8px; font-size:22px; color:#B71C1C;">Rent Payment Overdue</h2>
+                        <p style="margin:0; font-size:14px; color:#484848;" th:text="'Hi ' + ${ctx.guestName} + ', your rent payment is overdue and late penalties are being applied.'">Hi Tenant, your rent is overdue.</p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding:16px 40px;" class="mobile-padding">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border:2px solid #FFCDD2; border-radius:8px;">
+                            <tr>
+                                <td style="padding:12px 16px; border-bottom:1px solid #FFEBEE; font-size:13px; color:#767676;">Invoice</td>
+                                <td style="padding:12px 16px; border-bottom:1px solid #FFEBEE; font-size:14px; color:#2D2D2D;" align="right" th:text="${ctx.invoiceNumber}">INV-PG-2026-1001</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:12px 16px; border-bottom:1px solid #FFEBEE; font-size:13px; color:#767676;">Original Amount</td>
+                                <td style="padding:12px 16px; border-bottom:1px solid #FFEBEE; font-size:14px; color:#2D2D2D;" align="right" th:text="${ctx.rentAmount}">&#8377;8,000</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:12px 16px; border-bottom:1px solid #FFEBEE; font-size:13px; color:#B71C1C;">Late Penalty</td>
+                                <td style="padding:12px 16px; border-bottom:1px solid #FFEBEE; font-size:14px; color:#B71C1C; font-weight:600;" align="right" th:text="${ctx.penaltyAmount}">&#8377;320</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:12px 16px; font-size:13px; color:#767676;">Due Date (Missed)</td>
+                                <td style="padding:12px 16px; font-size:14px; color:#B71C1C;" align="right" th:text="${ctx.dueDate}">01 May 2026</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding:12px 40px;" class="mobile-padding">
+                        <p style="margin:0; font-size:13px; color:#B71C1C; background:#FFF3F3; padding:12px 14px; border-radius:6px; border-left:3px solid #B71C1C; line-height:1.5;">
+                            Late penalties are applied daily after the grace period. The penalty amount increases each day until payment is made. Please pay immediately to stop further charges.
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding:20px 40px 32px;" class="mobile-padding" align="center">
+                        <a href="https://ysafar.com/pg-dashboard" style="display:inline-block; background:#B71C1C; color:#FFFFFF; padding:14px 32px; border-radius:8px; text-decoration:none; font-size:15px; font-weight:600;">Pay Now</a>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="background-color:#F7F7F7; padding:24px 40px; border-top:1px solid #E8E8E8;" class="mobile-padding">
+                        <p style="margin:0; font-size:12px; color:#767676; text-align:center;">If you've already paid, please ignore this email. For disputes, raise a ticket from your dashboard.</p>
+                    </td>
+                </tr>
+            </table>
+        </td></tr>
+    </table>
+</body>
+</html>

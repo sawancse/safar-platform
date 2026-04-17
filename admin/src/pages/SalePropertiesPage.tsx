@@ -6,7 +6,9 @@ import axios from 'axios';
 const API = '/api/v1/sale-properties';
 
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: 'default', ACTIVE: 'green', SOLD: 'blue', EXPIRED: 'orange', SUSPENDED: 'red',
+  PENDING: 'gold', VERIFIED: 'green', ACTIVE: 'green', DRAFT: 'default',
+  PAUSED: 'blue', REJECTED: 'red', ARCHIVED: 'default', SUSPENDED: 'red',
+  SOLD: 'purple', EXPIRED: 'orange',
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -45,10 +47,10 @@ export default function SalePropertiesPage() {
       setProperties(items);
       setStats({
         total: items.length,
-        active: items.filter((p: any) => p.status === 'ACTIVE').length,
-        draft: items.filter((p: any) => p.status === 'DRAFT').length,
+        active: items.filter((p: any) => p.status === 'VERIFIED').length,
+        draft: items.filter((p: any) => p.status === 'PENDING' || p.status === 'DRAFT').length,
         sold: items.filter((p: any) => p.status === 'SOLD').length,
-        suspended: items.filter((p: any) => p.status === 'SUSPENDED').length,
+        suspended: items.filter((p: any) => p.status === 'SUSPENDED' || p.status === 'REJECTED').length,
       });
     } catch (e) { message.error('Failed to load properties'); }
     setLoading(false);
@@ -142,7 +144,47 @@ export default function SalePropertiesPage() {
               RERA
             </Button>
           )}
-          {r.status !== 'SUSPENDED' && (
+          {r.status === 'PENDING' && (
+            <>
+              <Button size="small" type="primary" style={{ background: '#52c41a', borderColor: '#52c41a' }}
+                onClick={async () => {
+                  await axios.patch(`${API}/${r.id}/admin-status?status=VERIFIED`, {}, { headers });
+                  message.success('Property verified & live');
+                  loadData();
+                }}>
+                Verify
+              </Button>
+              <Button size="small" danger
+                onClick={async () => {
+                  await axios.patch(`${API}/${r.id}/admin-status?status=REJECTED`, {}, { headers });
+                  message.success('Property rejected');
+                  loadData();
+                }}>
+                Reject
+              </Button>
+            </>
+          )}
+          {r.status === 'VERIFIED' && (
+            <Button size="small"
+              onClick={async () => {
+                await axios.patch(`${API}/${r.id}/admin-status?status=DRAFT`, {}, { headers });
+                message.success('Moved to Draft');
+                loadData();
+              }}>
+              Unpublish
+            </Button>
+          )}
+          {(r.status === 'SUSPENDED' || r.status === 'REJECTED' || r.status === 'ARCHIVED') && (
+            <Button size="small" type="primary" style={{ background: '#52c41a', borderColor: '#52c41a' }}
+              onClick={async () => {
+                await axios.patch(`${API}/${r.id}/admin-status?status=VERIFIED`, {}, { headers });
+                message.success('Property restored & live');
+                loadData();
+              }}>
+              Restore
+            </Button>
+          )}
+          {r.status !== 'SUSPENDED' && r.status !== 'REJECTED' && (
             <Button size="small" danger icon={<StopOutlined />} onClick={() => suspend(r.id)}>
               Suspend
             </Button>
@@ -157,10 +199,10 @@ export default function SalePropertiesPage() {
       <h2 style={{ marginBottom: 16 }}>Sale Properties</h2>
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={5}><Card><Statistic title="Total" value={stats.total} /></Card></Col>
-        <Col span={5}><Card><Statistic title="Active" value={stats.active} valueStyle={{ color: '#3f8600' }} /></Card></Col>
-        <Col span={5}><Card><Statistic title="Draft" value={stats.draft} /></Card></Col>
-        <Col span={5}><Card><Statistic title="Sold" value={stats.sold} valueStyle={{ color: '#1890ff' }} /></Card></Col>
+        <Col span={4}><Card><Statistic title="Total" value={stats.total} /></Card></Col>
+        <Col span={4}><Card><Statistic title="Pending" value={stats.draft} valueStyle={{ color: '#d48806' }} /></Card></Col>
+        <Col span={4}><Card><Statistic title="Verified" value={stats.active} valueStyle={{ color: '#3f8600' }} /></Card></Col>
+        <Col span={4}><Card><Statistic title="Sold" value={stats.sold} valueStyle={{ color: '#722ed1' }} /></Card></Col>
         <Col span={4}><Card><Statistic title="Suspended" value={stats.suspended} valueStyle={{ color: '#cf1322' }} /></Card></Col>
       </Row>
 
@@ -170,11 +212,15 @@ export default function SalePropertiesPage() {
           onChange={v => setStatusFilter(v)} value={statusFilter}
           options={[
             { label: 'All', value: undefined },
+            { label: 'Pending', value: 'PENDING' },
+            { label: 'Verified', value: 'VERIFIED' },
             { label: 'Draft', value: 'DRAFT' },
-            { label: 'Active', value: 'ACTIVE' },
+            { label: 'Paused', value: 'PAUSED' },
+            { label: 'Rejected', value: 'REJECTED' },
+            { label: 'Archived', value: 'ARCHIVED' },
+            { label: 'Suspended', value: 'SUSPENDED' },
             { label: 'Sold', value: 'SOLD' },
             { label: 'Expired', value: 'EXPIRED' },
-            { label: 'Suspended', value: 'SUSPENDED' },
           ]}
         />
         <Button onClick={loadData}>Refresh</Button>

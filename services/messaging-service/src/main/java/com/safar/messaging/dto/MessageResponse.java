@@ -9,6 +9,16 @@ public record MessageResponse(
         UUID senderId,
         String content,
         String messageType,
+        // Attachment
+        String attachmentUrl,
+        String attachmentName,
+        Long attachmentSize,
+        String attachmentType,
+        // Location
+        Double latitude,
+        Double longitude,
+        String locationLabel,
+        // Read/time
         OffsetDateTime readAt,
         OffsetDateTime createdAt
 ) {}

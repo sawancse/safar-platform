@@ -34,7 +34,8 @@ public class UserClient {
             JsonNode node = objectMapper.readTree(json);
             return new UserInfo(
                     node.path("email").asText(""),
-                    node.path("name").asText("")
+                    node.path("name").asText(""),
+                    node.path("phone").asText("")
             );
         } catch (Exception e) {
             log.warn("Failed to parse user {}: {}", userId, e.getMessage());
@@ -47,5 +48,5 @@ public class UserClient {
         return null;
     }
 
-    public record UserInfo(String email, String name) {}
+    public record UserInfo(String email, String name, String phone) {}
 }

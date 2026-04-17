@@ -293,6 +293,11 @@ public class ListingServiceClientImpl implements ListingServiceClient {
     }
 
     public void decrementRoomTypeAvailabilityFallback(UUID roomTypeId, LocalDate from, LocalDate to, int count, Throwable t) {
+        // 4xx = business conflict (e.g. not enough rooms) — must rollback the booking.
+        if (t instanceof HttpClientErrorException http && http.getStatusCode().is4xxClientError()) {
+            log.warn("Room type {} decrement rejected: {}", roomTypeId, http.getResponseBodyAsString());
+            throw new IllegalStateException("Room type availability conflict: " + http.getResponseBodyAsString());
+        }
         log.warn("Could not decrement room type availability for {}: {}", roomTypeId, t.getMessage());
     }
 
@@ -308,6 +313,36 @@ public class ListingServiceClientImpl implements ListingServiceClient {
 
     public void incrementRoomTypeAvailabilityFallback(UUID roomTypeId, LocalDate from, LocalDate to, int count, Throwable t) {
         log.warn("Could not increment room type availability for {}: {}", roomTypeId, t.getMessage());
+    }
+
+    @Override
+    @CircuitBreaker(name = "listingService", fallbackMethod = "incrementRoomTypeOccupancyFallback")
+    @Retry(name = "listingService")
+    public void incrementRoomTypeOccupancy(UUID roomTypeId, int rooms) {
+        restTemplate.postForObject(
+                listingServiceUrl + "/api/v1/internal/room-types/" + roomTypeId + "/occupy-booking?rooms=" + rooms,
+                null, Void.class);
+    }
+
+    public void incrementRoomTypeOccupancyFallback(UUID roomTypeId, int rooms, Throwable t) {
+        if (t instanceof HttpClientErrorException http && http.getStatusCode().is4xxClientError()) {
+            log.warn("Room type {} occupancy conflict: {}", roomTypeId, http.getResponseBodyAsString());
+            throw new IllegalStateException("Room type occupancy conflict: " + http.getResponseBodyAsString());
+        }
+        log.warn("Could not increment room type occupancy for {}: {}", roomTypeId, t.getMessage());
+    }
+
+    @Override
+    @CircuitBreaker(name = "listingService", fallbackMethod = "decrementRoomTypeOccupancyFallback")
+    @Retry(name = "listingService")
+    public void decrementRoomTypeOccupancy(UUID roomTypeId, int rooms) {
+        restTemplate.postForObject(
+                listingServiceUrl + "/api/v1/internal/room-types/" + roomTypeId + "/release-booking?rooms=" + rooms,
+                null, Void.class);
+    }
+
+    public void decrementRoomTypeOccupancyFallback(UUID roomTypeId, int rooms, Throwable t) {
+        log.warn("Could not decrement room type occupancy for {}: {}", roomTypeId, t.getMessage());
     }
 
     // ── PG/Hotel listing type support ──────────────────────────

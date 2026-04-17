@@ -14,6 +14,10 @@ public interface ChefProfileRepository extends JpaRepository<ChefProfile, UUID>,
 
     Optional<ChefProfile> findByUserId(UUID userId);
 
+    Optional<ChefProfile> findByPhone(String phone);
+
+    Optional<ChefProfile> findByEmail(String email);
+
     List<ChefProfile> findByCity(String city);
 
     List<ChefProfile> findByVerificationStatus(VerificationStatus verificationStatus);

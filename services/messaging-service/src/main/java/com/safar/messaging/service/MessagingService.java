@@ -59,17 +59,42 @@ public class MessagingService {
             conversation.setBookingId(req.bookingId());
         }
 
+        // Determine message type
+        String msgType = req.messageType() != null ? req.messageType() : "TEXT";
+        String contentText = req.content() != null ? req.content() : "";
+
+        // Validate attachment/location based on type
+        if (("FILE".equals(msgType) || "IMAGE".equals(msgType)) && (req.attachmentUrl() == null || req.attachmentUrl().isBlank())) {
+            throw new IllegalArgumentException("attachmentUrl is required for FILE/IMAGE messages");
+        }
+        if ("LOCATION".equals(msgType) && (req.latitude() == null || req.longitude() == null)) {
+            throw new IllegalArgumentException("latitude and longitude are required for LOCATION messages");
+        }
+
         // Create the message
         Message message = Message.builder()
                 .conversationId(conversation.getId())
                 .senderId(senderId)
-                .content(req.content())
-                .messageType("TEXT")
+                .content(contentText)
+                .messageType(msgType)
+                .attachmentUrl(req.attachmentUrl())
+                .attachmentName(req.attachmentName())
+                .attachmentSize(req.attachmentSize())
+                .attachmentType(req.attachmentType())
+                .latitude(req.latitude())
+                .longitude(req.longitude())
+                .locationLabel(req.locationLabel())
                 .build();
         message = messageRepository.save(message);
 
         // Update conversation metadata
-        conversation.setLastMessageText(truncate(req.content(), 200));
+        String preview = switch (msgType) {
+            case "FILE" -> "Shared a file: " + (req.attachmentName() != null ? req.attachmentName() : "document");
+            case "IMAGE" -> "Shared an image";
+            case "LOCATION" -> req.locationLabel() != null ? req.locationLabel() : "Shared a location";
+            default -> contentText;
+        };
+        conversation.setLastMessageText(truncate(preview, 200));
         conversation.setLastMessageAt(message.getCreatedAt());
 
         // Increment unread count for the recipient
@@ -80,13 +105,24 @@ public class MessagingService {
         }
         conversationRepository.save(conversation);
 
-        // Publish Kafka event for notification-service
-        publishMessageCreatedEvent(conversation.getId(), senderId, recipientId, req.listingId(), req.content());
-
         log.info("Message sent: conversationId={}, senderId={}, recipientId={}",
                 conversation.getId(), senderId, recipientId);
 
-        return toMessageResponse(message);
+        MessageResponse response = toMessageResponse(message);
+
+        // Publish Kafka event AFTER transaction commits (don't hold DB connection during Kafka send)
+        final UUID convId = conversation.getId();
+        final String content = req.content();
+        final UUID listing = req.listingId();
+        org.springframework.transaction.support.TransactionSynchronizationManager
+                .registerSynchronization(new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        publishMessageCreatedEvent(convId, senderId, recipientId, listing, content);
+                    }
+                });
+
+        return response;
     }
 
     @Transactional(readOnly = true)
@@ -194,6 +230,13 @@ public class MessagingService {
                 msg.getSenderId(),
                 msg.getContent(),
                 msg.getMessageType(),
+                msg.getAttachmentUrl(),
+                msg.getAttachmentName(),
+                msg.getAttachmentSize(),
+                msg.getAttachmentType(),
+                msg.getLatitude(),
+                msg.getLongitude(),
+                msg.getLocationLabel(),
                 msg.getReadAt(),
                 msg.getCreatedAt()
         );

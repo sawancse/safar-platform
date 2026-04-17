@@ -1,6 +1,5 @@
 package com.safar.messaging.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.UUID;
@@ -14,6 +13,19 @@ public record SendMessageRequest(
 
         UUID bookingId,
 
-        @NotBlank(message = "content is required")
-        String content
+        String content,
+
+        // Message type: TEXT (default), FILE, IMAGE, LOCATION
+        String messageType,
+
+        // Attachment fields (for FILE/IMAGE)
+        String attachmentUrl,
+        String attachmentName,
+        Long attachmentSize,
+        String attachmentType,
+
+        // Location fields (for LOCATION)
+        Double latitude,
+        Double longitude,
+        String locationLabel
 ) {}

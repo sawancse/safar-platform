@@ -139,6 +139,14 @@ resource "aws_ecs_task_definition" "services" {
       each.key == "auth-service" ? [
         { name = "GOOGLE_CLIENT_ID", value = "819322140862-2oh93lat0gh6lhaehc7j6af25uk7hhkc.apps.googleusercontent.com" },
       ] : [],
+      # chef-service calls auth-service /internal/users/{id} to claim orphan profiles
+      each.key == "chef-service" ? [
+        { name = "AUTH_SERVICE_URL", value = "http://auth-service.safar.local:8888" },
+      ] : [],
+      # booking-service calls chef-service /internal/chefs/merge for admin guest merge
+      each.key == "booking-service" ? [
+        { name = "CHEF_SERVICE_URL", value = "http://chef-service.safar.local:8093" },
+      ] : [],
     )
 
     secrets = concat(

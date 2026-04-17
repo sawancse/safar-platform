@@ -97,6 +97,9 @@ public class ChefSubscriptionService {
         if (!isChef && !isCustomer) {
             throw new IllegalArgumentException("Not authorized to cancel this subscription");
         }
+        if (isChef) {
+            chefProfile.ensureNotSuspended();
+        }
         if (subscription.getStatus() == SubscriptionStatus.CANCELLED) {
             throw new IllegalArgumentException("Subscription is already cancelled");
         }

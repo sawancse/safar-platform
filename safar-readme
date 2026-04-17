@@ -476,6 +476,7 @@ curl -X POST http://localhost:8083/api/v1/builder-projects/admin/reindex
   This tells Windows to always reserve 3000–3009 for you instead of letting Hyper-V grab them. It survives reboots.
   
 docker compose -f C:/Users/Win-10/safar-platform/docker-compose.yml up -d zookeeper kafka
+docker compose -f docker-compose.yml up -d zookeeper kafka
 
   This starts only safar-zookeeper and safar-kafka on localhost:9092.                                                   
   Verify with:                                                                                                          
@@ -483,6 +484,7 @@ docker compose -f C:/Users/Win-10/safar-platform/docker-compose.yml up -d zookee
 
 > for elastic search                                                                                                    
 docker compose -f C:/Users/Win-10/safar-platform/docker-compose.yml up -d elasticsearch
+docker compose -f docker-compose.yml up -d elasticsearch
 
   This starts safar-elasticsearch on localhost:9200. Verify with:
 curl http://localhost:9200/_cluster/health		
@@ -676,3 +678,264 @@ PG use cases:
 ---------------
 host:
 customer: 
+
+@11/04/2026
+-----------------
+{"type":"about:blank","title":"Bad Request","status":400,"detail":"Only 0 rooms available for Delux non ac single room, requested 1","instance":"/api/v1/bookings"}
+
+
+mvn -pl services/notification-service spring-boot:run -Dspring-boot.run.jvmArguments="-Djava.net.preferIPv4Stack=true"
+
+ Guest: Full name, phone (masked in newer versions — shown as +91-98XXXX1234, click-to-call via OYO relay), email, ID type + number (required for
+  government Form F).
+  
+==============
+@12/04/2026
+------------------
+pending:
+provide option in chat to share pdf doc etc to review for agreement or plan etc
+have a chat for chef-cook where he can share his live location.
+
+for builder project, express interest , and pay some booking amount in case interested.
+there is no land option similar to builder or apartment buy/sell. lets include land , individual house, villa, farm house, farming land, etc as well for buy and sell. follow a specific format from nobroker for this and do market research  to imrove this . lets say any USA or singapore based company who is in real estate. share prd, and bmad design around this. provide chat box option as well to connect with agent and express interest.
+
+● All 5 services compile clean. Here's the complete summary of everything built in this session:
+
+  ---                                                                                                                                                                         Complete Session Summary
+                                                                                                                                                                              Documents
+
+  ┌─────────────┬──────────────────────────────────────┐
+  │     Doc     │                 Path                 │
+  ├─────────────┼──────────────────────────────────────┤
+  │ PRD         │ docs/prd-buy-sell-chat-expansion.md  │
+  ├─────────────┼──────────────────────────────────────┤
+  │ BMAD Design │ docs/bmad-buy-sell-chat-expansion.md │
+  └─────────────┴──────────────────────────────────────┘
+
+  Backend (6 services modified, all compile clean)
+
+  ┌──────────────────────┬───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┬────────────┐
+  │       Service        │                                                    Key Changes                                                    │ Migrations │
+  ├──────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────────┤
+  │ booking-service      │ PG 1-month billing, auto-agreement on check-in, tenant notice, rent reminders                                     │ V39        │
+  ├──────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────────┤
+  │ notification-service │ TenancyEventConsumer (8 topics), 8 HTML email templates, 15 EmailContext fields                                   │ -          │
+  ├──────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────────┤
+  │ messaging-service    │ FILE/IMAGE/LOCATION message types, file upload (10MB), /internal endpoint                                         │ V2         │
+  ├──────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────────┤
+  │ chef-service         │ POST /share-location sends LOCATION message in customer chat                                                      │ -          │
+  ├──────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────────┤
+  │ listing-service      │ 5 new sale types (agricultural/farming land), 25+ land/legal fields, InquiryPaymentService (token payment/refund) │ V79, V80   │
+  ├──────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────────┤
+  │ search-service       │ ES document expanded (land/agriculture/legal), SmartQueryParser +15 sale keywords, 8 new search filters           │ -          │
+  └──────────────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴────────────┘
+
+  Frontend (safar-web)
+
+  ┌─────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │          Page           │                                                                  What                                                                  │
+  ├─────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ /messages               │ File upload button (paperclip), FILE/IMAGE/LOCATION message rendering                                                                  │
+  ├─────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ /pg-dashboard           │ Tab nav, notice modal, invoice history                                                                                                 │
+  ├─────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ /pg-dashboard/invoices  │ Full payment history with status badges                                                                                                │
+  ├─────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ /buy                    │ New tabs: Farm & Agriculture, Villas & Houses, Commercial                                                                              │
+  ├─────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ /buy/[id]               │ Land Details, Agriculture Details, Legal & Ownership, Chat with Agent sections                                                         │
+  ├─────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ /builder/[id]           │ NEW — Project detail with Express Interest, Book with Token (Razorpay), Chat with Builder, unit types, construction updates, downloads │
+  ├─────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ /cooks/my-bookings/[id] │ NEW — Chef booking detail with live location map (Google Maps embed) + chat                                                            │
+  └─────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+PG management:
+---------------
+lets say someone one to book pg for 11 month just accept one month rent and advance . other month are renewal and send reminder to pay everymonth and manage the profile for the user with payment tract and ticker option if any support required.  once user is check-in send agreemnent copy to review and accept.
+
+provide whether firecast in that area]
+
+the smooth landing
+airline booking:
+-------------------
+
+find bug around  services like legal , agreement, interior atc.
+can we have option and enhace to add or remove and detaisl about legal lawayer and interior person and same to display.
+
+can we have some onboaridng form to onboard lawyer interioes and other services perosn is it good idea suggest more design
+
+in admin page: include fliter criteria based on location/name etc for listing page etc.
+
+
+--
+lets work on to include user password and pin both to set for user login so otp can be reduce and also provide option to reset passwoird
+testing:
+-------------
+on cash payment , check for payment link in email.
+2026-04-12T16:05:20.219+05:30  WARN 4032 --- [messaging-service] [l-1 housekeeper] com.zaxxer.hikari.pool.ProxyLeakTask     : Connection leak detection triggered for org.postgresql.jdbc.PgConnection@3cb04dd on thread main, stack trace follows
+
+java.lang.Exception: Apparent connection leak detected
+        at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:127) ~[HikariCP-5.1.0.jar:na]
+        at org.flywaydb.core.internal.jdbc.JdbcUtils.openConnection(JdbcUtils.java:59) ~[flyway-core-10.20.1.jar:na]
+        at org.flywaydb.core.internal.jdbc.JdbcConnectionFactory.<init>(JdbcConnectionFactory.java:76) ~[flyway-core-10.2
+python3 -c "import base64,os; print(base64.b64encode(os.urandom(32)).decode())" 2>/dev/null || python -c "import base64,os; print(base64.b64encode(os.urandom(32…)
+  ⎿  XTwasxVDQiheJFw5COxHukqz/IPm03hRUthwhQNbyDM=
+  
+8956214626 to Contacts
+(So you don't miss m
+
+ Installing BMAD Agent Framework                                                                        
+  Option 1: NPX (Recommended)                                                                              npx bmad-agent init
+                                                                                                           Option 2: Manual Install
+  # Clone the BMAD repo
+  git clone https://github.com/bmadcode/BMAD-METHOD.git /tmp/bmad
+
+  # Copy the _bmad folder to your project root
+  cp -r /tmp/bmad/_bmad C:\Users\Win-10\safar-platform\_bmad
+
+  # Clean up
+  rm -rf /tmp/bmad
+
+  Option 3: From npm
+  npm install -g bmad-agent
+  bmad-agent init
+
+  After installation, your project should have:
+  safar-platform/
+    _bmad/
+      core/
+        workflows/
+          brainstorming/workflow.md
+          ...
+        tasks/
+          help.md
+          ...
+        agents/
+        templates/
+      docs/
+      BMAD.md
+o  Module directories created
+|
+|  Created directories:
+o  Configurations generated
+| +-BMAD is ready to use!--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| |    ✓  BMad Method Agile-AI Driven-Development (v6.3.0, installed)                                                                                                                                                                                                                                                                                    |
+| |    ✓  BMad Core Module (v6.3.0, installed)                                                                                                                                                                                                                                                                                                           |
+| |    ✓  Module directories                                                                                                                                                                                                                                                                                                                             |
+| |    ✓  Configurations (generated)                                                                                                                                                                                                                                                                                                                     |
+| |    ✓  Help catalog                                                                                                                                                                                                                                                                                                                                   |
+| |    ✓  No IDE selected (installed in _bmad only)                                                                                                                                                                                                                                                                                                      |
+| |                                                                                                                                                                                                                                                                                                                                                      |
+| |    Installed to: C:\Users\Win-10\_bmad_temp\_bmad                                                                                                                                                                                                                                                                                                    |
+| |                                                                                                                                                                                                                                                                                                                                                      |
+| |    Get started:                                                                                                                                                                                                                                                                                                                                      |
+| |      1. Launch your AI agent from your project folder                                                                                                                                                                                                                                                                                                |
+| |      2. Not sure what to do? Invoke the bmad-help skill and ask it what to do!                                                                                                                                                                                                                                                                       |
+| |                                                                                                                                                                                                                                                                                                                                                      |
+| |      Blog, Docs and Guides: https://bmadcode.com/                                                                                                                                                                                                                                                                                                    |
+| |      Community: https://discord.gg/gk8jAdXWmj                                                                                                                                                                                                                                                                                                        |
+| +------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+ Bash(# Copy BMM skills (analysis, plan, solutioning, implementation)
+ 
+  BMAD is installed. Here's what you have now:
+
+  safar-platform/_bmad/                                                                                      core/
+      skills/                                                                                                    bmad-brainstorming/     (brainstorming workflow)
+        bmad-help/              (help system)
+        bmad-editorial-review-prose/
+        bmad-editorial-review-structure/
+        bmad-review-adversarial-general/
+        bmad-review-edge-case-hunter/
+        bmad-shard-doc/
+        bmad-index-docs/
+        bmad-party-mode/
+        bmad-distillator/
+        bmad-advanced-elicitation/
+        1-analysis/             (analyst, tech-writer, PRFAQ, product-brief)
+        2-plan-workflows/       (sprint planning, story mapping)
+        3-solutioning/          (architecture, design)
+        4-implementation/       (coding, testing)
+      workflows/
+        brainstorming/          (workflow.md, template.md, steps/, brain-methods.csv)
+      tasks/
+        help.md
+
+  The /bmad-brainstorming
+  
+  
+=====
+bug:
+pg
+:8080/api/v1/pg-tenancies/my-dashboard:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+
+ Now let me analyze and recommend the perfect techniques for your flight booking brainstorm.
+
+  ---
+  My AI Analysis Results:                                                                                
+  Based on your session context — a complex multi-domain product feature (flight booking) being added to   an existing platform, spanning technical architecture, business model, UX, and competitive strategy
+  across domestic + international markets — I recommend this customized technique sequence:
+
+  ---
+  Phase 1: Foundation Setting
+
+  Cross-Pollination from Creative (Duration: 15 min, Energy: High)
+
+  - Why this fits: You're adding flights to a stays/cooks/PG platform — the most innovative ideas will
+  come from transferring patterns from how MakeMyTrip, Booking.com, Skyscanner, and even Uber/Swiggy
+  solve problems. How would Swiggy's real-time tracking work for flights? How would Uber's surge pricing
+  inform dynamic fares?
+  - Expected outcome: 20+ ideas borrowed from adjacent industries before we even start original thinking
+
+  Phase 2: Deep Exploration
+
+  Morphological Analysis from Deep (Duration: 25 min, Energy: Medium)
+
+  - Why this builds on Phase 1: Flight booking has many parameters (API provider, revenue model, search
+  UX, booking flow, ancillaries, cross-sell). We'll systematically map ALL parameter combinations to find
+   non-obvious winning combos.
+  - Expected outcome: A comprehensive matrix of every possible configuration — API x Revenue x UX x
+  Market x Cross-sell — with 50+ unique combinations scored
+
+  Phase 3: Stress Testing
+
+  Chaos Engineering from Wild (Duration: 15 min, Energy: High)
+
+  - Why this concludes effectively: Before committing to an architecture, we deliberately break it. What
+  if the API goes down? What if Razorpay fails mid-flight-booking? What if a user books a flight + hotel
+  bundle and cancels just the flight? This reveals gaps no happy-path brainstorm catches.
+  - Expected outcome: 15+ failure scenarios with resilience strategies baked into the design
+
+  Total Estimated Time: ~55 minutes
+  Session Focus: Comprehensive flight booking feature design that's innovative (Phase 1), systematic
+  (Phase 2), and resilient (Phase 3)
+
+  ---
+  Does this approach sound perfect for your session?
+
+  Options:
+  - [C] Continue — Begin with these recommended techniques
+  - [Modify] — I'd like to adjust the technique selection
+  - [Details] — Tell me more about any specific technique
+  - [Back] — Return to approach selection
+
+✻ Crunched for 47s
+
+
+use case: 
+Ram Gupta is chef
+
+
+pg host:
+Customer1 123
++918212345678
+
+
+ Known follow-ups (left open intentionally):
+  - user.merged Kafka consumers in user-service,
+  listing-service, review-service, payment-service
+  - auth-service deletion of the loser auth.users row
+  after merge
+  - Mobile signup flow not yet updated (backend is
+  backward-compatible so mobile keeps working but could
+  still create dupes)

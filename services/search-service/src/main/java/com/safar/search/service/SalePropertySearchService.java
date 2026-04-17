@@ -168,6 +168,36 @@ public class SalePropertySearchService {
             bool.filter(Query.of(q -> q.term(t -> t.field("verified").value(true))));
         }
 
+        // Land/agriculture filters
+        if (req.minAcres() != null || req.maxAcres() != null) {
+            bool.filter(Query.of(q -> q.range(r -> {
+                var rn = r.number(n -> { n.field("totalAcres");
+                    if (req.minAcres() != null) n.gte(req.minAcres());
+                    if (req.maxAcres() != null) n.lte(req.maxAcres());
+                    return n;
+                });
+                return rn;
+            })));
+        }
+        if (req.roadAccess() != null && !req.roadAccess().isBlank()) {
+            bool.filter(Query.of(q -> q.term(t -> t.field("roadAccess").value(req.roadAccess()))));
+        }
+        if (req.zoneType() != null && !req.zoneType().isBlank()) {
+            bool.filter(Query.of(q -> q.term(t -> t.field("zoneType").value(req.zoneType()))));
+        }
+        if (req.irrigationType() != null && !req.irrigationType().isBlank()) {
+            bool.filter(Query.of(q -> q.term(t -> t.field("irrigationType").value(req.irrigationType()))));
+        }
+        if (req.ownershipType() != null && !req.ownershipType().isBlank()) {
+            bool.filter(Query.of(q -> q.term(t -> t.field("ownershipType").value(req.ownershipType()))));
+        }
+        if (Boolean.TRUE.equals(req.titleClear())) {
+            bool.filter(Query.of(q -> q.term(t -> t.field("titleClear").value(true))));
+        }
+        if (Boolean.TRUE.equals(req.organicCertified())) {
+            bool.filter(Query.of(q -> q.term(t -> t.field("organicCertified").value(true))));
+        }
+
         // Amenities
         if (req.amenities() != null && !req.amenities().isEmpty()) {
             for (String amenity : req.amenities()) {

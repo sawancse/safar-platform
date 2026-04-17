@@ -15,34 +15,54 @@ class NotificationServiceTest {
     @Mock EmailGateway emailGateway;
     @Mock BookingClient bookingClient;
     @Mock UserClient userClient;
+    @Mock InAppNotificationService inAppNotificationService;
+    @Mock EmailTemplateService emailTemplateService;
+    @Mock JourneyChapterService journeyChapterService;
+    @Mock EmailSchedulerService emailSchedulerService;
+    @Mock EmailContextBuilder emailContextBuilder;
     @InjectMocks NotificationService notificationService;
 
     private BookingClient.BookingInfo sampleBooking() {
         return new BookingClient.BookingInfo(
                 "bkg-001", "SAF-ABC123",
-                "guest-id-1", "host-id-1", "listing-id-1",
-                "guest@example.com", "John", "Doe"
+                "00000000-0000-0000-0000-000000000001", "00000000-0000-0000-0000-000000000002", "00000000-0000-0000-0000-000000000003",
+                "guest@example.com", "John", "Doe",
+                "2026-06-15", "2026-06-17", 2,
+                2, 2, 0, 0,
+                1,
+                "Sample Listing", "Bengaluru", "Sample address",
+                500000L, 400000L, 72000L,
+                0L, 0L, 0L, 0L, 0L,
+                "PREPAID", "", "NIGHT"
         );
     }
 
     @Test
     void notifyBookingCreated_sendsToGuestAndHost() {
         when(bookingClient.getBooking("bkg-001")).thenReturn(sampleBooking());
-        when(userClient.getUser("host-id-1")).thenReturn(new UserClient.UserInfo("host@example.com", "Host"));
+        when(userClient.getUser("00000000-0000-0000-0000-000000000002")).thenReturn(new UserClient.UserInfo("host@example.com", "Host", "+919876543210"));
 
         notificationService.notifyBookingCreated("bkg-001");
 
+        // Guest gets plain text via emailGateway
         verify(emailGateway).send(eq("guest@example.com"), contains("Booking Created"), contains("SAF-ABC123"));
-        verify(emailGateway).send(eq("host@example.com"), contains("New Booking Received"), contains("SAF-ABC123"));
+        // Host gets HTML via emailTemplateService (sendHostNewBookingAlert)
     }
 
     @Test
     void notifyBookingCreated_fallsBackToUserService() {
         var bookingNoEmail = new BookingClient.BookingInfo(
-                "bkg-002", "SAF-XYZ", "guest-id-2", "host-id-2", "listing-id-2", "", "Jane", "Doe");
+                "bkg-002", "SAF-XYZ", "00000000-0000-0000-0000-000000000004", "00000000-0000-0000-0000-000000000005", "00000000-0000-0000-0000-000000000006", "", "Jane", "Doe",
+                "2026-06-15", "2026-06-17", 2,
+                1, 1, 0, 0,
+                1,
+                "Sample Listing", "Bengaluru", "Sample address",
+                500000L, 400000L, 72000L,
+                0L, 0L, 0L, 0L, 0L,
+                "PREPAID", "", "NIGHT");
         when(bookingClient.getBooking("bkg-002")).thenReturn(bookingNoEmail);
-        when(userClient.getUser("guest-id-2")).thenReturn(new UserClient.UserInfo("jane@example.com", "Jane"));
-        when(userClient.getUser("host-id-2")).thenReturn(new UserClient.UserInfo("host2@example.com", "Host2"));
+        when(userClient.getUser("00000000-0000-0000-0000-000000000004")).thenReturn(new UserClient.UserInfo("jane@example.com", "Jane", "+919876500000"));
+        when(userClient.getUser("00000000-0000-0000-0000-000000000005")).thenReturn(new UserClient.UserInfo("host2@example.com", "Host2", "+919876500001"));
 
         notificationService.notifyBookingCreated("bkg-002");
 
@@ -61,18 +81,18 @@ class NotificationServiceTest {
     @Test
     void notifyBookingConfirmed_sendsToGuestAndHost() {
         when(bookingClient.getBooking("bkg-001")).thenReturn(sampleBooking());
-        when(userClient.getUser("host-id-1")).thenReturn(new UserClient.UserInfo("host@example.com", "Host"));
+        when(userClient.getUser("00000000-0000-0000-0000-000000000002")).thenReturn(new UserClient.UserInfo("host@example.com", "Host", "+919876543210"));
 
         notificationService.notifyBookingConfirmed("bkg-001");
 
-        verify(emailGateway).send(eq("guest@example.com"), contains("Confirmed"), contains("SAF-ABC123"));
+        // Guest gets HTML email via emailTemplateService; host gets plain text via emailGateway
         verify(emailGateway).send(eq("host@example.com"), contains("Confirmed"), anyString());
     }
 
     @Test
     void notifyBookingCancelled_sendsToGuestAndHost() {
         when(bookingClient.getBooking("bkg-001")).thenReturn(sampleBooking());
-        when(userClient.getUser("host-id-1")).thenReturn(new UserClient.UserInfo("host@example.com", "Host"));
+        when(userClient.getUser("00000000-0000-0000-0000-000000000002")).thenReturn(new UserClient.UserInfo("host@example.com", "Host", "+919876543210"));
 
         notificationService.notifyBookingCancelled("bkg-001");
 

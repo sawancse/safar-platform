@@ -97,6 +97,7 @@ public class PasswordService {
         userRepository.save(user);
 
         log.info("Password set for user {}", userId);
+        // TODO: send security notification email when Kafka is added to auth-service
     }
 
     @Transactional
@@ -119,6 +120,7 @@ public class PasswordService {
         userRepository.save(user);
 
         log.info("Password changed for user {}", userId);
+        log.warn("SECURITY: Password changed for user {}", userId);
     }
 
     @Transactional
@@ -139,6 +141,7 @@ public class PasswordService {
         userRepository.save(user);
 
         log.info("Password reset for user {}", user.getId());
+        log.warn("SECURITY: Password reset for user {}", user.getId());
         return buildAuthResponse(user);
     }
 

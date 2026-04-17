@@ -40,10 +40,12 @@ public class LegalController {
 
     @GetMapping("/cases")
     public ResponseEntity<Page<LegalCaseResponse>> getAllCases(
+            @RequestHeader(value = "X-User-Role", required = false) String role,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String packageType,
             @RequestParam(required = false) String riskLevel,
             Pageable pageable) {
+        requireAdmin(role);
         return ResponseEntity.ok(legalService.getAllCases(status, packageType, riskLevel, pageable));
     }
 
@@ -114,20 +116,16 @@ public class LegalController {
         return ResponseEntity.ok(legalService.listPackages());
     }
 
-    // ── List Advocates ───────────────────────────────────────
-
-    @GetMapping("/advocates")
-    public ResponseEntity<List<AdvocateResponse>> listAdvocates(
-            @RequestParam(required = false) String city) {
-        return ResponseEntity.ok(legalService.listAdvocates(city));
-    }
+    // Advocates CRUD moved to ProfessionalController
 
     // ── Update Case Status (Admin) ───────────────────────────
 
     @PatchMapping("/cases/{id}/status")
     public ResponseEntity<LegalCaseResponse> updateCaseStatus(
             @PathVariable UUID id,
-            @RequestParam String status) {
+            @RequestParam String status,
+            @RequestHeader(value = "X-User-Role", required = false) String role) {
+        requireAdmin(role);
         return ResponseEntity.ok(legalService.updateCaseStatus(id, status));
     }
 
@@ -136,14 +134,25 @@ public class LegalController {
     @PostMapping("/cases/{id}/assign")
     public ResponseEntity<LegalCaseResponse> assignAdvocate(
             @PathVariable UUID id,
-            @RequestParam UUID advocateId) {
+            @RequestParam UUID advocateId,
+            @RequestHeader(value = "X-User-Role", required = false) String role) {
+        requireAdmin(role);
         return ResponseEntity.ok(legalService.assignAdvocate(id, advocateId));
     }
 
     // ── Generate Report (Admin) ──────────────────────────────
 
     @PostMapping("/cases/{id}/generate-report")
-    public ResponseEntity<LegalCaseResponse> generateReport(@PathVariable UUID id) {
+    public ResponseEntity<LegalCaseResponse> generateReport(
+            @PathVariable UUID id,
+            @RequestHeader(value = "X-User-Role", required = false) String role) {
+        requireAdmin(role);
         return ResponseEntity.ok(legalService.generateReport(id));
+    }
+
+    private void requireAdmin(String role) {
+        if (!"ADMIN".equalsIgnoreCase(role)) {
+            throw new org.springframework.security.access.AccessDeniedException("Admin access required");
+        }
     }
 }

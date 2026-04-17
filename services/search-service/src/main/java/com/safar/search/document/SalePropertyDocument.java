@@ -152,6 +152,43 @@ public class SalePropertyDocument {
     @Field(type = FieldType.Boolean)
     private Boolean petAllowed;
 
+    // Land/Plot fields
+    @Field(type = FieldType.Double)
+    private Double totalAcres;
+
+    @Field(type = FieldType.Keyword)
+    private String roadAccess;
+
+    @Field(type = FieldType.Keyword)
+    private String zoneType;
+
+    @Field(type = FieldType.Boolean)
+    private Boolean boundaryWall;
+
+    // Agriculture fields
+    @Field(type = FieldType.Keyword)
+    private String irrigationType;
+
+    @Field(type = FieldType.Keyword)
+    private String soilType;
+
+    @Field(type = FieldType.Boolean)
+    private Boolean organicCertified;
+
+    // Legal
+    @Field(type = FieldType.Keyword)
+    private String ownershipType;
+
+    @Field(type = FieldType.Boolean)
+    private Boolean titleClear;
+
+    @Field(type = FieldType.Keyword)
+    private String reraNumber;
+
+    // Agent
+    @Field(type = FieldType.Keyword)
+    private String agentName;
+
     // Media
     @Field(type = FieldType.Keyword)
     private String primaryPhotoUrl;

@@ -65,6 +65,36 @@ public class PropertyInquiry {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    // Token/booking amount payment
+    @Builder.Default
+    private Long tokenAmountPaise = 0L;
+
+    @Column(name = "payment_status", length = 20)
+    @Builder.Default
+    private String paymentStatus = "NONE"; // NONE, PENDING, PAID, REFUNDED, EXPIRED
+
+    @Column(name = "razorpay_payment_id", length = 100)
+    private String razorpayPaymentId;
+
+    @Column(name = "razorpay_order_id", length = 100)
+    private String razorpayOrderId;
+
+    @Column(name = "razorpay_refund_id", length = 100)
+    private String razorpayRefundId;
+
+    private OffsetDateTime paidAt;
+
+    private OffsetDateTime refundedAt;
+
+    // Builder unit preference
+    private UUID unitTypeId;
+
+    @Column(name = "preferred_floor", length = 20)
+    private String preferredFloor;
+
+    // Auto-created chat conversation
+    private UUID conversationId;
+
     @CreationTimestamp
     private OffsetDateTime createdAt;
 

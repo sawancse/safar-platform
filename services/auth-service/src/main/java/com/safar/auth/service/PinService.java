@@ -36,13 +36,37 @@ public class PinService {
     private static final int MAX_PIN_ATTEMPTS = 5;
     private static final int LOCK_MINUTES = 15;
 
+    // Weak PINs that are easily guessable
+    private static final java.util.Set<String> WEAK_PINS = java.util.Set.of(
+            "0000", "1111", "2222", "3333", "4444", "5555", "6666", "7777", "8888", "9999",
+            "1234", "4321", "1212", "2121", "0123", "3210", "5678", "8765",
+            "12345", "54321", "123456", "654321", "111111", "000000",
+            "112233", "121212", "131313", "696969", "123123"
+    );
+
+    private final OtpService otpService;
+
     @Value("${services.user-service.url}")
     private String userServiceUrl;
+
+    private void validatePinComplexity(String pin) {
+        if (pin == null || !pin.matches("^\\d{4,6}$")) {
+            throw new IllegalArgumentException("PIN must be 4-6 digits");
+        }
+        if (WEAK_PINS.contains(pin)) {
+            throw new IllegalArgumentException("This PIN is too common. Please choose a stronger PIN.");
+        }
+        // Check all same digits
+        if (pin.chars().distinct().count() == 1) {
+            throw new IllegalArgumentException("PIN cannot be all the same digit");
+        }
+    }
 
     // ── Set PIN (first time, requires authenticated user) ──
 
     @Transactional
     public void setPin(UUID userId, SetPinRequest request) {
+        validatePinComplexity(request.pin());
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -53,12 +77,14 @@ public class PinService {
         userRepository.save(user);
 
         log.info("PIN set for user {}", userId);
+        // TODO: send security notification when Kafka added to auth-service
     }
 
     // ── Change PIN (requires current PIN) ──
 
     @Transactional
     public void changePin(UUID userId, ChangePinRequest request) {
+        validatePinComplexity(request.newPin());
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -76,6 +102,7 @@ public class PinService {
         userRepository.save(user);
 
         log.info("PIN changed for user {}", userId);
+        log.warn("SECURITY: PIN changed for user {}", userId);
     }
 
     // ── Sign in with PIN (replaces OTP) ──
@@ -130,11 +157,11 @@ public class PinService {
         );
     }
 
-    // ── Reset PIN via OTP (forgot PIN) ──
+    // ── Reset PIN via OTP (authenticated — user already logged in) ──
 
     @Transactional
     public void resetPinAfterOtp(UUID userId, SetPinRequest request) {
-        // Called after OTP verification — userId comes from the JWT issued by OTP login
+        validatePinComplexity(request.pin());
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -145,6 +172,42 @@ public class PinService {
         userRepository.save(user);
 
         log.info("PIN reset via OTP for user {}", userId);
+        log.warn("SECURITY: PIN reset for user {}", userId);
+    }
+
+    // ── Forgot PIN (pre-auth — user not logged in, uses phone + OTP + new PIN) ──
+
+    @Transactional
+    public AuthResponse forgotPin(String phone, String otp, String newPin) {
+        validatePinComplexity(newPin);
+
+        // Verify OTP first
+        boolean otpValid = otpService.verifyOtp(phone, otp);
+        if (!otpValid) {
+            throw new IllegalArgumentException("Invalid or expired OTP");
+        }
+
+        User user = userRepository.findByPhone(phone)
+                .orElseThrow(() -> new RuntimeException("User not found with this phone"));
+
+        user.setPinHash(pinEncoder.encode(newPin));
+        user.setPinSetAt(OffsetDateTime.now());
+        user.setPinFailedAttempts(0);
+        user.setPinLockedUntil(null);
+        userRepository.save(user);
+
+        // Auto-login after PIN reset
+        String accessToken = jwtService.generateAccessToken(user.getId(), user.getRole().name());
+        String refreshToken = jwtService.generateRefreshToken(user.getId());
+
+        log.info("PIN reset via forgot-PIN for user {} (phone={})", user.getId(), phone);
+
+        return new AuthResponse(
+                accessToken, refreshToken, jwtService.getExpirySeconds(),
+                new UserDto(user.getId(), user.getPhone(), user.getEmail(), user.getName(),
+                        user.getRole().name(), user.getKycStatus().name(), user.getAvatarUrl(),
+                        user.getLanguage(), user.hasPassword())
+        );
     }
 
     // ── Remove PIN ──
