@@ -798,6 +798,18 @@ public class BookingService {
         if (booking.getStatus() != BookingStatus.CONFIRMED) {
             throw new IllegalStateException("Only CONFIRMED bookings can be checked in");
         }
+        // For PG bookings, block check-in upfront if the room is full so the host
+        // gets a clear 409 on the UI instead of a CHECKED_IN booking with no tenancy.
+        if ("PG".equals(booking.getBookingType()) && booking.getRoomTypeId() != null) {
+            String sharingType = null;
+            try {
+                Map<String, Object> rtInfo = listingClient.getRoomTypeInfo(booking.getRoomTypeId());
+                if (rtInfo != null && rtInfo.get("sharingType") != null) {
+                    sharingType = rtInfo.get("sharingType").toString();
+                }
+            } catch (Exception ignored) {}
+            pgTenancyService.assertBedsAvailable(booking.getRoomTypeId(), sharingType);
+        }
         booking.setStatus(BookingStatus.CHECKED_IN);
         booking.setCheckedInAt(OffsetDateTime.now());
         Booking saved = bookingRepo.save(booking);

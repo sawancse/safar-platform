@@ -399,13 +399,14 @@ public class PgTenancyService {
             int total = rt.get("totalBeds") != null ? ((Number) rt.get("totalBeds")).intValue()
                     : (rt.get("count") != null ? ((Number) rt.get("count")).intValue() : 0);
             int occupied = rt.get("occupiedBeds") != null ? ((Number) rt.get("occupiedBeds")).intValue() : 0;
-            int needed = "PRIVATE".equals(sharingType) || sharingType == null ? Math.max(1, total) : 1;
-            // For PRIVATE we need a whole empty room; bed count is therefore total/count
-            // but the simplest correctness check is: requested beds must fit in free beds.
+            // Treat null sharingType as "need 1 bed" (most common PG shared case).
+            // PRIVATE tenants take the whole room; everyone else takes a single bed.
+            int needed = "PRIVATE".equals(sharingType) ? Math.max(1, total) : 1;
             int free = total - occupied;
             if (free < needed) {
-                throw new IllegalStateException("No beds available in this room type — "
-                        + occupied + "/" + total + " occupied. Please pick a different room.");
+                throw new IllegalStateException("This room is fully occupied ("
+                        + occupied + "/" + total + " beds). Check-in isn't possible — "
+                        + "please release a bed or assign the guest to another room.");
             }
         } catch (IllegalStateException e) {
             throw e;
