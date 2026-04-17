@@ -853,14 +853,28 @@ public class BookingService {
                 try {
                     String tenantName = (booking.getGuestFirstName() != null ? booking.getGuestFirstName() : "")
                             + " " + (booking.getGuestLastName() != null ? booking.getGuestLastName() : "");
+
+                    // tenancy_agreements.host_name and property_address are NOT NULL; some
+                    // booking rows don't carry them, so fall back to placeholders to avoid
+                    // a constraint violation that silently kills the auto-agreement flow.
+                    String hostName = booking.getHostName();
+                    if (hostName == null || hostName.isBlank()) hostName = "Property Host";
+                    String propertyAddress = booking.getListingAddress();
+                    if (propertyAddress == null || propertyAddress.isBlank()) {
+                        String title = booking.getListingTitle();
+                        String city = booking.getListingCity();
+                        propertyAddress = (title != null ? title : "Property")
+                                + (city != null && !city.isBlank() ? ", " + city : "");
+                    }
+
                     CreateAgreementRequest agreementReq = new CreateAgreementRequest(
                             tenantName.trim(),
                             booking.getGuestPhone(),
                             booking.getGuestEmail(),
                             null, // aadhaarLast4 — tenant adds later
-                            booking.getHostName(),
+                            hostName,
                             null, // hostPhone
-                            booking.getListingAddress(),
+                            propertyAddress,
                             sharingType + " - Bed " + bedNumber,
                             booking.getLeaseDurationMonths(), // lockInPeriodMonths
                             0L,   // maintenanceChargesPaise
