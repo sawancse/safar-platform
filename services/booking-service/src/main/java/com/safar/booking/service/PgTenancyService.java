@@ -141,6 +141,14 @@ public class PgTenancyService {
 
     @Transactional
     public PgTenancy createTenancy(PgTenancy tenancy) {
+        // Preflight bed-availability check — avoids taking payment on a room that is
+        // already full. The Kafka consumer in listing-service would otherwise throw
+        // IllegalStateException("Cannot occupy N bed(s) — only 0 available") after
+        // the customer has already been charged.
+        if (tenancy.getRoomTypeId() != null) {
+            assertBedsAvailable(tenancy.getRoomTypeId(), tenancy.getSharingType());
+        }
+
         tenancy.setTenancyRef("PGT-" + Year.now().getValue() + "-" + String.format("%04d", ++tenancyCounter));
         tenancy.setStatus(TenancyStatus.ACTIVE);
 
@@ -374,6 +382,35 @@ public class PgTenancyService {
      * Convert tenancy to a JSON string for Kafka events, including fields
      * needed by listing-service to manage room occupancy.
      */
+    /**
+     * Calls listing-service to ensure the room type has beds free for this tenancy.
+     * Throws {@link IllegalStateException} (mapped to 409 by the advice) if full.
+     */
+    @SuppressWarnings("unchecked")
+    private void assertBedsAvailable(UUID roomTypeId, String sharingType) {
+        try {
+            Map<String, Object> rt = restTemplate.getForObject(
+                    listingServiceUrl + "/api/v1/internal/room-types/" + roomTypeId, Map.class);
+            if (rt == null) return; // soft-fail — downstream consumer will surface error
+            int total = rt.get("totalBeds") != null ? ((Number) rt.get("totalBeds")).intValue()
+                    : (rt.get("count") != null ? ((Number) rt.get("count")).intValue() : 0);
+            int occupied = rt.get("occupiedBeds") != null ? ((Number) rt.get("occupiedBeds")).intValue() : 0;
+            int needed = "PRIVATE".equals(sharingType) || sharingType == null ? Math.max(1, total) : 1;
+            // For PRIVATE we need a whole empty room; bed count is therefore total/count
+            // but the simplest correctness check is: requested beds must fit in free beds.
+            int free = total - occupied;
+            if (free < needed) {
+                throw new IllegalStateException("No beds available in this room type — "
+                        + occupied + "/" + total + " occupied. Please pick a different room.");
+            }
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("Bed availability pre-check failed for room type {}: {}. Proceeding; listing-service consumer will validate.",
+                    roomTypeId, e.getMessage());
+        }
+    }
+
     private String toEventJson(PgTenancy tenancy) {
         try {
             Map<String, Object> event = new HashMap<>();
