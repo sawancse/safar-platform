@@ -385,9 +385,13 @@ public class PgTenancyService {
     /**
      * Calls listing-service to ensure the room type has beds free for this tenancy.
      * Throws {@link IllegalStateException} (mapped to 409 by the advice) if full.
+     *
+     * NOT annotated @Transactional on purpose — callers that already hold a TX must
+     * invoke this BEFORE entering the TX, otherwise an exception here would mark
+     * the outer TX rollback-only even if the caller catches it.
      */
     @SuppressWarnings("unchecked")
-    private void assertBedsAvailable(UUID roomTypeId, String sharingType) {
+    public void assertBedsAvailable(UUID roomTypeId, String sharingType) {
         try {
             Map<String, Object> rt = restTemplate.getForObject(
                     listingServiceUrl + "/api/v1/internal/room-types/" + roomTypeId, Map.class);

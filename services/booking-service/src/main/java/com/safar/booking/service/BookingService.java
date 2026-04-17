@@ -832,6 +832,14 @@ public class BookingService {
                 // Find next available bed number
                 String bedNumber = calculateNextAvailableBed(booking.getRoomTypeId(), bedsPerRoom);
 
+                // Preflight bed check BEFORE opening the nested @Transactional in
+                // PgTenancyService.createTenancy. Throwing from inside a nested TX
+                // would mark this (outer) check-in TX rollback-only and blow up with
+                // UnexpectedRollbackException even though we catch it below.
+                if (booking.getRoomTypeId() != null) {
+                    pgTenancyService.assertBedsAvailable(booking.getRoomTypeId(), sharingType);
+                }
+
                 PgTenancy createdTenancy = pgTenancyService.createTenancy(PgTenancy.builder()
                         .tenantId(booking.getGuestId())
                         .listingId(booking.getListingId())
