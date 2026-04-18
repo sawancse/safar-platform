@@ -665,4 +665,11 @@ public class EmailContext {
         return "https://www.google.com/maps/search/?api=1&query="
                 + java.net.URLEncoder.encode(q.toString(), java.nio.charset.StandardCharsets.UTF_8);
     }
+
+    // host-new-booking.html references ctx.hostEarnings but the field was missing
+    // everywhere else. Dedicated backing field so consumers can populate it
+    // (payout/settlement flows). Thymeleaf renders null as empty string.
+    private String hostEarnings;
+    public String getHostEarnings() { return hostEarnings; }
+    public void setHostEarnings(String v) { this.hostEarnings = v; }
 }
