@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Row, Col, Card, Statistic, Typography, Spin, Table, Tag, Alert } from 'antd';
+import { Link } from 'react-router-dom';
 import {
   HomeOutlined, ClockCircleOutlined, CalendarOutlined, DollarOutlined,
   UserOutlined, TeamOutlined, SafetyOutlined, ExclamationCircleOutlined,
+  UserAddOutlined,
 } from '@ant-design/icons';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { adminApi } from '../lib/api';
@@ -33,8 +35,10 @@ export default function DashboardPage() {
   const [bookingStats, setBookingStats]       = useState<any>(null);
   const [recentBookings, setRecentBookings]   = useState<any[]>([]);
   const [failedPayouts, setFailedPayouts]     = useState(0);
+  const [recentUsers, setRecentUsers]         = useState<any[]>([]);
 
   useEffect(() => {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     // Load all dashboard data in parallel
     Promise.all([
       adminApi.getAnalytics(token).then(r => r.data).catch(() => null),
@@ -43,12 +47,15 @@ export default function DashboardPage() {
       adminApi.getBookings(token, { page: 0, size: 10, sortBy: 'createdAt', sortDir: 'desc' })
         .then(r => r.data?.content || []).catch(() => []),
       adminApi.getRecentPayouts(token).then(d => Array.isArray(d) ? d.filter((p: any) => p.status === 'FAILED').length : 0).catch(() => 0),
-    ]).then(([analytics, kycCount, stats, recent, failed]) => {
+      adminApi.getUsers(token, { dateFrom: sevenDaysAgo, size: 10 })
+        .then((d: any) => d?.content || []).catch(() => []),
+    ]).then(([analytics, kycCount, stats, recent, failed, users]) => {
       setData(analytics || { totalListings: 0, pendingListings: 0, totalBookings: 0, totalRevenuePaise: 0, activeHosts: 0, activeGuests: 0 });
       setPendingKycCount(kycCount);
       setBookingStats(stats);
       setRecentBookings(recent);
       setFailedPayouts(failed);
+      setRecentUsers(users);
     }).finally(() => setLoading(false));
   }, [token]);
 
@@ -59,7 +66,14 @@ export default function DashboardPage() {
   const trend = bookingStats?.trend || [];
 
   // Alerts
-  const alerts: { msg: string; type: 'warning' | 'error' }[] = [];
+  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  const newSignups24h = recentUsers.filter(u => u.createdAt && new Date(u.createdAt).getTime() >= oneDayAgo).length;
+
+  const alerts: { msg: React.ReactNode; type: 'warning' | 'error' | 'info' }[] = [];
+  if (newSignups24h > 0) alerts.push({
+    msg: <>{newSignups24h} new user{newSignups24h > 1 ? 's' : ''} signed up in the last 24 hours — <Link to="/users">Review</Link></>,
+    type: 'info'
+  });
   if (stats.pendingListings > 0) alerts.push({ msg: `${stats.pendingListings} listings pending review`, type: 'warning' });
   if (pendingKycCount > 0) alerts.push({ msg: `${pendingKycCount} KYC verifications pending`, type: 'warning' });
   if (failedPayouts > 0) alerts.push({ msg: `${failedPayouts} failed payouts need attention`, type: 'error' });
@@ -128,25 +142,64 @@ export default function DashboardPage() {
         </Col>
       </Row>
 
-      {/* Recent Bookings */}
-      <Card title="Recent Bookings" size="small">
-        <Table
-          dataSource={recentBookings}
-          rowKey="id"
-          size="small"
-          pagination={false}
-          locale={{ emptyText: 'No bookings yet' }}
-          columns={[
-            { title: 'Ref', dataIndex: 'bookingRef', width: 110, ellipsis: true },
-            { title: 'Guest', render: (_, r: any) => `${r.guestFirstName || ''} ${r.guestLastName || ''}`.trim() || '—', width: 140 },
-            { title: 'Listing', dataIndex: 'listingTitle', width: 180, ellipsis: true },
-            { title: 'Check-in', dataIndex: 'checkIn', width: 100, render: (d: string) => d ? new Date(d).toLocaleDateString('en-IN') : '—' },
-            { title: 'Amount', dataIndex: 'totalAmountPaise', width: 100, render: (v: number) => v ? INR(v) : '—' },
-            { title: 'Status', dataIndex: 'status', width: 110, render: (s: string) => <Tag color={statusColor[s] ?? 'default'}>{s}</Tag> },
-            { title: 'Created', dataIndex: 'createdAt', width: 100, render: (d: string) => d ? new Date(d).toLocaleDateString('en-IN') : '—' },
-          ]}
-        />
-      </Card>
+      {/* Recent Bookings + Recent Signups */}
+      <Row gutter={16}>
+        <Col xs={24} lg={14}>
+          <Card title="Recent Bookings" size="small">
+            <Table
+              dataSource={recentBookings}
+              rowKey="id"
+              size="small"
+              pagination={false}
+              locale={{ emptyText: 'No bookings yet' }}
+              columns={[
+                { title: 'Ref', dataIndex: 'bookingRef', width: 110, ellipsis: true },
+                { title: 'Guest', render: (_, r: any) => `${r.guestFirstName || ''} ${r.guestLastName || ''}`.trim() || '—', width: 140 },
+                { title: 'Listing', dataIndex: 'listingTitle', width: 180, ellipsis: true },
+                { title: 'Check-in', dataIndex: 'checkIn', width: 100, render: (d: string) => d ? new Date(d).toLocaleDateString('en-IN') : '—' },
+                { title: 'Amount', dataIndex: 'totalAmountPaise', width: 100, render: (v: number) => v ? INR(v) : '—' },
+                { title: 'Status', dataIndex: 'status', width: 110, render: (s: string) => <Tag color={statusColor[s] ?? 'default'}>{s}</Tag> },
+                { title: 'Created', dataIndex: 'createdAt', width: 100, render: (d: string) => d ? new Date(d).toLocaleDateString('en-IN') : '—' },
+              ]}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} lg={10}>
+          <Card
+            size="small"
+            title={<><UserAddOutlined style={{ marginRight: 8 }} />Recent Signups (last 7 days)</>}
+            extra={<Link to="/users">View all</Link>}
+          >
+            <Table
+              dataSource={recentUsers}
+              rowKey="userId"
+              size="small"
+              pagination={false}
+              locale={{ emptyText: 'No recent signups' }}
+              columns={[
+                {
+                  title: 'User', render: (_, r: any) => (
+                    <div>
+                      <div style={{ fontWeight: 500 }}>
+                        {r.name || '—'}
+                        {r.createdAt && (Date.now() - new Date(r.createdAt).getTime() < 24 * 60 * 60 * 1000) && (
+                          <Tag color="green" style={{ marginLeft: 6, fontSize: 10 }}>NEW</Tag>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#888' }}>{r.email || r.phone || '—'}</div>
+                    </div>
+                  ),
+                },
+                { title: 'Role', dataIndex: 'role', width: 70, render: (v: string) => <Tag>{v || 'GUEST'}</Tag> },
+                {
+                  title: 'Joined', dataIndex: 'createdAt', width: 100,
+                  render: (d: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—',
+                },
+              ]}
+            />
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 }

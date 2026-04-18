@@ -939,3 +939,13 @@ Customer1 123
   - Mobile signup flow not yet updated (backend is
   backward-compatible so mobile keeps working but could
   still create dupes)
+
+ Two existing public self-registration URLs already on the web:
+
+  ┌─────────────────────────┬───────────────────────────────────────────────────┐
+  │    Professional Type    │                    Public URL                     │
+  ├─────────────────────────┼───────────────────────────────────────────────────┤
+  │ Interior Designer       │ http://localhost:3000/services/interiors/register │
+  ├─────────────────────────┼───────────────────────────────────────────────────┤
+  │ Legal Advocate / Lawyer │ http://localhost:3000/services/legal/register
+  

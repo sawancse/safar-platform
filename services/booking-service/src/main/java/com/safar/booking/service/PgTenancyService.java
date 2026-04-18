@@ -141,16 +141,31 @@ public class PgTenancyService {
 
     @Transactional
     public PgTenancy createTenancy(PgTenancy tenancy) {
+        return createTenancy(tenancy, true);
+    }
+
+    /**
+     * @param fireOccupancyEvent when false, skip the {@code tenancy.created} Kafka
+     *                           event that increments listing-service occupiedBeds.
+     *                           Pass false when the tenancy is auto-created from an
+     *                           existing booking — the booking already reserved the
+     *                           bed via {@code incrementRoomTypeOccupancy}, so a
+     *                           second increment would double-count.
+     */
+    @Transactional
+    public PgTenancy createTenancy(PgTenancy tenancy, boolean fireOccupancyEvent) {
         // Preflight bed-availability check — avoids taking payment on a room that is
         // already full. The Kafka consumer in listing-service would otherwise throw
         // IllegalStateException("Cannot occupy N bed(s) — only 0 available") after
         // the customer has already been charged.
-        if (tenancy.getRoomTypeId() != null) {
+        if (tenancy.getRoomTypeId() != null && fireOccupancyEvent) {
             assertBedsAvailable(tenancy.getRoomTypeId(), tenancy.getSharingType());
         }
 
         tenancy.setTenancyRef("PGT-" + Year.now().getValue() + "-" + String.format("%04d", ++tenancyCounter));
-        tenancy.setStatus(TenancyStatus.ACTIVE);
+        if (tenancy.getStatus() == null) {
+            tenancy.setStatus(TenancyStatus.ACTIVE);
+        }
 
         // Calculate next billing date
         LocalDate moveIn = tenancy.getMoveInDate();
@@ -165,13 +180,22 @@ public class PgTenancyService {
         tenancy.setNextBillingDate(nextBilling);
 
         PgTenancy saved = tenancyRepository.save(tenancy);
-        kafkaTemplate.send("tenancy.created", saved.getId().toString(), toEventJson(saved));
-        log.info("PG tenancy created: {} for listing {}", saved.getTenancyRef(), saved.getListingId());
+        if (fireOccupancyEvent) {
+            kafkaTemplate.send("tenancy.created", saved.getId().toString(), toEventJson(saved));
+        }
+        log.info("PG tenancy created: {} for listing {} (occupancy event fired: {})",
+                saved.getTenancyRef(), saved.getListingId(), fireOccupancyEvent);
         return saved;
     }
 
     public List<PgTenancy> getActiveTenanciesByRoomType(UUID roomTypeId) {
         return tenancyRepository.findByRoomTypeIdAndStatus(roomTypeId, TenancyStatus.ACTIVE);
+    }
+
+    /** Thin pass-through used by BookingService after auto-generating first invoice. */
+    @Transactional
+    public PgTenancy saveTenancy(PgTenancy tenancy) {
+        return tenancyRepository.save(tenancy);
     }
 
     public PgTenancy getTenancy(UUID id) {
@@ -197,7 +221,15 @@ public class PgTenancyService {
             throw new RuntimeException("Can only give notice on active tenancy");
         }
         tenancy.setStatus(TenancyStatus.NOTICE_PERIOD);
-        tenancy.setMoveOutDate(LocalDate.now().plusDays(tenancy.getNoticePeriodDays()));
+        // Move-out date = max(today, moveInDate) + noticePeriodDays.
+        // A tenant who gives notice BEFORE move-in shouldn't get a move-out date
+        // earlier than their arrival; they've already paid Month 1 so the notice
+        // window starts from move-in, not from today.
+        LocalDate today = LocalDate.now();
+        LocalDate basis = (tenancy.getMoveInDate() != null && tenancy.getMoveInDate().isAfter(today))
+                ? tenancy.getMoveInDate()
+                : today;
+        tenancy.setMoveOutDate(basis.plusDays(tenancy.getNoticePeriodDays()));
         PgTenancy saved = tenancyRepository.save(tenancy);
         kafkaTemplate.send("tenancy.notice", saved.getId().toString(), toEventJson(saved));
         log.info("Notice given for tenancy {}, move-out: {}", saved.getTenancyRef(), saved.getMoveOutDate());
@@ -262,7 +294,10 @@ public class PgTenancyService {
         long water = utilityReadingService.getUnbilledWater(tenancy.getId());
 
         long total = rent + packages + electricity + water;
-        long gst = total * 18 / 100; // 18% GST
+        // Residential PG rent in India is GST-exempt (CGST/SGST notification on
+        // services of renting residential dwelling for use as residence). Hence
+        // 0% on the rent invoice. Commercial stays would need a different flow.
+        long gst = 0L;
         long grandTotal = total + gst;
 
         TenancyInvoice invoice = TenancyInvoice.builder()

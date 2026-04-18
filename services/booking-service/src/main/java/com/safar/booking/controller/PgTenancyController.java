@@ -114,7 +114,8 @@ public class PgTenancyController {
         TenancySnapshot tenancySnap = new TenancySnapshot(
                 tenancy.getId(), tenancy.getTenancyRef(), tenancy.getStatus().name(),
                 tenancy.getMoveInDate(), tenancy.getMoveOutDate(),
-                tenancy.getMonthlyRentPaise(), tenancy.getSecurityDepositPaise());
+                tenancy.getMonthlyRentPaise(), tenancy.getSecurityDepositPaise(),
+                tenancy.getNoticePeriodDays());
 
         // Agreement snapshot
         AgreementSnapshot agreementSnap = agreementRepository.findByTenancyId(tenancy.getId())

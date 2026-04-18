@@ -43,6 +43,30 @@ public class MaintenanceRequestService {
     private static long requestCounter = 1000;
 
     /**
+     * Seed the counter from the max existing MR-####/SR-#### in the DB so that
+     * restarting the service doesn't try to reuse a number and hit the unique
+     * constraint (`maintenance_requests_request_number_key`).
+     */
+    @jakarta.annotation.PostConstruct
+    public void initCounter() {
+        try {
+            long max = requestRepository.findAll().stream()
+                    .map(MaintenanceRequest::getRequestNumber)
+                    .filter(Objects::nonNull)
+                    .map(s -> s.replaceAll("[^0-9]", ""))
+                    .filter(s -> !s.isEmpty())
+                    .mapToLong(Long::parseLong)
+                    .max().orElse(1000L);
+            if (max > requestCounter) {
+                requestCounter = max;
+                log.info("MaintenanceRequest counter seeded to {} from existing data", max);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to seed request counter: {}", e.getMessage());
+        }
+    }
+
+    /**
      * Kafka producer uses StringSerializer — entities must be JSON-stringified
      * before send. Falls back to a minimal {id, requestNumber} payload if
      * serialization fails (e.g. Hibernate lazy-proxy loops) so the caller

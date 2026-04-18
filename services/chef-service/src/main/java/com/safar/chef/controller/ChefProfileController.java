@@ -2,7 +2,11 @@ package com.safar.chef.controller;
 
 import com.safar.chef.dto.CreateChefProfileRequest;
 import com.safar.chef.dto.UpdateChefProfileRequest;
+import com.safar.chef.entity.ChefBooking;
 import com.safar.chef.entity.ChefProfile;
+import com.safar.chef.entity.EventBooking;
+import com.safar.chef.repository.ChefBookingRepository;
+import com.safar.chef.repository.EventBookingRepository;
 import com.safar.chef.service.ChefProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -13,7 +17,12 @@ import org.springframework.web.bind.annotation.*;
 
 import org.springframework.data.domain.Pageable;
 
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/v1/chefs")
@@ -21,6 +30,45 @@ import java.util.UUID;
 public class ChefProfileController {
 
     private final ChefProfileService chefProfileService;
+    private final ChefBookingRepository bookingRepository;
+    private final EventBookingRepository eventRepository;
+
+    /** Public reviews feed for a chef profile — concatenates rated bookings + events. */
+    @GetMapping("/{chefId}/reviews")
+    public ResponseEntity<List<Map<String, Object>>> getReviews(@PathVariable UUID chefId) {
+        Stream<Map<String, Object>> bookingReviews = bookingRepository.findByChefId(chefId).stream()
+                .filter(b -> b.getRatingGiven() != null)
+                .map(b -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", "bk-" + b.getId());
+                    m.put("type", "BOOKING");
+                    m.put("customerName", b.getCustomerName());
+                    m.put("rating", b.getRatingGiven());
+                    m.put("comment", b.getReviewComment());
+                    m.put("serviceDate", b.getServiceDate());
+                    m.put("createdAt", b.getUpdatedAt());
+                    return m;
+                });
+        Stream<Map<String, Object>> eventReviews = eventRepository.findByChefId(chefId).stream()
+                .filter(e -> e.getRatingGiven() != null)
+                .map(e -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", "ev-" + e.getId());
+                    m.put("type", "EVENT");
+                    m.put("customerName", e.getCustomerName());
+                    m.put("rating", e.getRatingGiven());
+                    m.put("comment", e.getReviewComment());
+                    m.put("serviceDate", e.getEventDate());
+                    m.put("createdAt", e.getUpdatedAt());
+                    return m;
+                });
+        List<Map<String, Object>> combined = Stream.concat(bookingReviews, eventReviews)
+                .sorted(Comparator.comparing(
+                        (Map<String, Object> m) -> (java.time.OffsetDateTime) m.get("createdAt"),
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+        return ResponseEntity.ok(combined);
+    }
 
     private void requireAdmin(Authentication auth) {
         boolean isAdmin = auth.getAuthorities().stream()

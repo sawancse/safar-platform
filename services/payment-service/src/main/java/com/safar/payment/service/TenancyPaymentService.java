@@ -43,9 +43,18 @@ public class TenancyPaymentService {
         this.webhookSecret = webhookSecret;
     }
 
+    /** Thin return carrier so the controller can surface Razorpay's short_url alongside the persisted row. */
+    public record CreateSubResult(TenancySubscription subscription, String shortUrl) {}
+
     @Transactional
     public TenancySubscription createRentSubscription(UUID tenancyId, UUID tenantId,
                                                        long monthlyAmountPaise, String tenancyRef) {
+        return createRentSubscriptionWithUrl(tenancyId, tenantId, monthlyAmountPaise, tenancyRef).subscription();
+    }
+
+    @Transactional
+    public CreateSubResult createRentSubscriptionWithUrl(UUID tenancyId, UUID tenantId,
+                                                          long monthlyAmountPaise, String tenancyRef) {
         // Check if subscription already exists
         if (subscriptionRepository.findByTenancyId(tenancyId).isPresent()) {
             throw new RuntimeException("Subscription already exists for tenancy: " + tenancyId);
@@ -65,17 +74,17 @@ public class TenancyPaymentService {
 
         TenancySubscription saved = subscriptionRepository.save(subscription);
 
-        kafkaTemplate.send("tenancy.subscription.created", tenancyId.toString(), Map.of(
+        kafkaTemplate.send("tenancy.subscription.created", tenancyId.toString(), toJson(Map.of(
                 "tenancyId", tenancyId.toString(),
                 "tenantId", tenantId.toString(),
                 "subscriptionId", result.subscriptionId(),
                 "planId", result.planId(),
                 "amountPaise", monthlyAmountPaise
-        ));
+        )));
 
         log.info("Rent subscription created for tenancy {}: sub={}, plan={}",
                 tenancyRef, result.subscriptionId(), result.planId());
-        return saved;
+        return new CreateSubResult(saved, result.shortUrl());
     }
 
     @Transactional
@@ -117,10 +126,10 @@ public class TenancyPaymentService {
             case "subscription.authenticated" -> {
                 sub.setStatus("AUTHENTICATED");
                 kafkaTemplate.send("tenancy.subscription.authenticated",
-                        sub.getTenancyId().toString(), Map.of(
+                        sub.getTenancyId().toString(), toJson(Map.of(
                                 "tenancyId", sub.getTenancyId().toString(),
                                 "subscriptionId", razorpaySubId
-                        ));
+                        )));
                 log.info("Subscription authenticated: {}", razorpaySubId);
             }
             case "subscription.activated" -> {
@@ -142,12 +151,12 @@ public class TenancyPaymentService {
                 }
 
                 kafkaTemplate.send("tenancy.subscription.charged",
-                        sub.getTenancyId().toString(), Map.of(
+                        sub.getTenancyId().toString(), toJson(Map.of(
                                 "tenancyId", sub.getTenancyId().toString(),
                                 "subscriptionId", razorpaySubId,
                                 "paymentId", paymentId != null ? paymentId : "",
                                 "amountPaise", sub.getAmountPaise()
-                        ));
+                        )));
                 log.info("Subscription charged: {} payment: {}", razorpaySubId, paymentId);
             }
             case "subscription.pending" -> {
@@ -159,11 +168,11 @@ public class TenancyPaymentService {
                 sub.setStatus("HALTED");
                 sub.setFailureReason("All charge attempts exhausted");
                 kafkaTemplate.send("tenancy.subscription.halted",
-                        sub.getTenancyId().toString(), Map.of(
+                        sub.getTenancyId().toString(), toJson(Map.of(
                                 "tenancyId", sub.getTenancyId().toString(),
                                 "subscriptionId", razorpaySubId,
                                 "reason", "All charge attempts exhausted"
-                        ));
+                        )));
                 log.error("Subscription halted: {}", razorpaySubId);
             }
             case "subscription.cancelled" -> {
@@ -210,5 +219,10 @@ public class TenancyPaymentService {
     public TenancySubscription getByTenancyId(UUID tenancyId) {
         return subscriptionRepository.findByTenancyId(tenancyId)
                 .orElseThrow(() -> new RuntimeException("No subscription found for tenancy: " + tenancyId));
+    }
+
+    /** Service runs on StringSerializer for Kafka values, so Maps must be stringified first. */
+    private static String toJson(Map<String, Object> m) {
+        return new JSONObject(m).toString();
     }
 }

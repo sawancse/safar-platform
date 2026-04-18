@@ -10,6 +10,7 @@ import com.safar.booking.entity.BookingGuest;
 import com.safar.booking.entity.BookingInclusion;
 import com.safar.booking.entity.BookingRoomSelection;
 import com.safar.booking.entity.PgTenancy;
+import com.safar.booking.entity.TenancyInvoice;
 import com.safar.booking.dto.CreateAgreementRequest;
 import com.safar.booking.entity.enums.BookingStatus;
 import com.safar.booking.repository.BookingGuestRepository;
@@ -844,14 +845,10 @@ public class BookingService {
                 // Find next available bed number
                 String bedNumber = calculateNextAvailableBed(booking.getRoomTypeId(), bedsPerRoom);
 
-                // Preflight bed check BEFORE opening the nested @Transactional in
-                // PgTenancyService.createTenancy. Throwing from inside a nested TX
-                // would mark this (outer) check-in TX rollback-only and blow up with
-                // UnexpectedRollbackException even though we catch it below.
-                if (booking.getRoomTypeId() != null) {
-                    pgTenancyService.assertBedsAvailable(booking.getRoomTypeId(), sharingType);
-                }
-
+                // NOTE: no assertBedsAvailable or occupancy Kafka event here —
+                // the bed was already reserved via incrementRoomTypeOccupancy at
+                // booking creation. Firing tenancy.created again would double-count
+                // (booking +N beds, then tenancy +1 bed → dashboard shows N+1).
                 PgTenancy createdTenancy = pgTenancyService.createTenancy(PgTenancy.builder()
                         .tenantId(booking.getGuestId())
                         .listingId(booking.getListingId())
@@ -866,7 +863,7 @@ public class BookingService {
                         .laundryIncluded(false)
                         .wifiIncluded(false)
                         .billingDay(1)
-                        .build());
+                        .build(), /*fireOccupancyEvent=*/ false);
                 log.info("Auto-created PG tenancy for booking {} with bed {}", booking.getBookingRef(), bedNumber);
 
                 // Auto-create agreement and host-sign (check-in = implicit host consent)
@@ -906,6 +903,24 @@ public class BookingService {
                 } catch (Exception ae) {
                     log.warn("Failed to auto-create agreement for tenancy {}: {}",
                             createdTenancy.getTenancyRef(), ae.getMessage());
+                }
+
+                // Generate first-month invoice and mark it PAID — the booking's
+                // baseAmount already covered Month 1 rent, so the tenant shouldn't
+                // be billed again. Without this the /pg-dashboard shows
+                // "Total Paid ₹0 / Outstanding ₹0" even though rent was paid.
+                try {
+                    TenancyInvoice firstInvoice = pgTenancyService.generateInvoice(createdTenancy);
+                    pgTenancyService.markInvoicePaid(firstInvoice.getId(), "booking-" + booking.getBookingRef());
+                    // Advance next billing so the 1st-of-month scheduler doesn't
+                    // regenerate the same period.
+                    createdTenancy.setNextBillingDate(createdTenancy.getNextBillingDate().plusMonths(1));
+                    pgTenancyService.saveTenancy(createdTenancy);
+                    log.info("Auto-generated + marked-paid first invoice {} for tenancy {}",
+                            firstInvoice.getInvoiceNumber(), createdTenancy.getTenancyRef());
+                } catch (Exception ie) {
+                    log.warn("Failed to auto-generate first invoice for tenancy {}: {}",
+                            createdTenancy.getTenancyRef(), ie.getMessage());
                 }
             } catch (Exception e) {
                 log.warn("Failed to auto-create PG tenancy for booking {}: {}", booking.getBookingRef(), e.getMessage());

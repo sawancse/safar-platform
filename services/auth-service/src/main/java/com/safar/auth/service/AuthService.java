@@ -47,7 +47,8 @@ public class AuthService {
         }
 
         User user = userRepository.findByPhone(request.phone()).orElse(null);
-        if (user == null) {
+        boolean isNew = (user == null);
+        if (isNew) {
             if (request.name() == null || request.name().isBlank()) {
                 throw new IllegalArgumentException("Name is required for new users");
             }
@@ -55,7 +56,7 @@ public class AuthService {
                     normalizeEmail(request.email()));
         }
 
-        syncProfileAsync(user);
+        syncProfile(user, isNew);
         return buildAuthResponse(user);
     }
 
@@ -67,7 +68,8 @@ public class AuthService {
 
         String email = normalizeEmail(request.email());
         User user = userRepository.findByEmailIgnoreCase(email).orElse(null);
-        if (user == null) {
+        boolean isNew = (user == null);
+        if (isNew) {
             if (request.name() == null || request.name().isBlank()) {
                 throw new IllegalArgumentException("Name is required for new users");
             }
@@ -75,7 +77,7 @@ public class AuthService {
                     normalizePhone(request.phone()));
         }
 
-        syncProfileAsync(user);
+        syncProfile(user, isNew);
         return buildAuthResponse(user);
     }
 
@@ -151,6 +153,9 @@ public class AuthService {
     public AuthResponse googleSignIn(GoogleSignInRequest request) {
         GoogleTokenVerifier.GoogleUserInfo info = googleTokenVerifier.verify(request.idToken());
 
+        boolean existedByGoogle = userRepository.findByGoogleId(info.googleId()).isPresent();
+        boolean existedByEmail  = !existedByGoogle && userRepository.findByEmail(info.email()).isPresent();
+
         User user = userRepository.findByGoogleId(info.googleId())
                 .orElseGet(() -> userRepository.findByEmail(info.email())
                         .map(existing -> {
@@ -159,7 +164,8 @@ public class AuthService {
                         })
                         .orElseGet(() -> createGoogleUser(info)));
 
-        syncProfileAsync(user);
+        boolean isNew = !existedByGoogle && !existedByEmail;
+        syncProfile(user, isNew);
         return buildAuthResponse(user);
     }
 
@@ -167,6 +173,10 @@ public class AuthService {
     public AuthResponse appleSignIn(AppleSignInRequest request) {
         AppleTokenVerifier.AppleUserInfo info = appleTokenVerifier.verify(
                 request.identityToken(), request.name());
+
+        boolean existedByApple = userRepository.findByAppleId(info.appleId()).isPresent();
+        boolean existedByEmail = !existedByApple && info.email() != null
+                && userRepository.findByEmail(info.email()).isPresent();
 
         User user = userRepository.findByAppleId(info.appleId())
                 .orElseGet(() -> {
@@ -182,7 +192,8 @@ public class AuthService {
                     return createAppleUser(info);
                 });
 
-        syncProfileAsync(user);
+        boolean isNew = !existedByApple && !existedByEmail;
+        syncProfile(user, isNew);
         return buildAuthResponse(user);
     }
 
@@ -272,7 +283,7 @@ public class AuthService {
         redis.expire(key, java.time.Duration.ofDays(DEVICE_TRUST_DAYS));
 
         log.info("Trusted device login for user {} on {}", user.getId(), deviceName);
-        syncProfileAsync(user);
+        syncProfile(user, false);
         return buildAuthResponse(user);
     }
 
@@ -322,18 +333,41 @@ public class AuthService {
         }
     }
 
-    private void syncProfileAsync(User user) {
-        try {
-            String url = userServiceUrl + "/api/v1/internal/users/" + user.getId() + "/sync-profile";
-            Map<String, Object> body = new HashMap<>();
-            body.put("name", user.getName());
-            body.put("phone", user.getPhone());
-            body.put("email", user.getEmail());
-            body.put("role", user.getRole().name());
-            restTemplate.postForEntity(url, body, Void.class);
-        } catch (Exception e) {
-            log.warn("Failed to sync profile for user {}: {}", user.getId(), e.getMessage());
+    /**
+     * Propagate the auth user to user-service so a UserProfile row exists.
+     * Retries up to 3× with short backoff. If {@code newUser} is true, a final
+     * failure throws — rolling back the @Transactional signup so we never leave
+     * an orphan auth user invisible to admin. For existing users, failure is
+     * logged but swallowed (profile already exists, the update is best-effort).
+     */
+    private void syncProfile(User user, boolean newUser) {
+        String url = userServiceUrl + "/api/v1/internal/users/" + user.getId() + "/sync-profile";
+        Map<String, Object> body = new HashMap<>();
+        body.put("name", user.getName());
+        body.put("phone", user.getPhone());
+        body.put("email", user.getEmail());
+        body.put("role", user.getRole().name());
+
+        RuntimeException last = null;
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            try {
+                restTemplate.postForEntity(url, body, Void.class);
+                return;
+            } catch (RuntimeException e) {
+                last = e;
+                log.warn("Profile sync attempt {}/3 failed for user {}: {}", attempt, user.getId(), e.getMessage());
+                if (attempt < 3) {
+                    try { Thread.sleep(200L * attempt); }
+                    catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
+                }
+            }
         }
+        if (newUser) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
+                    "Profile service is unavailable — cannot complete signup. Please try again shortly.", last);
+        }
+        log.error("Profile sync exhausted for existing user {} — continuing login", user.getId(), last);
     }
 
     private AuthResponse buildAuthResponse(User user) {

@@ -108,7 +108,7 @@
                         </table>
 
                         <!-- Host Contact -->
-                        <table th:if="${ctx.hostName}" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                        <table th:if="${ctx.hostName != null and !#strings.isEmpty(ctx.hostName)}" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                             <tr>
                                 <td style="padding:0 40px 24px;" class="mobile-padding">
                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#FFF8F8; border-radius:12px; border:1px solid #FFE0E0;">
@@ -117,7 +117,7 @@
                                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                                     <tr>
                                                         <td width="50" valign="top">
-                                                            <div style="width:44px; height:44px; border-radius:50%; background-color:#FF5A5F; text-align:center; line-height:44px; font-size:18px; font-weight:700; color:#FFFFFF; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${#strings.substring(ctx.hostName, 0, 1)}">H</div>
+                                                            <div style="width:44px; height:44px; border-radius:50%; background-color:#FF5A5F; text-align:center; line-height:44px; font-size:18px; font-weight:700; color:#FFFFFF; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.hostName != null and #strings.length(ctx.hostName) > 0 ? #strings.substring(ctx.hostName, 0, 1) : 'H'}">H</div>
                                                         </td>
                                                         <td valign="middle" style="padding-left:8px;">
                                                             <p style="margin:0 0 2px; font-size:15px; font-weight:600; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.hostName}">Host Name</p>
@@ -143,7 +143,7 @@
                                 <td style="padding:0 40px 24px;" class="mobile-padding">
                                     <p style="margin:0 0 12px; font-size:16px; font-weight:700; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Quick Tips for Arrival</p>
                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                                        <tr th:if="${ctx.arrivalTips}" th:each="tip : ${ctx.arrivalTips}">
+                                        <tr th:each="tip : ${ctx.arrivalTips != null ? ctx.arrivalTips : #lists.toList({})}">
                                             <td style="padding:6px 0; font-size:14px; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
                                                 <span style="color:#00A699; margin-right:8px;">&#10003;</span> <span th:text="${tip}">Tip</span>
                                             </td>

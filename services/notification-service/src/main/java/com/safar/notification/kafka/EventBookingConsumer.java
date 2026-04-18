@@ -46,7 +46,20 @@ public class EventBookingConsumer {
             String chefId = txt(node, "chefId", null);
             String customerId = txt(node, "customerId", null);
             String chefName = txt(node, "chefName", "Chef");
-            String customerName = txt(node, "customerName", "Customer");
+            String rawCustomerName = txt(node, "customerName", "Customer");
+            // The event's `customerName` holds the *guest* name the booker typed
+            // (e.g. "sawan kumar" whose birthday it is), not the account holder.
+            // For email greetings we want the actual account holder so the
+            // greeting isn't "Hi, sawan kumar" when Gunja is the real recipient.
+            String customerName = rawCustomerName;
+            if (customerId != null) {
+                try {
+                    UserClient.UserInfo u = userClient.getUser(customerId);
+                    if (u != null && u.name() != null && !u.name().isBlank()) {
+                        customerName = u.name();
+                    }
+                } catch (Exception ignored) { /* fall back to raw name */ }
+            }
             String eventType = txt(node, "eventType", "");
             String eventDate = txt(node, "eventDate", "");
             String eventTime = txt(node, "eventTime", "");

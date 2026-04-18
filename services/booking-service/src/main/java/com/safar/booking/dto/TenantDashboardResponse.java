@@ -19,7 +19,8 @@ public record TenantDashboardResponse(
             LocalDate moveInDate,
             LocalDate moveOutDate,
             long monthlyRentPaise,
-            long securityDepositPaise
+            long securityDepositPaise,
+            Integer noticePeriodDays
     ) {}
 
     public record AgreementSnapshot(

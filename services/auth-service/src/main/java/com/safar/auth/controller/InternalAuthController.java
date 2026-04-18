@@ -5,9 +5,13 @@ import com.safar.auth.entity.enums.UserRole;
 import com.safar.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -18,6 +22,10 @@ import java.util.UUID;
 public class InternalAuthController {
 
     private final UserRepository userRepository;
+    private final RestTemplate restTemplate;
+
+    @Value("${services.user-service.url}")
+    private String userServiceUrl;
 
     @GetMapping("/users/{userId}")
     public ResponseEntity<Map<String, Object>> getUser(@PathVariable UUID userId) {
@@ -28,6 +36,35 @@ public class InternalAuthController {
                         "email", u.getEmail() == null ? "" : u.getEmail(),
                         "name", u.getName() == null ? "" : u.getName())))
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * One-shot backfill: push every auth user to user-service so any orphaned
+     * accounts (signups from before sync was made synchronous) become visible
+     * in the admin users list. Idempotent — sync-profile upserts by id.
+     */
+    @PostMapping("/users/backfill-profiles")
+    public ResponseEntity<Map<String, Object>> backfillProfiles() {
+        List<User> all = userRepository.findAll();
+        int synced = 0, failed = 0;
+        for (User u : all) {
+            Map<String, Object> body = new HashMap<>();
+            body.put("name", u.getName());
+            body.put("phone", u.getPhone());
+            body.put("email", u.getEmail());
+            body.put("role", u.getRole() != null ? u.getRole().name() : UserRole.GUEST.name());
+            try {
+                restTemplate.postForEntity(
+                        userServiceUrl + "/api/v1/internal/users/" + u.getId() + "/sync-profile",
+                        body, Void.class);
+                synced++;
+            } catch (RuntimeException e) {
+                failed++;
+                log.warn("Backfill failed for {}: {}", u.getId(), e.getMessage());
+            }
+        }
+        log.info("Profile backfill: {} synced, {} failed of {} total", synced, failed, all.size());
+        return ResponseEntity.ok(Map.of("total", all.size(), "synced", synced, "failed", failed));
     }
 
     @PutMapping("/users/{userId}/role")

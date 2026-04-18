@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -18,16 +19,25 @@ public class TenancyPaymentController {
     private final TenancyPaymentService tenancyPaymentService;
 
     @PostMapping("/{tenancyId}/subscription")
-    public ResponseEntity<TenancySubscription> createSubscription(
+    public ResponseEntity<Map<String, Object>> createSubscription(
             @PathVariable UUID tenancyId,
             @RequestBody Map<String, Object> body) {
         UUID tenantId = UUID.fromString((String) body.get("tenantId"));
         long amountPaise = ((Number) body.get("amountPaise")).longValue();
         String tenancyRef = (String) body.getOrDefault("tenancyRef", "PGT-UNKNOWN");
 
-        TenancySubscription sub = tenancyPaymentService.createRentSubscription(
+        TenancyPaymentService.CreateSubResult result = tenancyPaymentService.createRentSubscriptionWithUrl(
                 tenancyId, tenantId, amountPaise, tenancyRef);
-        return ResponseEntity.status(HttpStatus.CREATED).body(sub);
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("id", result.subscription().getId());
+        resp.put("tenancyId", result.subscription().getTenancyId());
+        resp.put("razorpaySubscriptionId", result.subscription().getRazorpaySubscriptionId());
+        resp.put("razorpayPlanId", result.subscription().getRazorpayPlanId());
+        resp.put("amountPaise", result.subscription().getAmountPaise());
+        resp.put("status", result.subscription().getStatus());
+        resp.put("shortUrl", result.shortUrl());
+        return ResponseEntity.status(HttpStatus.CREATED).body(resp);
     }
 
     @GetMapping("/{tenancyId}/subscription")

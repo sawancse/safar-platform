@@ -114,8 +114,15 @@ public class RazorpayPaymentGateway implements PaymentGateway {
             Subscription sub = razorpayClient.subscriptions.create(subReq);
 
             String subscriptionId = sub.get("id").toString();
-            log.info("Razorpay subscription created: {} for plan {}", subscriptionId, planId);
-            return new SubscriptionResult(subscriptionId, planId, "created");
+            // `short_url` is Razorpay's hosted authentication page the tenant
+            // must visit to complete first-time mandate authorisation. Without
+            // it the dashboard has no way to redirect them to set up auto-debit.
+            String shortUrl = null;
+            try { shortUrl = sub.get("short_url").toString(); }
+            catch (Exception ignored) { /* older API / sandbox may omit */ }
+            log.info("Razorpay subscription created: {} for plan {} (shortUrl={})",
+                    subscriptionId, planId, shortUrl);
+            return new SubscriptionResult(subscriptionId, planId, "created", shortUrl);
         } catch (RazorpayException e) {
             throw new RuntimeException("Razorpay subscription creation failed: " + e.getMessage(), e);
         }

@@ -114,6 +114,7 @@ public class MaintenanceRequest {
 
     @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<TicketComment> comments = new ArrayList<>();
 
     @CreationTimestamp

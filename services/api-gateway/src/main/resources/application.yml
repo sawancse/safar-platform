@@ -54,6 +54,14 @@ spring:
           predicates:
             - Path=/api/v1/users/**
 
+        # ── Host: ticket management by listing (booking-service) ─────────────
+        # MUST be before the generic /api/v1/listings/** catch-all, otherwise
+        # the broader pattern wins and tickets get routed to listing-service.
+        - id: host-tickets-service
+          uri: ${BOOKING_SERVICE_URL:http://localhost:8095}
+          predicates:
+            - Path=/api/v1/listings/*/tickets,/api/v1/listings/*/tickets/**
+
         # ── Listings (GET public, mutations need JWT) ─────────────────────────
         - id: listing-service
           uri: ${LISTING_SERVICE_URL:http://localhost:8083}
@@ -295,19 +303,13 @@ spring:
         - id: admin-user-service
           uri: ${USER_SERVICE_URL:http://localhost:8092}
           predicates:
-            - Path=/api/v1/admin/hosts,/api/v1/admin/hosts/**,/api/v1/admin/analytics/**,/api/v1/admin/cohost/**
+            - Path=/api/v1/admin/hosts,/api/v1/admin/hosts/**,/api/v1/admin/analytics/**,/api/v1/admin/cohost/**,/api/v1/admin/users,/api/v1/admin/users/**,/api/v1/admin/leads,/api/v1/admin/leads/**
 
         # ── Admin: PG ticket & settlement management (booking-service) ────────
         - id: admin-pg-service
           uri: ${BOOKING_SERVICE_URL:http://localhost:8095}
           predicates:
             - Path=/api/v1/admin/pg/**
-
-        # ── Host: ticket management by listing (booking-service) ─────────────
-        - id: host-tickets-service
-          uri: ${BOOKING_SERVICE_URL:http://localhost:8095}
-          predicates:
-            - Path=/api/v1/listings/*/tickets,/api/v1/listings/*/tickets/**
 
         # ── Admin: cleaning (booking-service) ────────────────────────────────
         - id: admin-cleaning-service
