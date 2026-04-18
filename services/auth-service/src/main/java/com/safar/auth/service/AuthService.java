@@ -66,7 +66,7 @@ public class AuthService {
         }
 
         String email = normalizeEmail(request.email());
-        User user = userRepository.findByEmail(email).orElse(null);
+        User user = userRepository.findByEmailIgnoreCase(email).orElse(null);
         if (user == null) {
             if (request.name() == null || request.name().isBlank()) {
                 throw new IllegalArgumentException("Name is required for new users");
@@ -80,21 +80,26 @@ public class AuthService {
     }
 
     private User signupNewUserWithPhone(String phone, String name, String email) {
-        // If caller also supplied an email, cross-check to avoid creating a duplicate account.
-        if (email != null) {
-            User existingByEmail = userRepository.findByEmail(email).orElse(null);
-            if (existingByEmail != null) {
-                if (existingByEmail.getPhone() != null && !existingByEmail.getPhone().equals(phone)) {
-                    throw new DuplicateAccountException(
-                            "This email is already registered with another phone number. "
-                                    + "Please sign in using email OTP instead.");
-                }
-                // Email exists and either has no phone or same phone → link the verified phone
-                existingByEmail.setPhone(phone);
-                log.info("Linked verified phone {} to existing email account {}", phone, existingByEmail.getId());
-                return userRepository.save(existingByEmail);
-            }
+        // Strict: new user must supply both phone and email so the (phone, email) pair
+        // identifies one person. Prevents the "one phone across multiple emails" dupe.
+        if (email == null) {
+            throw new IllegalArgumentException(
+                    "Email is required to create a new account. Please provide your email address.");
         }
+
+        // Cross-check email (case-insensitive, matches LOWER(email) unique index)
+        User existingByEmail = userRepository.findByEmailIgnoreCase(email).orElse(null);
+        if (existingByEmail != null) {
+            if (existingByEmail.getPhone() != null && !existingByEmail.getPhone().equals(phone)) {
+                throw new DuplicateAccountException(
+                        "This email is already registered with another phone number. "
+                                + "Please sign in using email OTP instead.");
+            }
+            existingByEmail.setPhone(phone);
+            log.info("Linked verified phone {} to existing email account {}", phone, existingByEmail.getId());
+            return userRepository.save(existingByEmail);
+        }
+
         return userRepository.save(User.builder()
                 .phone(phone)
                 .email(email)
@@ -104,20 +109,24 @@ public class AuthService {
     }
 
     private User signupNewUserWithEmail(String email, String name, String phone) {
-        // Mirror of above for email-first signup.
-        if (phone != null) {
-            User existingByPhone = userRepository.findByPhone(phone).orElse(null);
-            if (existingByPhone != null) {
-                if (existingByPhone.getEmail() != null && !existingByPhone.getEmail().equals(email)) {
-                    throw new DuplicateAccountException(
-                            "This phone number is already registered with another email. "
-                                    + "Please sign in using phone OTP instead.");
-                }
-                existingByPhone.setEmail(email);
-                log.info("Linked verified email {} to existing phone account {}", email, existingByPhone.getId());
-                return userRepository.save(existingByPhone);
-            }
+        if (phone == null) {
+            throw new IllegalArgumentException(
+                    "Phone number is required to create a new account. Please provide your phone number.");
         }
+
+        User existingByPhone = userRepository.findByPhone(phone).orElse(null);
+        if (existingByPhone != null) {
+            if (existingByPhone.getEmail() != null
+                    && !existingByPhone.getEmail().equalsIgnoreCase(email)) {
+                throw new DuplicateAccountException(
+                        "This phone number is already registered with another email. "
+                                + "Please sign in using phone OTP instead.");
+            }
+            existingByPhone.setEmail(email);
+            log.info("Linked verified email {} to existing phone account {}", email, existingByPhone.getId());
+            return userRepository.save(existingByPhone);
+        }
+
         return userRepository.save(User.builder()
                 .email(email)
                 .phone(phone)
