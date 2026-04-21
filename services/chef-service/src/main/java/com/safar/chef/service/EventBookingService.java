@@ -183,6 +183,9 @@ public class EventBookingService {
 
         event.setStatus(EventBookingStatus.CONFIRMED);
         event.setConfirmedAt(OffsetDateTime.now());
+        if (event.getStartJobOtp() == null) {
+            event.setStartJobOtp(String.format("%04d", new java.security.SecureRandom().nextInt(10000)));
+        }
         EventBooking saved = eventRepo.save(event);
         log.info("Event booking confirmed: {}", eventId);
 
@@ -219,6 +222,53 @@ public class EventBookingService {
             log.warn("Failed to send event.booking.advance.paid Kafka event: {}", e.getMessage());
         }
 
+        return saved;
+    }
+
+    @Transactional
+    public EventBooking startJob(UUID chefId, UUID eventId, String otp) {
+        EventBooking event = eventRepo.findById(eventId)
+                .orElseThrow(() -> new IllegalArgumentException("Event booking not found"));
+
+        ChefProfile chef = chefProfileRepo.findByUserId(chefId)
+                .orElseThrow(() -> new IllegalArgumentException("Chef profile not found"));
+        chef.ensureNotSuspended();
+
+        if (event.getChefId() == null || !event.getChefId().equals(chef.getId())) {
+            throw new IllegalArgumentException("Not authorized to start this event");
+        }
+        if (event.getStatus() != EventBookingStatus.CONFIRMED && event.getStatus() != EventBookingStatus.ADVANCE_PAID) {
+            throw new IllegalArgumentException("Event must be CONFIRMED or ADVANCE_PAID to start");
+        }
+        if (event.getStartJobOtp() == null || !event.getStartJobOtp().equals(otp)) {
+            throw new IllegalArgumentException("Invalid OTP");
+        }
+
+        event.setStatus(EventBookingStatus.IN_PROGRESS);
+        event.setJobStartedAt(OffsetDateTime.now());
+        EventBooking saved = eventRepo.save(event);
+        log.info("Event booking job started: {}", eventId);
+        return saved;
+    }
+
+    @Transactional
+    public EventBooking payBalance(UUID customerId, UUID eventId) {
+        EventBooking event = eventRepo.findById(eventId)
+                .orElseThrow(() -> new IllegalArgumentException("Event booking not found"));
+
+        if (!event.getCustomerId().equals(customerId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Not authorized to pay this event");
+        }
+        if (event.getBalancePaidAt() != null) {
+            throw new IllegalArgumentException("Balance already paid");
+        }
+        if (event.getStatus() == EventBookingStatus.CANCELLED) {
+            throw new IllegalArgumentException("Cannot pay a cancelled event");
+        }
+
+        event.setBalancePaidAt(OffsetDateTime.now());
+        EventBooking saved = eventRepo.save(event);
+        log.info("Event booking balance paid: {}", eventId);
         return saved;
     }
 

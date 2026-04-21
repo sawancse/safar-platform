@@ -107,6 +107,8 @@ public class ChefBookingService {
                 .chefEarningsPaise(chefEarningsPaise)
                 .paymentStatus("UNPAID")
                 .status(ChefBookingStatus.PENDING_PAYMENT)
+                .appliancesJson(req.appliancesJson())
+                .crockeryJson(req.crockeryJson())
                 .build();
 
         ChefBooking saved = bookingRepo.save(booking);
@@ -169,6 +171,9 @@ public class ChefBookingService {
         }
 
         booking.setStatus(ChefBookingStatus.CONFIRMED);
+        if (booking.getStartJobOtp() == null) {
+            booking.setStartJobOtp(String.format("%04d", RANDOM.nextInt(10000)));
+        }
         ChefBooking saved = bookingRepo.save(booking);
         log.info("Chef booking confirmed: {}", bookingId);
         try { kafka.send("chef.booking.confirmed", saved.getId().toString(), buildEventJson(saved, chef)); }
@@ -258,6 +263,54 @@ public class ChefBookingService {
                 b.getPaymentStatus() != null ? b.getPaymentStatus() : "UNPAID",
                 b.getCity() != null ? b.getCity() : "",
                 reason != null ? reason : "", refundPaise);
+    }
+
+    @Transactional
+    public ChefBooking startJob(UUID chefId, UUID bookingId, String otp) {
+        ChefBooking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+
+        ChefProfile chef = chefProfileRepo.findByUserId(chefId)
+                .orElseThrow(() -> new IllegalArgumentException("Chef profile not found"));
+        chef.ensureNotSuspended();
+
+        if (!booking.getChefId().equals(chef.getId())) {
+            throw new IllegalArgumentException("Not authorized to start this job");
+        }
+        if (booking.getStatus() != ChefBookingStatus.CONFIRMED) {
+            throw new IllegalArgumentException("Booking must be CONFIRMED to start job");
+        }
+        if (booking.getStartJobOtp() == null || !booking.getStartJobOtp().equals(otp)) {
+            throw new IllegalArgumentException("Invalid OTP");
+        }
+
+        booking.setStatus(ChefBookingStatus.IN_PROGRESS);
+        booking.setJobStartedAt(OffsetDateTime.now());
+        ChefBooking saved = bookingRepo.save(booking);
+        log.info("Chef booking job started: {}", bookingId);
+        return saved;
+    }
+
+    @Transactional
+    public ChefBooking payBalance(UUID customerId, UUID bookingId) {
+        ChefBooking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+
+        if (!booking.getCustomerId().equals(customerId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Not authorized to pay this booking");
+        }
+        if (booking.getBalancePaidAt() != null) {
+            throw new IllegalArgumentException("Balance already paid");
+        }
+        if (booking.getStatus() == ChefBookingStatus.CANCELLED) {
+            throw new IllegalArgumentException("Cannot pay a cancelled booking");
+        }
+
+        booking.setBalancePaidAt(OffsetDateTime.now());
+        booking.setPaymentStatus("PAID");
+        ChefBooking saved = bookingRepo.save(booking);
+        log.info("Chef booking balance paid: {}", bookingId);
+        return saved;
     }
 
     @Transactional
@@ -545,7 +598,9 @@ public class ChefBookingService {
                 original.getLocality(),
                 original.getPincode(),
                 original.getCustomerName(),
-                null // phone not stored on booking
+                null, // phone not stored on booking
+                original.getAppliancesJson(),
+                original.getCrockeryJson()
         );
 
         log.info("Rebooking from {} for customer={} newDate={}", originalBookingId, customerId, newDate);

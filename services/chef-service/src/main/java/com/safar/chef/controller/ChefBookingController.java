@@ -101,6 +101,21 @@ public class ChefBookingController {
         return ResponseEntity.ok(chefBookingService.completeBooking(chefId, id));
     }
 
+    @PostMapping("/{id}/start-job")
+    public ResponseEntity<ChefBooking> startJob(Authentication auth,
+                                                 @PathVariable UUID id,
+                                                 @RequestParam String otp) {
+        UUID chefId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(chefBookingService.startJob(chefId, id, otp));
+    }
+
+    @PostMapping("/{id}/pay-balance")
+    public ResponseEntity<ChefBooking> payBalance(Authentication auth,
+                                                   @PathVariable UUID id) {
+        UUID customerId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(chefBookingService.payBalance(customerId, id));
+    }
+
     @PostMapping("/{id}/rate")
     public ResponseEntity<ChefBooking> rateBooking(Authentication auth,
                                                     @PathVariable UUID id,

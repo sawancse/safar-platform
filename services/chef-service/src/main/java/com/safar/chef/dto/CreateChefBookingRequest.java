@@ -18,5 +18,7 @@ public record CreateChefBookingRequest(
         String locality,
         String pincode,
         String customerName,
-        String customerPhone
+        String customerPhone,
+        String appliancesJson,
+        String crockeryJson
 ) {}

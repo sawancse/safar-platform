@@ -163,6 +163,21 @@ public class ChefBooking {
     @Builder.Default
     private Integer modificationCount = 0;
 
+    @Column(name = "start_job_otp", length = 6)
+    private String startJobOtp;
+
+    @Column(name = "job_started_at")
+    private OffsetDateTime jobStartedAt;
+
+    @Column(name = "balance_paid_at")
+    private OffsetDateTime balancePaidAt;
+
+    @Column(name = "appliances_json", columnDefinition = "TEXT")
+    private String appliancesJson;
+
+    @Column(name = "crockery_json", columnDefinition = "TEXT")
+    private String crockeryJson;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;

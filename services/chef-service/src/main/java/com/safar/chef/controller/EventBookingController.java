@@ -103,6 +103,21 @@ public class EventBookingController {
         return ResponseEntity.ok(eventBookingService.completeEvent(chefId, id));
     }
 
+    @PostMapping("/{id}/start-job")
+    public ResponseEntity<EventBooking> startJob(Authentication auth,
+                                                  @PathVariable UUID id,
+                                                  @RequestParam String otp) {
+        UUID chefId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(eventBookingService.startJob(chefId, id, otp));
+    }
+
+    @PostMapping("/{id}/pay-balance")
+    public ResponseEntity<EventBooking> payBalance(Authentication auth,
+                                                    @PathVariable UUID id) {
+        UUID customerId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(eventBookingService.payBalance(customerId, id));
+    }
+
     @PostMapping("/{id}/cancel")
     public ResponseEntity<EventBooking> cancelEvent(Authentication auth,
                                                      @PathVariable UUID id,
