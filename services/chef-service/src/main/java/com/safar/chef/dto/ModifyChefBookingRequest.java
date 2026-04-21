@@ -13,5 +13,7 @@ public record ModifyChefBookingRequest(
     String address,
     String city,
     String locality,
-    String pincode
+    String pincode,
+    String appliancesJson,
+    String crockeryJson
 ) {}

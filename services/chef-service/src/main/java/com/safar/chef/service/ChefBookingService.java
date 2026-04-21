@@ -395,6 +395,8 @@ public class ChefBookingService {
         if (req.city() != null) booking.setCity(req.city());
         if (req.locality() != null) booking.setLocality(req.locality());
         if (req.pincode() != null) booking.setPincode(req.pincode());
+        if (req.appliancesJson() != null) booking.setAppliancesJson(req.appliancesJson());
+        if (req.crockeryJson() != null) booking.setCrockeryJson(req.crockeryJson());
 
         // If guests/meals/menu changed, recalculate pricing
         boolean recalculate = false;
