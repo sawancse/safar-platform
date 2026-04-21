@@ -107,6 +107,7 @@ public class EventBookingService {
                 .platformFeePaise(platformFeePaise)
                 .chefEarningsPaise(chefEarningsPaise)
                 .specialRequests(req.specialRequests())
+                .servicesJson(req.servicesJson())
                 .status(EventBookingStatus.INQUIRY)
                 .build();
 
@@ -396,6 +397,7 @@ public class EventBookingService {
         if (req.menuDescription() != null) event.setMenuDescription(req.menuDescription());
         if (req.cuisinePreferences() != null) event.setCuisinePreferences(req.cuisinePreferences());
         if (req.specialRequests() != null) event.setSpecialRequests(req.specialRequests());
+        if (req.servicesJson() != null) event.setServicesJson(req.servicesJson());
 
         // If guest count or add-ons changed, recalculate pricing
         boolean recalculate = false;

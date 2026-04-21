@@ -117,6 +117,9 @@ public class EventBooking {
     @Column(name = "addons_json", columnDefinition = "TEXT")
     private String addonsJson;
 
+    @Column(name = "services_json", columnDefinition = "TEXT")
+    private String servicesJson;
+
     @Column(name = "special_requests", columnDefinition = "TEXT")
     private String specialRequests;
 

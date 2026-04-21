@@ -24,5 +24,6 @@ public record CreateEventBookingRequest(
         String specialRequests,
         String customerName,
         String customerPhone,
-        String customerEmail
+        String customerEmail,
+        String servicesJson
 ) {}
