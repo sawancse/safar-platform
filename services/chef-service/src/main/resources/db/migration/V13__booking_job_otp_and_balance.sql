@@ -4,9 +4,7 @@
 ALTER TABLE chefs.chef_bookings
     ADD COLUMN IF NOT EXISTS start_job_otp VARCHAR(6),
     ADD COLUMN IF NOT EXISTS job_started_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS balance_paid_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS appliances_json TEXT,
-    ADD COLUMN IF NOT EXISTS crockery_json TEXT;
+    ADD COLUMN IF NOT EXISTS balance_paid_at TIMESTAMPTZ;
 
 ALTER TABLE chefs.event_bookings
     ADD COLUMN IF NOT EXISTS start_job_otp VARCHAR(6),
