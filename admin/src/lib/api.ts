@@ -547,4 +547,36 @@ export const adminApi = {
   toggleCampaign(campaignId: string, token: string) {
     return axios.post(`${BASE}/admin/leads/campaigns/${campaignId}/toggle`, {}, { headers: authHeaders(token) }).then(r => r.data);
   },
+
+  // ── Platform staff pool (Phase B) ────────────────────────────────────
+  listStaffPool(token: string, params?: { activeOnly?: boolean; role?: string }) {
+    const qs = new URLSearchParams();
+    if (params?.activeOnly != null) qs.set('activeOnly', String(params.activeOnly));
+    if (params?.role) qs.set('role', params.role);
+    return axios.get(`${BASE}/staff/admin/pool${qs.toString() ? `?${qs}` : ''}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  createPoolStaff(data: any, token: string) {
+    return axios.post(`${BASE}/staff/admin/pool`, data, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  updatePoolStaff(staffId: string, data: any, token: string) {
+    return axios.put(`${BASE}/staff/admin/pool/${staffId}`, data, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  deletePoolStaff(staffId: string, token: string) {
+    return axios.delete(`${BASE}/staff/admin/pool/${staffId}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  // ── Generic S3 upload via presigned PUT (matches safar-web helper) ────
+  async uploadFile(file: File, folder: string, token: string): Promise<string> {
+    const presign = await axios.post<{ uploadUrl: string; publicUrl: string }>(
+      `${BASE}/media/upload/generic-presign?folder=${encodeURIComponent(folder)}&contentType=${encodeURIComponent(file.type)}`,
+      null,
+      { headers: authHeaders(token) },
+    ).then(r => r.data);
+    await fetch(presign.uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: { 'Content-Type': file.type },
+    });
+    return presign.publicUrl;
+  },
 };

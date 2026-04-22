@@ -5,6 +5,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3001,
+    host: true,
+    allowedHosts: ['admin.ysafar.com', '.ysafar.com', 'localhost'],
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

@@ -359,6 +359,12 @@ spring:
           predicates:
             - Path=/api/v1/dishes,/api/v1/dishes/**
 
+        # ── Platform staff pool (chef-service, admin) ───────────────────────
+        - id: staff-admin
+          uri: ${CHEF_SERVICE_URL:http://localhost:8093}
+          predicates:
+            - Path=/api/v1/staff,/api/v1/staff/**
+
         # ── Safar Cooks (chef-service) ──────────────────────────────────────
         - id: chef-profiles
           uri: ${CHEF_SERVICE_URL:http://localhost:8093}

@@ -22,6 +22,65 @@ const verifyColor: Record<string, string> = {
   PENDING: 'orange', VERIFIED: 'green', REJECTED: 'red', SUSPENDED: 'volcano',
 };
 
+// ── Payment status (booking & event) ──────────────────────────────────
+// Chef-booking has an explicit paymentStatus column (UNPAID / ADVANCE_PAID /
+// FULLY_PAID / REFUNDED). Event-booking doesn't — state is derived from
+// status + balancePaidAt. Keep both normalised here so the table column +
+// the expandable row show the same chip.
+type PaymentView = { label: string; color: string; sub?: string };
+
+function bookingPayment(r: any): PaymentView {
+  const total = r.totalAmountPaise || 0;
+  const advance = r.advanceAmountPaise || 0;
+  const s = r.paymentStatus;
+  if (s === 'FULLY_PAID') return { label: 'Fully paid', color: 'green', sub: total ? `${INR(total)} received` : undefined };
+  if (s === 'REFUNDED')   return { label: 'Refunded',   color: 'magenta' };
+  if (s === 'ADVANCE_PAID') return {
+    label: 'Advance paid', color: 'blue',
+    sub: advance ? `${INR(advance)} of ${INR(total)}` : undefined,
+  };
+  if (r.status === 'CANCELLED') return { label: 'Cancelled', color: 'default' };
+  return { label: 'Unpaid', color: 'red', sub: total ? `${INR(total)} due` : undefined };
+}
+
+function eventPayment(r: any): PaymentView {
+  const total = r.totalAmountPaise || 0;
+  const advance = r.advanceAmountPaise || 0;
+  const balance = r.balanceAmountPaise || 0;
+  const balancePaid = !!r.balancePaidAt;
+  const s = r.status;
+
+  if (s === 'CANCELLED') {
+    // Was advance paid → refund expected
+    if (['ADVANCE_PAID', 'IN_PROGRESS', 'COMPLETED'].includes(s) || r.advancePaidAt) {
+      return { label: 'Refund pending', color: 'magenta' };
+    }
+    return { label: 'Cancelled', color: 'default' };
+  }
+  if (s === 'COMPLETED' || balancePaid) {
+    return { label: 'Fully paid', color: 'green', sub: total ? `${INR(total)} received` : undefined };
+  }
+  if (s === 'ADVANCE_PAID' || s === 'IN_PROGRESS') {
+    return {
+      label: 'Advance paid', color: 'blue',
+      sub: balance ? `${INR(balance)} balance due` : undefined,
+    };
+  }
+  if (s === 'QUOTED' || s === 'CONFIRMED') {
+    return { label: 'Awaiting advance', color: 'orange', sub: advance ? `${INR(advance)} to collect` : undefined };
+  }
+  return { label: 'No quote yet', color: 'default' };
+}
+
+function PaymentChip({ view }: { view: PaymentView }) {
+  return (
+    <div style={{ lineHeight: 1.2 }}>
+      <Tag color={view.color} style={{ margin: 0 }}>{view.label}</Tag>
+      {view.sub && <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>{view.sub}</div>}
+    </div>
+  );
+}
+
 function copyText(text: string) {
   navigator.clipboard.writeText(text);
   message.success('Copied!');
@@ -263,8 +322,23 @@ export default function CooksPage() {
     { title: 'Meal', dataIndex: 'mealType', width: 80, render: (v: string) => <Tag>{v}</Tag> },
     { title: 'Guests', dataIndex: 'guestsCount', width: 65 },
     { title: 'Total', dataIndex: 'totalAmountPaise', width: 90, render: (v: number) => v ? <Text strong>{INR(v)}</Text> : '—', sorter: (a: any, b: any) => (a.totalAmountPaise || 0) - (b.totalAmountPaise || 0) },
-    { title: 'Payment', dataIndex: 'paymentStatus', width: 110,
-      render: (s: string) => <Tag color={s === 'ADVANCE_PAID' ? 'green' : s === 'FULLY_PAID' ? 'blue' : 'red'}>{s || 'UNPAID'}</Tag> },
+    { title: 'Payment', key: 'paymentView', width: 150,
+      render: (_: any, r: any) => <PaymentChip view={bookingPayment(r)} />,
+      filters: [
+        { text: 'Unpaid',       value: 'unpaid' },
+        { text: 'Advance paid', value: 'advance' },
+        { text: 'Fully paid',   value: 'full' },
+        { text: 'Refunded',     value: 'refund' },
+      ],
+      onFilter: (v: any, r: any) => {
+        const label = bookingPayment(r).label.toLowerCase();
+        if (v === 'unpaid')  return label.includes('unpaid');
+        if (v === 'advance') return label === 'advance paid';
+        if (v === 'full')    return label === 'fully paid';
+        if (v === 'refund')  return label === 'refunded';
+        return true;
+      },
+    },
     { title: 'Status', dataIndex: 'status', width: 120,
       render: (s: string) => <Tag color={bookingStatusColor[s] ?? 'default'}>{s}</Tag>,
       filters: Object.keys(bookingStatusColor).map(k => ({ text: k, value: k })),
@@ -324,6 +398,25 @@ export default function CooksPage() {
     { title: 'Guests', dataIndex: 'guestCount', width: 65 },
     { title: 'Total', dataIndex: 'totalAmountPaise', width: 100, render: (v: number) => v ? <Text strong>{INR(v)}</Text> : '—' },
     { title: 'Advance', dataIndex: 'advanceAmountPaise', width: 90, render: (v: number) => v ? INR(v) : '—' },
+    { title: 'Payment', key: 'eventPaymentView', width: 160,
+      render: (_: any, r: any) => <PaymentChip view={eventPayment(r)} />,
+      filters: [
+        { text: 'No quote',         value: 'none' },
+        { text: 'Awaiting advance', value: 'await' },
+        { text: 'Advance paid',     value: 'advance' },
+        { text: 'Fully paid',       value: 'full' },
+        { text: 'Refund pending',   value: 'refund' },
+      ],
+      onFilter: (v: any, r: any) => {
+        const label = eventPayment(r).label.toLowerCase();
+        if (v === 'none')    return label === 'no quote yet';
+        if (v === 'await')   return label === 'awaiting advance';
+        if (v === 'advance') return label === 'advance paid';
+        if (v === 'full')    return label === 'fully paid';
+        if (v === 'refund')  return label === 'refund pending';
+        return true;
+      },
+    },
     { title: 'Status', dataIndex: 'status', width: 120,
       render: (s: string) => <Tag color={eventStatusColor[s] ?? 'default'}>{s}</Tag>,
       filters: Object.keys(eventStatusColor).map(k => ({ text: k, value: k })),
@@ -389,8 +482,16 @@ export default function CooksPage() {
           <Descriptions.Item label="Balance">{r.balanceAmountPaise ? INR(r.balanceAmountPaise) : '—'}</Descriptions.Item>
           <Descriptions.Item label="Platform Fee">{r.platformFeePaise ? INR(r.platformFeePaise) : '—'}</Descriptions.Item>
           <Descriptions.Item label="Chef Earnings">{r.chefEarningsPaise ? INR(r.chefEarningsPaise) : '—'}</Descriptions.Item>
-          <Descriptions.Item label="Payment Status"><Tag color={r.paymentStatus === 'ADVANCE_PAID' ? 'green' : 'red'}>{r.paymentStatus || 'UNPAID'}</Tag></Descriptions.Item>
-          {r.razorpayPaymentId && <Descriptions.Item label="Razorpay ID" span={3}><Text copyable style={{ fontSize: 11 }}>{r.razorpayPaymentId}</Text></Descriptions.Item>}
+          <Descriptions.Item label="Payment" span={3}>
+            <Space size={8} wrap>
+              <PaymentChip view={bookingPayment(r)} />
+              {r.advancePaidAt && <Text type="secondary" style={{ fontSize: 11 }}>Advance @ {new Date(r.advancePaidAt).toLocaleString()}</Text>}
+              {r.fullyPaidAt   && <Text type="secondary" style={{ fontSize: 11 }}>Balance @ {new Date(r.fullyPaidAt).toLocaleString()}</Text>}
+              {r.refundedAt    && <Text type="secondary" style={{ fontSize: 11 }}>Refund @ {new Date(r.refundedAt).toLocaleString()}</Text>}
+            </Space>
+          </Descriptions.Item>
+          {r.razorpayOrderId && <Descriptions.Item label="Razorpay Order" span={3}><Text copyable style={{ fontSize: 11 }}>{r.razorpayOrderId}</Text></Descriptions.Item>}
+          {r.razorpayPaymentId && <Descriptions.Item label="Razorpay Payment" span={3}><Text copyable style={{ fontSize: 11 }}>{r.razorpayPaymentId}</Text></Descriptions.Item>}
           {r.cancellationReason && <Descriptions.Item label="Cancel Reason" span={3}><Text type="danger">{r.cancellationReason}</Text></Descriptions.Item>}
           {r.ratingGiven && <Descriptions.Item label="Rating">{r.ratingGiven} ★ {r.reviewComment && `— "${r.reviewComment}"`}</Descriptions.Item>}
           <Descriptions.Item label="Created">{r.createdAt ? new Date(r.createdAt).toLocaleString() : '—'}</Descriptions.Item>
@@ -428,6 +529,13 @@ export default function CooksPage() {
             </Descriptions.Item>
           )}
           <Descriptions.Item label="Special Requests" span={3}>{r.specialRequests || '—'}</Descriptions.Item>
+          <Descriptions.Item label="Payment" span={3}>
+            <Space size={8} wrap>
+              <PaymentChip view={eventPayment(r)} />
+              {r.advancePaidAt && <Text type="secondary" style={{ fontSize: 11 }}>Advance @ {new Date(r.advancePaidAt).toLocaleString()}</Text>}
+              {r.balancePaidAt && <Text type="secondary" style={{ fontSize: 11 }}>Balance @ {new Date(r.balancePaidAt).toLocaleString()}</Text>}
+            </Space>
+          </Descriptions.Item>
           <Descriptions.Item label="Total">{r.totalAmountPaise ? <Text strong>{INR(r.totalAmountPaise)}</Text> : '—'}</Descriptions.Item>
           <Descriptions.Item label="Advance (50%)">{r.advanceAmountPaise ? INR(r.advanceAmountPaise) : '—'}</Descriptions.Item>
           <Descriptions.Item label="Balance">{r.balanceAmountPaise ? INR(r.balanceAmountPaise) : '—'}</Descriptions.Item>

@@ -18,5 +18,6 @@ public record ModifyEventBookingRequest(
     Boolean staffRequired,
     Integer staffCount,
     String specialRequests,
-    String servicesJson
+    String servicesJson,
+    String staffRolesJson
 ) {}

@@ -38,6 +38,7 @@ const menuItems = [
   { key: '/builder-projects', icon: <BuildOutlined />,   label: 'Builder Projects' },
   { key: '/room-occupancy', icon: <AppstoreOutlined />,  label: 'Room Occupancy' },
   { key: '/cooks',          icon: <FireOutlined />,       label: 'Safar Cooks' },
+  { key: '/staff-pool',     icon: <TeamOutlined />,       label: 'Staff Pool' },
   { key: '/donors',         icon: <HeartOutlined />,      label: 'Donors' },
   { key: '/experiences',    icon: <ExperimentOutlined />, label: 'Experiences' },
   { key: '/agreements',     icon: <FileTextOutlined />,      label: 'Agreements' },

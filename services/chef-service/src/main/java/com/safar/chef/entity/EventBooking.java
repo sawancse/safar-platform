@@ -120,6 +120,9 @@ public class EventBooking {
     @Column(name = "services_json", columnDefinition = "TEXT")
     private String servicesJson;
 
+    @Column(name = "staff_roles_json", columnDefinition = "TEXT")
+    private String staffRolesJson;
+
     @Column(name = "special_requests", columnDefinition = "TEXT")
     private String specialRequests;
 

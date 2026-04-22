@@ -41,6 +41,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/chefs/me").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/chefs/me/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/chefs/me/availability").authenticated()
+                        // Chef-owned staff roster — auth required on ALL methods (overrides the public GET rule below)
+                        .requestMatchers("/api/v1/chefs/me/staff", "/api/v1/chefs/me/staff/**").authenticated()
+                        // Platform staff pool — admin only
+                        .requestMatchers("/api/v1/staff/admin/**").authenticated()
                         .requestMatchers("/api/v1/chef-bookings/admin/**").authenticated()
                         .requestMatchers("/api/v1/chef-events/admin/**").authenticated()
                         .requestMatchers("/api/v1/chef-subscriptions/admin/**").authenticated()

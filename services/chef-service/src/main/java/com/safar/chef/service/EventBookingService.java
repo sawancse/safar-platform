@@ -1,12 +1,16 @@
 package com.safar.chef.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.safar.chef.dto.CreateEventBookingRequest;
 import com.safar.chef.dto.ModifyEventBookingRequest;
 import com.safar.chef.entity.ChefProfile;
 import com.safar.chef.entity.EventBooking;
+import com.safar.chef.entity.EventPricingDefault;
 import com.safar.chef.entity.enums.EventBookingStatus;
 import com.safar.chef.repository.ChefProfileRepository;
 import com.safar.chef.repository.EventBookingRepository;
+import com.safar.chef.repository.EventPricingDefaultRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -18,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -27,10 +32,68 @@ public class EventBookingService {
 
     private final EventBookingRepository eventRepo;
     private final ChefProfileRepository chefProfileRepo;
+    private final EventPricingDefaultRepository eventPricingRepo;
     private final KafkaTemplate<String, String> kafka;
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final ObjectMapper JSON = new ObjectMapper();
+
+    /**
+     * Sum the indicative estimates from servicesJson. Each entry looks like
+     *   {"key":"photography","label":"Photographer","estPaise":1500000,...}
+     * and we treat estPaise as the midpoint of the price range the frontend
+     * showed the customer. Returns 0 if absent or unparseable — services
+     * are optional and we never fail a booking over malformed estimates.
+     */
+    private long computeServicesEstimatePaise(String servicesJson) {
+        if (servicesJson == null || servicesJson.isBlank()) return 0L;
+        try {
+            List<Map<String, Object>> list = JSON.readValue(
+                servicesJson, new TypeReference<List<Map<String, Object>>>() {}
+            );
+            if (list == null) return 0L;
+            long total = 0L;
+            for (Map<String, Object> svc : list) {
+                Object est = svc.get("estPaise");
+                if (est instanceof Number) total += ((Number) est).longValue();
+            }
+            return total;
+        } catch (Exception e) {
+            log.warn("Failed to parse servicesJson for estimate: {}", e.getMessage());
+            return 0L;
+        }
+    }
+
+    /**
+     * Compute staff cost from a JSON map of role → count, e.g.
+     *   {"waiter": 2, "cleaner": 1, "bartender": 1}
+     * Rates are looked up from STAFF_ROLE rows in event_pricing_defaults so
+     * they remain configurable. Returns 0 on any parse/lookup failure rather
+     * than failing the booking.
+     */
+    private long computeStaffPaiseFromRoles(String staffRolesJson) {
+        if (staffRolesJson == null || staffRolesJson.isBlank()) return 0L;
+        try {
+            Map<String, Integer> roleCounts = JSON.readValue(
+                staffRolesJson, new TypeReference<Map<String, Integer>>() {}
+            );
+            if (roleCounts == null || roleCounts.isEmpty()) return 0L;
+            List<EventPricingDefault> roles = eventPricingRepo
+                .findByCategoryAndActiveTrueOrderBySortOrderAsc("STAFF_ROLE");
+            long total = 0L;
+            for (EventPricingDefault role : roles) {
+                Integer count = roleCounts.get(role.getItemKey());
+                if (count != null && count > 0) {
+                    total += (long) count * role.getDefaultPricePaise();
+                }
+            }
+            return total;
+        } catch (Exception e) {
+            log.warn("Failed to parse staffRolesJson='{}': {}", staffRolesJson, e.getMessage());
+            return 0L;
+        }
+    }
 
     @Transactional(readOnly = true)
     public Page<EventBooking> browseEvents(Pageable pageable) {
@@ -66,10 +129,19 @@ public class EventBookingService {
         // Add-ons
         long decorationPaise = Boolean.TRUE.equals(req.decorationRequired()) ? DECORATION_DEFAULT_PAISE : 0L;
         long cakePaise = Boolean.TRUE.equals(req.cakeRequired()) ? CAKE_DEFAULT_PAISE : 0L;
-        int staffCount = Boolean.TRUE.equals(req.staffRequired()) && req.staffCount() != null ? req.staffCount() : 0;
-        long staffPaise = staffCount * STAFF_PER_PERSON_PAISE;
+        long staffPaise = computeStaffPaiseFromRoles(req.staffRolesJson());
+        if (staffPaise == 0L) {
+            int staffCount = Boolean.TRUE.equals(req.staffRequired()) && req.staffCount() != null ? req.staffCount() : 0;
+            staffPaise = staffCount * STAFF_PER_PERSON_PAISE;
+        }
 
-        long totalAmountPaise = totalFoodPaise + decorationPaise + cakePaise + staffPaise;
+        // Indicative partner-service estimate. Stored in otherAddonsPaise so the
+        // existing bookkeeping lines (totalAmountPaise, platformFeePaise, etc.)
+        // pick it up automatically. Chef will reconcile with the real vendor
+        // quote before the customer pays the balance.
+        long servicesEstPaise = computeServicesEstimatePaise(req.servicesJson());
+
+        long totalAmountPaise = totalFoodPaise + decorationPaise + cakePaise + staffPaise + servicesEstPaise;
         long advanceAmountPaise = totalAmountPaise * 50 / 100;
         long balanceAmountPaise = totalAmountPaise - advanceAmountPaise;
         long platformFeePaise = totalAmountPaise * 15 / 100;
@@ -100,7 +172,7 @@ public class EventBookingService {
                 .decorationPaise(decorationPaise)
                 .cakePaise(cakePaise)
                 .staffPaise(staffPaise)
-                .otherAddonsPaise(0L)
+                .otherAddonsPaise(servicesEstPaise)
                 .totalAmountPaise(totalAmountPaise)
                 .advanceAmountPaise(advanceAmountPaise)
                 .balanceAmountPaise(balanceAmountPaise)
@@ -108,6 +180,7 @@ public class EventBookingService {
                 .chefEarningsPaise(chefEarningsPaise)
                 .specialRequests(req.specialRequests())
                 .servicesJson(req.servicesJson())
+                .staffRolesJson(req.staffRolesJson())
                 .status(EventBookingStatus.INQUIRY)
                 .build();
 
@@ -410,7 +483,16 @@ public class EventBookingService {
             event.setCakePaise(Boolean.TRUE.equals(req.cakeRequired()) ? CAKE_DEFAULT_PAISE : 0L);
             recalculate = true;
         }
-        if (req.staffRequired() != null || req.staffCount() != null) {
+        if (req.staffRolesJson() != null) {
+            event.setStaffRolesJson(req.staffRolesJson());
+            long staffPaise = computeStaffPaiseFromRoles(req.staffRolesJson());
+            if (staffPaise == 0L && (req.staffRequired() != null || req.staffCount() != null)) {
+                int staffCount = Boolean.TRUE.equals(req.staffRequired()) && req.staffCount() != null ? req.staffCount() : 0;
+                staffPaise = staffCount * STAFF_PER_PERSON_PAISE;
+            }
+            event.setStaffPaise(staffPaise);
+            recalculate = true;
+        } else if (req.staffRequired() != null || req.staffCount() != null) {
             int staffCount = Boolean.TRUE.equals(req.staffRequired()) && req.staffCount() != null ? req.staffCount() : 0;
             event.setStaffPaise(staffCount * STAFF_PER_PERSON_PAISE);
             recalculate = true;

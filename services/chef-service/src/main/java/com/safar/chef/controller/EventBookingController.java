@@ -1,9 +1,12 @@
 package com.safar.chef.controller;
 
+import com.safar.chef.dto.AssignStaffRequest;
 import com.safar.chef.dto.CreateEventBookingRequest;
 import com.safar.chef.dto.ModifyEventBookingRequest;
 import com.safar.chef.entity.EventBooking;
+import com.safar.chef.entity.EventBookingStaff;
 import com.safar.chef.service.EventBookingService;
+import com.safar.chef.service.EventBookingStaffService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +25,7 @@ import java.util.UUID;
 public class EventBookingController {
 
     private final EventBookingService eventBookingService;
+    private final EventBookingStaffService eventBookingStaffService;
 
     @GetMapping
     public ResponseEntity<Page<EventBooking>> browse(Pageable pageable) {
@@ -72,6 +76,47 @@ public class EventBookingController {
         UUID customerId = auth != null ? UUID.fromString(auth.getName()) : null;
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(eventBookingService.createEventBooking(customerId, req));
+    }
+
+    // ── Staff assignment (chef assigns team members to a booking) ──────
+    @GetMapping("/{id}/staff")
+    public ResponseEntity<List<com.safar.chef.dto.EventStaffAssignmentResponse>> listStaff(@PathVariable UUID id) {
+        return ResponseEntity.ok(eventBookingStaffService.listAssignmentsEnriched(id));
+    }
+
+    @PostMapping("/{id}/assign-staff")
+    public ResponseEntity<List<EventBookingStaff>> assignStaff(Authentication auth,
+                                                                @PathVariable UUID id,
+                                                                @RequestBody AssignStaffRequest req) {
+        UUID userId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(eventBookingStaffService.assign(userId, id, req));
+    }
+
+    @PostMapping("/{id}/staff/{staffId}/check-in")
+    public ResponseEntity<EventBookingStaff> checkInStaff(Authentication auth,
+                                                            @PathVariable UUID id,
+                                                            @PathVariable UUID staffId,
+                                                            @RequestParam(required = false) String otp) {
+        UUID userId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(eventBookingStaffService.checkIn(userId, id, staffId, otp));
+    }
+
+    @PostMapping("/{id}/staff/{staffId}/no-show")
+    public ResponseEntity<EventBookingStaff> markNoShow(Authentication auth,
+                                                         @PathVariable UUID id,
+                                                         @PathVariable UUID staffId) {
+        UUID userId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(eventBookingStaffService.markNoShow(userId, id, staffId));
+    }
+
+    @PostMapping("/{id}/staff/{staffId}/rate")
+    public ResponseEntity<EventBookingStaff> rateStaff(Authentication auth,
+                                                        @PathVariable UUID id,
+                                                        @PathVariable UUID staffId,
+                                                        @RequestParam int stars,
+                                                        @RequestParam(required = false) String comment) {
+        UUID userId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(eventBookingStaffService.rate(userId, id, staffId, stars, comment));
     }
 
     @PostMapping("/{id}/quote")
