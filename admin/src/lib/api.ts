@@ -565,6 +565,20 @@ export const adminApi = {
     return axios.delete(`${BASE}/staff/admin/pool/${staffId}`, { headers: authHeaders(token) }).then(r => r.data);
   },
 
+  // ── Event pricing defaults (admin) ───────────────────────────────────
+  listEventPricing(token: string) {
+    return axios.get(`${BASE}/chef-events/pricing/admin`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  createEventPricing(data: any, token: string) {
+    return axios.post(`${BASE}/chef-events/pricing/admin`, data, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  updateEventPricing(itemKey: string, data: any, token: string) {
+    return axios.put(`${BASE}/chef-events/pricing/admin/${itemKey}`, data, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  deactivateEventPricing(itemKey: string, token: string) {
+    return axios.delete(`${BASE}/chef-events/pricing/admin/${itemKey}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
   // ── Generic S3 upload via presigned PUT (matches safar-web helper) ────
   async uploadFile(file: File, folder: string, token: string): Promise<string> {
     const presign = await axios.post<{ uploadUrl: string; publicUrl: string }>(

@@ -4,6 +4,7 @@ import com.safar.chef.entity.ChefProfile;
 import com.safar.chef.entity.enums.VerificationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,4 +24,11 @@ public interface ChefProfileRepository extends JpaRepository<ChefProfile, UUID>,
     List<ChefProfile> findByVerificationStatus(VerificationStatus verificationStatus);
 
     List<ChefProfile> findByCityAndAvailableTrue(String city);
+
+    /**
+     * Returns [avgRating, count] across all chefs with a non-zero rating.
+     * Feeds the /aggregate-ratings landing endpoint.
+     */
+    @Query("SELECT AVG(c.rating), COUNT(c.id) FROM ChefProfile c WHERE c.rating IS NOT NULL AND c.rating > 0")
+    Object[] aggregateChefRating();
 }

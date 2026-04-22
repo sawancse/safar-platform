@@ -15,6 +15,7 @@ import SalePropertiesPage from './pages/SalePropertiesPage';
 import RoomOccupancyPage from './pages/RoomOccupancyPage';
 import CooksPage from './pages/CooksPage';
 import StaffPoolPage from './pages/StaffPoolPage';
+import EventPricingPage from './pages/EventPricingPage';
 import DonorsPage from './pages/DonorsPage';
 import ExperiencesPage from './pages/ExperiencesPage';
 import AgreementsPage from './pages/AgreementsPage';
@@ -60,6 +61,7 @@ export default function App() {
         <Route path="room-occupancy" element={<RoomOccupancyPage />} />
         <Route path="cooks" element={<CooksPage />} />
         <Route path="staff-pool" element={<StaffPoolPage />} />
+        <Route path="event-pricing" element={<EventPricingPage />} />
         <Route path="donors" element={<DonorsPage />} />
         <Route path="experiences" element={<ExperiencesPage />} />
         <Route path="agreements" element={<AgreementsPage />} />

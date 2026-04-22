@@ -5,6 +5,8 @@ import com.safar.chef.dto.CreateEventBookingRequest;
 import com.safar.chef.dto.ModifyEventBookingRequest;
 import com.safar.chef.entity.EventBooking;
 import com.safar.chef.entity.EventBookingStaff;
+import com.safar.chef.repository.ChefProfileRepository;
+import com.safar.chef.repository.EventBookingStaffRepository;
 import com.safar.chef.service.EventBookingService;
 import com.safar.chef.service.EventBookingStaffService;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -26,10 +29,45 @@ public class EventBookingController {
 
     private final EventBookingService eventBookingService;
     private final EventBookingStaffService eventBookingStaffService;
+    private final ChefProfileRepository chefProfileRepo;
+    private final EventBookingStaffRepository eventBookingStaffRepo;
 
     @GetMapping
     public ResponseEntity<Page<EventBooking>> browse(Pageable pageable) {
         return ResponseEntity.ok(eventBookingService.browseEvents(pageable));
+    }
+
+    /**
+     * Aggregate ratings across all chefs and by staff role. Powers the star
+     * badges on /cooks/services flagship cards. Public endpoint — safe data,
+     * just averages and counts. Falls back to zero rather than throwing if
+     * there's no data yet.
+     */
+    @GetMapping("/aggregate-ratings")
+    public ResponseEntity<Map<String, Map<String, Object>>> aggregateRatings() {
+        Map<String, Map<String, Object>> out = new java.util.LinkedHashMap<>();
+
+        // Chef rating from ChefProfile.rating
+        Object[] chef = chefProfileRepo.aggregateChefRating();
+        out.put("chef", ratingEntry(chef != null && chef.length > 0 ? chef[0] : null,
+                                     chef != null && chef.length > 1 ? chef[1] : null));
+
+        // Each staff role from event_booking_staff
+        for (Object[] row : eventBookingStaffRepo.aggregateRatingsByRole()) {
+            if (row == null || row.length < 3) continue;
+            String role = (String) row[0];
+            out.put(role, ratingEntry(row[1], row[2]));
+        }
+        return ResponseEntity.ok(out);
+    }
+
+    private static Map<String, Object> ratingEntry(Object avg, Object count) {
+        Map<String, Object> m = new java.util.HashMap<>();
+        double avgD = avg instanceof Number ? ((Number) avg).doubleValue() : 0.0;
+        long countL = count instanceof Number ? ((Number) count).longValue() : 0L;
+        m.put("avg",   Math.round(avgD * 10.0) / 10.0);   // 1 decimal
+        m.put("count", countL);
+        return m;
     }
 
     private void requireAdmin(Authentication auth) {
