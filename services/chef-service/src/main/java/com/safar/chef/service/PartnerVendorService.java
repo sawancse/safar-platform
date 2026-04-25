@@ -24,14 +24,14 @@ public class PartnerVendorService {
     @Transactional(readOnly = true)
     public List<PartnerVendor> listByType(VendorServiceType type, boolean activeOnly) {
         return activeOnly
-                ? vendorRepo.findByServiceTypeAndActiveTrueOrderByRatingAvgDescNullsLastCreatedAtDesc(type)
-                : vendorRepo.findByServiceTypeOrderByRatingAvgDescNullsLastCreatedAtDesc(type);
+                ? vendorRepo.findByServiceTypeActiveOrderedByRating(type)
+                : vendorRepo.findByServiceTypeOrderedByRating(type);
     }
 
     @Transactional(readOnly = true)
     public List<PartnerVendor> findEligible(VendorServiceType type, String city) {
         if (city == null || city.isBlank()) {
-            return vendorRepo.findByServiceTypeAndActiveTrueOrderByRatingAvgDescNullsLastCreatedAtDesc(type);
+            return vendorRepo.findByServiceTypeActiveOrderedByRating(type);
         }
         return vendorRepo.findEligible(type.name(), city.trim());
     }
