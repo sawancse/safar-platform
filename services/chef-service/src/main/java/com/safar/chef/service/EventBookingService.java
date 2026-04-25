@@ -40,6 +40,45 @@ public class EventBookingService {
     private static final ObjectMapper JSON = new ObjectMapper();
 
     /**
+     * Bespoke service flows (singer / decor / pandit / cake / appliance /
+     * staff-hire) embed their own pricing in menuDescription under a
+     * `breakdown` object along with a `type` discriminator. Extract it so
+     * the backend can trust the frontend's total instead of running the
+     * chef-centric per-plate math.
+     */
+    private record BespokeBreakdown(String type, long total, long advance) {}
+
+    private BespokeBreakdown parseBespokeBreakdown(String menuDescription) {
+        if (menuDescription == null || menuDescription.isBlank()) return null;
+        try {
+            Map<String, Object> md = JSON.readValue(menuDescription, new TypeReference<Map<String, Object>>() {});
+            Object typeObj = md.get("type");
+            if (!(typeObj instanceof String type)) return null;
+            // Only known bespoke types trigger the override
+            switch (type) {
+                case "LIVE_MUSIC":
+                case "EVENT_DECOR":
+                case "PANDIT_PUJA":
+                case "DESIGNER_CAKE":
+                case "APPLIANCE_RENTAL":
+                case "STAFF_HIRE":
+                    break;
+                default:
+                    return null;
+            }
+            Object breakdownObj = md.get("breakdown");
+            if (!(breakdownObj instanceof Map<?, ?> b)) return null;
+            long total   = b.get("total")   instanceof Number n ? n.longValue() : 0L;
+            long advance = b.get("advance") instanceof Number n ? n.longValue() : 0L;
+            if (total <= 0) return null;
+            return new BespokeBreakdown(type, total, advance);
+        } catch (Exception e) {
+            log.warn("Failed to parse bespoke breakdown from menuDescription: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Sum the indicative estimates from servicesJson. Each entry looks like
      *   {"key":"photography","label":"Photographer","estPaise":1500000,...}
      * and we treat estPaise as the midpoint of the price range the frontend
@@ -121,10 +160,18 @@ public class EventBookingService {
 
         int guestCount = req.guestCount() != null ? req.guestCount() : 50;
 
-        // Calculate food cost: use chef's eventMinPlatePaise or default ₹300/plate
+        // Bespoke service flows (singer / decor / pandit / cake / appliance /
+        // staff-hire) embed a `breakdown` object in menuDescription with the
+        // authoritative total the customer already saw. Trust it when present
+        // instead of running the chef-centric per-plate math which would
+        // compute ₹300 for a ₹12,000 singer booking.
+        BespokeBreakdown bespoke = parseBespokeBreakdown(req.menuDescription());
+
+        // Calculate food cost: use chef's eventMinPlatePaise or default ₹300/plate.
+        // Bespoke service bookings have no chef / food component — zero it out.
         long pricePerPlate = chef != null && chef.getEventMinPlatePaise() != null
                 ? chef.getEventMinPlatePaise() : 30000L;
-        long totalFoodPaise = pricePerPlate * guestCount;
+        long totalFoodPaise = bespoke != null ? 0L : pricePerPlate * guestCount;
 
         // Add-ons
         long decorationPaise = Boolean.TRUE.equals(req.decorationRequired()) ? DECORATION_DEFAULT_PAISE : 0L;
@@ -141,9 +188,32 @@ public class EventBookingService {
         // quote before the customer pays the balance.
         long servicesEstPaise = computeServicesEstimatePaise(req.servicesJson());
 
-        long totalAmountPaise = totalFoodPaise + decorationPaise + cakePaise + staffPaise + servicesEstPaise;
-        long advanceAmountPaise = totalAmountPaise * 50 / 100;
-        long balanceAmountPaise = totalAmountPaise - advanceAmountPaise;
+        long totalAmountPaise, advanceAmountPaise, balanceAmountPaise;
+        if (bespoke != null) {
+            // Frontend already computed total; trust it.
+            totalAmountPaise   = bespoke.total;
+            advanceAmountPaise = bespoke.advance > 0 ? bespoke.advance : totalAmountPaise * 60 / 100;
+            balanceAmountPaise = totalAmountPaise - advanceAmountPaise;
+            // Route the money into the line-item field that best matches the
+            // type so the admin expandable row shows it in a sensible place.
+            decorationPaise = 0L;
+            cakePaise       = 0L;
+            staffPaise      = 0L;
+            servicesEstPaise = 0L;
+            switch (bespoke.type) {
+                case "EVENT_DECOR":      decorationPaise  = bespoke.total; break;
+                case "DESIGNER_CAKE":    cakePaise        = bespoke.total; break;
+                case "STAFF_HIRE":       staffPaise       = bespoke.total; break;
+                case "LIVE_MUSIC":
+                case "PANDIT_PUJA":
+                case "APPLIANCE_RENTAL":
+                default:                 servicesEstPaise = bespoke.total; break;
+            }
+        } else {
+            totalAmountPaise   = totalFoodPaise + decorationPaise + cakePaise + staffPaise + servicesEstPaise;
+            advanceAmountPaise = totalAmountPaise * 50 / 100;
+            balanceAmountPaise = totalAmountPaise - advanceAmountPaise;
+        }
         long platformFeePaise = totalAmountPaise * 15 / 100;
         long chefEarningsPaise = totalAmountPaise - platformFeePaise;
 

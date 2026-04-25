@@ -579,6 +579,149 @@ export const adminApi = {
     return axios.delete(`${BASE}/chef-events/pricing/admin/${itemKey}`, { headers: authHeaders(token) }).then(r => r.data);
   },
 
+  // ── Partner Vendors (admin-onboarded providers for bespoke services) ──
+  listVendors(token: string, serviceType: string, activeOnly = false) {
+    const qs = new URLSearchParams({ serviceType, activeOnly: String(activeOnly) });
+    return axios.get(`${BASE}/vendors/admin?${qs}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  getVendor(id: string, token: string) {
+    return axios.get(`${BASE}/vendors/admin/${id}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  listEligibleVendors(token: string, serviceType: string, city?: string) {
+    const qs = new URLSearchParams({ serviceType });
+    if (city) qs.set('city', city);
+    return axios.get(`${BASE}/vendors/admin/eligible?${qs}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  createVendor(data: any, token: string) {
+    return axios.post(`${BASE}/vendors/admin`, data, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  updateVendor(id: string, data: any, token: string) {
+    return axios.put(`${BASE}/vendors/admin/${id}`, data, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  setVendorActive(id: string, value: boolean, token: string) {
+    return axios.post(`${BASE}/vendors/admin/${id}/active?value=${value}`, {}, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  verifyVendorKyc(id: string, verified: boolean, notes: string | null, token: string) {
+    return axios.post(`${BASE}/vendors/admin/${id}/kyc`, { verified, notes }, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  deleteVendor(id: string, token: string) {
+    return axios.delete(`${BASE}/vendors/admin/${id}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  // Vendor assignment on a specific event booking
+  getActiveBookingVendor(bookingId: string, token: string) {
+    return axios.get(`${BASE}/chef-events/${bookingId}/vendor`, { headers: authHeaders(token) })
+      .then(r => r.data).catch(() => null);
+  },
+  listBookingVendorHistory(bookingId: string, token: string) {
+    return axios.get(`${BASE}/chef-events/${bookingId}/vendors`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  assignBookingVendor(bookingId: string, data: { vendorId: string; payoutPaise?: number; adminNotes?: string }, token: string) {
+    return axios.post(`${BASE}/chef-events/${bookingId}/assign-vendor`, data, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  confirmBookingVendor(bookingId: string, assignmentId: string, token: string) {
+    return axios.post(`${BASE}/chef-events/${bookingId}/vendor/${assignmentId}/confirm`, {}, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  markBookingVendorDelivered(bookingId: string, assignmentId: string, token: string) {
+    return axios.post(`${BASE}/chef-events/${bookingId}/vendor/${assignmentId}/delivered`, {}, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  cancelBookingVendor(bookingId: string, assignmentId: string, reason: string, token: string) {
+    const qs = reason ? `?reason=${encodeURIComponent(reason)}` : '';
+    return axios.post(`${BASE}/chef-events/${bookingId}/vendor/${assignmentId}/cancel${qs}`, {}, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  markBookingVendorPaid(bookingId: string, assignmentId: string, data: { payoutRef: string; payoutPaise?: number }, token: string) {
+    return axios.post(`${BASE}/chef-events/${bookingId}/vendor/${assignmentId}/mark-paid`, data, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  // ── Supply Chain: Suppliers ──────────────────────────────────────────
+  listSuppliers(token: string, activeOnly = false) {
+    return axios.get(`${BASE}/suppliers/admin?activeOnly=${activeOnly}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  getSupplier(id: string, token: string) {
+    return axios.get(`${BASE}/suppliers/admin/${id}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  createSupplier(data: any, token: string) {
+    return axios.post(`${BASE}/suppliers/admin`, data, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  updateSupplier(id: string, data: any, token: string) {
+    return axios.put(`${BASE}/suppliers/admin/${id}`, data, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  setSupplierActive(id: string, value: boolean, token: string) {
+    return axios.post(`${BASE}/suppliers/admin/${id}/active?value=${value}`, {}, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  verifySupplierKyc(id: string, verified: boolean, notes: string | null, token: string) {
+    return axios.post(`${BASE}/suppliers/admin/${id}/kyc`, { verified, notes }, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  deleteSupplier(id: string, token: string) {
+    return axios.delete(`${BASE}/suppliers/admin/${id}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  // Catalog
+  listSupplierCatalog(supplierId: string, token: string, activeOnly = true) {
+    return axios.get(`${BASE}/suppliers/admin/${supplierId}/catalog?activeOnly=${activeOnly}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  addCatalogItem(supplierId: string, data: any, token: string) {
+    return axios.post(`${BASE}/suppliers/admin/${supplierId}/catalog`, data, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  updateCatalogItem(supplierId: string, itemId: string, data: any, token: string) {
+    return axios.put(`${BASE}/suppliers/admin/${supplierId}/catalog/${itemId}`, data, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  deleteCatalogItem(supplierId: string, itemId: string, token: string) {
+    return axios.delete(`${BASE}/suppliers/admin/${supplierId}/catalog/${itemId}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  // ── Supply Chain: Purchase Orders ────────────────────────────────────
+  listPurchaseOrders(token: string, params?: { status?: string; supplierId?: string }) {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set('status', params.status);
+    if (params?.supplierId) qs.set('supplierId', params.supplierId);
+    return axios.get(`${BASE}/purchase-orders/admin${qs.toString() ? `?${qs}` : ''}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  listOverduePurchaseOrders(token: string) {
+    return axios.get(`${BASE}/purchase-orders/admin/overdue`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  getPurchaseOrder(id: string, token: string) {
+    return axios.get(`${BASE}/purchase-orders/admin/${id}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  getPurchaseOrderItems(id: string, token: string) {
+    return axios.get(`${BASE}/purchase-orders/admin/${id}/items`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  createPurchaseOrder(data: any, token: string) {
+    return axios.post(`${BASE}/purchase-orders/admin`, data, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  transitionPurchaseOrder(id: string, action: 'issue' | 'ack' | 'in-transit' | 'deliver', token: string) {
+    return axios.post(`${BASE}/purchase-orders/admin/${id}/${action}`, {}, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  invoicePurchaseOrder(id: string, data: { invoiceNumber: string; invoicePaise: number }, token: string) {
+    return axios.post(`${BASE}/purchase-orders/admin/${id}/invoice`, data, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  payPurchaseOrder(id: string, paymentRef: string, token: string) {
+    return axios.post(`${BASE}/purchase-orders/admin/${id}/pay`, { paymentRef }, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  cancelPurchaseOrder(id: string, reason: string, token: string) {
+    const qs = reason ? `?reason=${encodeURIComponent(reason)}` : '';
+    return axios.post(`${BASE}/purchase-orders/admin/${id}/cancel${qs}`, {}, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
+  // ── Supply Chain: Stock ──────────────────────────────────────────────
+  listStock(token: string, params?: { category?: string; lowOnly?: boolean }) {
+    const qs = new URLSearchParams();
+    if (params?.category) qs.set('category', params.category);
+    if (params?.lowOnly != null) qs.set('lowOnly', String(params.lowOnly));
+    return axios.get(`${BASE}/stock/admin${qs.toString() ? `?${qs}` : ''}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  getStockItem(itemKey: string, token: string) {
+    return axios.get(`${BASE}/stock/admin/items/${itemKey}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  getStockMovements(itemKey: string, token: string) {
+    return axios.get(`${BASE}/stock/admin/items/${itemKey}/movements`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  upsertStockItem(data: any, token: string) {
+    return axios.post(`${BASE}/stock/admin/items`, data, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  adjustStock(itemKey: string, data: { qtyDelta: number; reason: string; notes?: string }, token: string) {
+    return axios.post(`${BASE}/stock/admin/items/${itemKey}/adjust`, data, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
   // ── Generic S3 upload via presigned PUT (matches safar-web helper) ────
   async uploadFile(file: File, folder: string, token: string): Promise<string> {
     const presign = await axios.post<{ uploadUrl: string; publicUrl: string }>(

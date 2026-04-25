@@ -392,6 +392,20 @@ spring:
           predicates:
             - Path=/api/v1/flights,/api/v1/flights/**
 
+        # ── Supply Chain (supply-service) ─────────────────────────────────
+        - id: suppliers
+          uri: ${SUPPLY_SERVICE_URL:http://localhost:8096}
+          predicates:
+            - Path=/api/v1/suppliers,/api/v1/suppliers/**
+        - id: purchase-orders
+          uri: ${SUPPLY_SERVICE_URL:http://localhost:8096}
+          predicates:
+            - Path=/api/v1/purchase-orders,/api/v1/purchase-orders/**
+        - id: stock
+          uri: ${SUPPLY_SERVICE_URL:http://localhost:8096}
+          predicates:
+            - Path=/api/v1/stock,/api/v1/stock/**
+
         # ── Lead Capture (user-service) ──────────────────────────────────────
         - id: leads
           uri: ${USER_SERVICE_URL:http://localhost:8092}

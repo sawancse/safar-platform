@@ -122,6 +122,16 @@ export default function CooksPage() {
   const [assignModal, setAssignModal] = useState<{ visible: boolean; type: 'booking' | 'event'; id: string } | null>(null);
   const [selectedChef, setSelectedChef] = useState<string | null>(null);
 
+  // ── Vendor assignment (for bespoke event types) ──
+  const [vendorModal, setVendorModal] = useState<{ visible: boolean; bookingId: string; serviceType: string; city?: string } | null>(null);
+  const [eligibleVendors, setEligibleVendors] = useState<any[]>([]);
+  const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
+  const [vendorPayoutOverride, setVendorPayoutOverride] = useState<number | null>(null);
+  const [vendorAdminNotes, setVendorAdminNotes] = useState('');
+  const [vendorByBookingId, setVendorByBookingId] = useState<Record<string, any | null>>({});
+  const [payoutModal, setPayoutModal] = useState<{ visible: boolean; bookingId: string; assignmentId: string; payoutPaise?: number } | null>(null);
+  const [payoutRef, setPayoutRef] = useState('');
+
   const loadData = () => {
     setLoading(true);
     Promise.all([
@@ -169,6 +179,92 @@ export default function CooksPage() {
       setAssignModal(null); setSelectedChef(null); loadData();
     } catch { message.error('Failed to assign chef'); }
   };
+
+  // ── Bespoke vendor assignment helpers ──
+  const bespokeServiceType = (raw?: string): string | null => {
+    if (!raw) return null;
+    try {
+      const t = JSON.parse(raw)?.type;
+      if (typeof t === 'string') {
+        const allowed = ['CAKE_DESIGNER', 'EVENT_DECOR', 'PANDIT_PUJA', 'LIVE_MUSIC', 'APPLIANCE_RENTAL', 'STAFF_HIRE'];
+        return allowed.includes(t) ? t : null;
+      }
+    } catch { /* legacy menu_description, no type */ }
+    return null;
+  };
+
+  const fetchVendorForBooking = async (bookingId: string) => {
+    try {
+      const v = await adminApi.getActiveBookingVendor(bookingId, token);
+      setVendorByBookingId(prev => ({ ...prev, [bookingId]: v }));
+    } catch { /* leave as undefined */ }
+  };
+
+  const openVendorModal = async (row: any) => {
+    const serviceType = bespokeServiceType(row.menuDescription);
+    if (!serviceType) return;
+    setVendorModal({ visible: true, bookingId: row.id, serviceType, city: row.city });
+    setSelectedVendorId(null);
+    setVendorPayoutOverride(null);
+    setVendorAdminNotes('');
+    try {
+      const list = await adminApi.listEligibleVendors(token, serviceType, row.city);
+      setEligibleVendors(Array.isArray(list) ? list : []);
+    } catch (e: any) {
+      message.error(e?.response?.data?.message || 'Failed to load vendors');
+      setEligibleVendors([]);
+    }
+  };
+
+  const handleAssignVendor = async () => {
+    if (!vendorModal || !selectedVendorId) return;
+    try {
+      const data: any = { vendorId: selectedVendorId, adminNotes: vendorAdminNotes || undefined };
+      if (vendorPayoutOverride != null) data.payoutPaise = Math.round(vendorPayoutOverride * 100);
+      const result = await adminApi.assignBookingVendor(vendorModal.bookingId, data, token);
+      message.success(`Assigned ${result.vendorBusinessName}`);
+      setVendorByBookingId(prev => ({ ...prev, [vendorModal.bookingId]: result }));
+      setVendorModal(null);
+    } catch (e: any) {
+      message.error(e?.response?.data?.message || 'Assignment failed');
+    }
+  };
+
+  const handleVendorDelivered = async (bookingId: string, assignmentId: string) => {
+    try {
+      const result = await adminApi.markBookingVendorDelivered(bookingId, assignmentId, token);
+      message.success('Marked delivered');
+      setVendorByBookingId(prev => ({ ...prev, [bookingId]: result }));
+    } catch (e: any) {
+      message.error(e?.response?.data?.message || 'Update failed');
+    }
+  };
+
+  const handleMarkVendorPaid = async () => {
+    if (!payoutModal || !payoutRef.trim()) { message.warning('Enter payout reference (NEFT UTR)'); return; }
+    try {
+      const data: any = { payoutRef: payoutRef.trim() };
+      if (payoutModal.payoutPaise != null) data.payoutPaise = payoutModal.payoutPaise;
+      const result = await adminApi.markBookingVendorPaid(payoutModal.bookingId, payoutModal.assignmentId, data, token);
+      message.success('Payout recorded');
+      setVendorByBookingId(prev => ({ ...prev, [payoutModal.bookingId]: result }));
+      setPayoutModal(null);
+      setPayoutRef('');
+    } catch (e: any) {
+      message.error(e?.response?.data?.message || 'Update failed');
+    }
+  };
+
+  // Lazy-load vendor info for visible bespoke events on first paint.
+  useEffect(() => {
+    events.forEach(e => {
+      const t = bespokeServiceType(e.menuDescription);
+      if (t && vendorByBookingId[e.id] === undefined) {
+        fetchVendorForBooking(e.id);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events]);
 
   // ── Cancel / Complete handlers ──
   const [cancelModal, setCancelModal] = useState<{ visible: boolean; type: 'booking' | 'event'; id: string; ref: string } | null>(null);
@@ -422,6 +518,45 @@ export default function CooksPage() {
       filters: Object.keys(eventStatusColor).map(k => ({ text: k, value: k })),
       onFilter: (val: any, r: any) => r.status === val,
     },
+    { title: 'Vendor', width: 200,
+      render: (_: any, r: any) => {
+        const serviceType = bespokeServiceType(r.menuDescription);
+        if (!serviceType) return <span style={{ color: '#bbb', fontSize: 11 }}>—</span>;
+        const v = vendorByBookingId[r.id];
+        if (v === undefined) return <span style={{ color: '#bbb', fontSize: 11 }}>…</span>;
+        if (!v) {
+          return (
+            <Button size="small" type="dashed" onClick={() => openVendorModal(r)}>
+              Assign Vendor
+            </Button>
+          );
+        }
+        return (
+          <div style={{ fontSize: 11 }}>
+            <div style={{ fontWeight: 600 }}>{v.vendorBusinessName}</div>
+            <div style={{ color: '#6b7280' }}>{v.vendorPhone}</div>
+            <Space size={4} style={{ marginTop: 2 }} wrap>
+              <Tag color={v.status === 'DELIVERED' ? 'green' : v.status === 'CONFIRMED' ? 'blue' : v.status === 'CANCELLED' ? 'red' : 'orange'}>
+                {v.status}
+              </Tag>
+              {v.payoutStatus === 'PAID' && <Tag color="green">PAID</Tag>}
+              {v.status !== 'DELIVERED' && v.status !== 'CANCELLED' && (
+                <Button size="small" type="link" style={{ padding: 0, fontSize: 11 }}
+                  onClick={() => handleVendorDelivered(r.id, v.id)}>
+                  Mark delivered
+                </Button>
+              )}
+              {v.status === 'DELIVERED' && v.payoutStatus !== 'PAID' && (
+                <Button size="small" type="link" style={{ padding: 0, fontSize: 11 }}
+                  onClick={() => { setPayoutModal({ visible: true, bookingId: r.id, assignmentId: v.id, payoutPaise: v.payoutPaise }); setPayoutRef(''); }}>
+                  Mark paid
+                </Button>
+              )}
+            </Space>
+          </div>
+        );
+      },
+    },
     { title: 'Actions', width: 220, fixed: 'right' as const,
       render: (_: any, r: any) => (
         <Space size="small" wrap>
@@ -662,6 +797,66 @@ export default function CooksPage() {
         </div>
         <Input.TextArea rows={3} placeholder="Cancellation reason (required)"
           value={cancelReason} onChange={e => setCancelReason(e.target.value)} />
+      </Modal>
+
+      {/* Assign Vendor Modal (bespoke services only) */}
+      <Modal
+        title={`Assign Vendor — ${vendorModal?.serviceType?.replace('_', ' ')}`}
+        open={!!vendorModal?.visible}
+        onOk={handleAssignVendor}
+        onCancel={() => setVendorModal(null)}
+        okText="Assign" okButtonProps={{ disabled: !selectedVendorId }}
+        width={680}
+      >
+        <div style={{ marginBottom: 12, color: '#6b7280', fontSize: 13 }}>
+          {eligibleVendors.length === 0
+            ? <span style={{ color: '#dc2626' }}>No verified vendors found{vendorModal?.city ? ` for ${vendorModal.city}` : ''}. Add one in <a href="/vendors">Vendors</a>.</span>
+            : `${eligibleVendors.length} verified vendor(s) available${vendorModal?.city ? ` for ${vendorModal.city}` : ''}.`}
+        </div>
+        <Select
+          showSearch style={{ width: '100%' }} placeholder="Pick a vendor"
+          value={selectedVendorId} onChange={setSelectedVendorId} optionFilterProp="label"
+          options={eligibleVendors.map(v => ({
+            value: v.id,
+            label: `${v.businessName} — ${v.phone}${v.ratingAvg ? ` — ⭐${Number(v.ratingAvg).toFixed(1)} (${v.ratingCount})` : ' — New'} — ${v.jobsCompleted || 0} jobs`,
+          }))}
+        />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12, marginTop: 16 }}>
+          <div>
+            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Payout to vendor (₹, optional)</div>
+            <Input
+              type="number" placeholder="Defaults to booking total"
+              value={vendorPayoutOverride ?? ''}
+              onChange={e => setVendorPayoutOverride(e.target.value ? Number(e.target.value) : null)}
+            />
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Admin notes (optional)</div>
+            <Input
+              placeholder="Any specifics for this vendor"
+              value={vendorAdminNotes}
+              onChange={e => setVendorAdminNotes(e.target.value)}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Mark Vendor Paid Modal */}
+      <Modal
+        title="Record Vendor Payout"
+        open={!!payoutModal?.visible}
+        onOk={handleMarkVendorPaid}
+        onCancel={() => { setPayoutModal(null); setPayoutRef(''); }}
+        okText="Mark Paid" okButtonProps={{ disabled: !payoutRef.trim() }}
+      >
+        <div style={{ marginBottom: 12, color: '#6b7280', fontSize: 13 }}>
+          Payout amount: <strong>{payoutModal?.payoutPaise ? INR(payoutModal.payoutPaise) : '—'}</strong>.
+          Enter the NEFT UTR / Razorpay payout reference after transferring to the vendor.
+        </div>
+        <Input
+          placeholder="NEFT UTR or payout reference"
+          value={payoutRef} onChange={e => setPayoutRef(e.target.value)}
+        />
       </Modal>
 
       {/* Dish Create/Edit Modal */}

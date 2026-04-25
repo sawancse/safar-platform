@@ -1,14 +1,18 @@
 package com.safar.chef.controller;
 
 import com.safar.chef.dto.AssignStaffRequest;
+import com.safar.chef.dto.AssignVendorRequest;
 import com.safar.chef.dto.CreateEventBookingRequest;
+import com.safar.chef.dto.MarkVendorPayoutRequest;
 import com.safar.chef.dto.ModifyEventBookingRequest;
+import com.safar.chef.dto.VendorAssignmentResponse;
 import com.safar.chef.entity.EventBooking;
 import com.safar.chef.entity.EventBookingStaff;
 import com.safar.chef.repository.ChefProfileRepository;
 import com.safar.chef.repository.EventBookingStaffRepository;
 import com.safar.chef.service.EventBookingService;
 import com.safar.chef.service.EventBookingStaffService;
+import com.safar.chef.service.EventBookingVendorService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +33,7 @@ public class EventBookingController {
 
     private final EventBookingService eventBookingService;
     private final EventBookingStaffService eventBookingStaffService;
+    private final EventBookingVendorService eventBookingVendorService;
     private final ChefProfileRepository chefProfileRepo;
     private final EventBookingStaffRepository eventBookingStaffRepo;
 
@@ -155,6 +160,64 @@ public class EventBookingController {
                                                         @RequestParam(required = false) String comment) {
         UUID userId = UUID.fromString(auth.getName());
         return ResponseEntity.ok(eventBookingStaffService.rate(userId, id, staffId, stars, comment));
+    }
+
+    // ── Vendor assignment (admin assigns external vendor to a bespoke booking) ──
+
+    @GetMapping("/{id}/vendor")
+    public ResponseEntity<VendorAssignmentResponse> getActiveVendor(@PathVariable UUID id) {
+        VendorAssignmentResponse a = eventBookingVendorService.activeForBooking(id);
+        if (a == null) return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(a);
+    }
+
+    @GetMapping("/{id}/vendors")
+    public ResponseEntity<List<VendorAssignmentResponse>> listVendorHistory(Authentication auth,
+                                                                             @PathVariable UUID id) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(eventBookingVendorService.listForBooking(id));
+    }
+
+    @PostMapping("/{id}/assign-vendor")
+    public ResponseEntity<VendorAssignmentResponse> assignVendor(Authentication auth,
+                                                                  @PathVariable UUID id,
+                                                                  @RequestBody AssignVendorRequest req) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(eventBookingVendorService.assign(id, req));
+    }
+
+    @PostMapping("/{id}/vendor/{assignmentId}/confirm")
+    public ResponseEntity<VendorAssignmentResponse> confirmVendor(Authentication auth,
+                                                                   @PathVariable UUID id,
+                                                                   @PathVariable UUID assignmentId) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(eventBookingVendorService.confirm(id, assignmentId));
+    }
+
+    @PostMapping("/{id}/vendor/{assignmentId}/delivered")
+    public ResponseEntity<VendorAssignmentResponse> markVendorDelivered(Authentication auth,
+                                                                         @PathVariable UUID id,
+                                                                         @PathVariable UUID assignmentId) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(eventBookingVendorService.markDelivered(id, assignmentId));
+    }
+
+    @PostMapping("/{id}/vendor/{assignmentId}/cancel")
+    public ResponseEntity<VendorAssignmentResponse> cancelVendor(Authentication auth,
+                                                                  @PathVariable UUID id,
+                                                                  @PathVariable UUID assignmentId,
+                                                                  @RequestParam(required = false) String reason) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(eventBookingVendorService.cancel(id, assignmentId, reason));
+    }
+
+    @PostMapping("/{id}/vendor/{assignmentId}/mark-paid")
+    public ResponseEntity<VendorAssignmentResponse> markVendorPaid(Authentication auth,
+                                                                    @PathVariable UUID id,
+                                                                    @PathVariable UUID assignmentId,
+                                                                    @RequestBody MarkVendorPayoutRequest req) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(eventBookingVendorService.markPaid(id, assignmentId, req));
     }
 
     @PostMapping("/{id}/quote")

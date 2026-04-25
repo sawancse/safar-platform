@@ -16,6 +16,10 @@ import RoomOccupancyPage from './pages/RoomOccupancyPage';
 import CooksPage from './pages/CooksPage';
 import StaffPoolPage from './pages/StaffPoolPage';
 import EventPricingPage from './pages/EventPricingPage';
+import PartnerVendorsPage from './pages/PartnerVendorsPage';
+import SuppliersPage from './pages/SuppliersPage';
+import PurchaseOrdersPage from './pages/PurchaseOrdersPage';
+import StockPage from './pages/StockPage';
 import DonorsPage from './pages/DonorsPage';
 import ExperiencesPage from './pages/ExperiencesPage';
 import AgreementsPage from './pages/AgreementsPage';
@@ -62,6 +66,10 @@ export default function App() {
         <Route path="cooks" element={<CooksPage />} />
         <Route path="staff-pool" element={<StaffPoolPage />} />
         <Route path="event-pricing" element={<EventPricingPage />} />
+        <Route path="vendors" element={<PartnerVendorsPage />} />
+        <Route path="suppliers" element={<SuppliersPage />} />
+        <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
+        <Route path="stock" element={<StockPage />} />
         <Route path="donors" element={<DonorsPage />} />
         <Route path="experiences" element={<ExperiencesPage />} />
         <Route path="agreements" element={<AgreementsPage />} />

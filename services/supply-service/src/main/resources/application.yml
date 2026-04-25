@@ -1,0 +1,83 @@
+server:
+  port: 8096
+  tomcat:
+    threads:
+      max: 5
+      min-spare: 5
+    max-connections: 25
+    accept-count: 25
+    connection-timeout: 2000
+
+spring:
+  application:
+    name: supply-service
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/safar}
+    username: ${SPRING_DATASOURCE_USERNAME:safar}
+    password: ${SPRING_DATASOURCE_PASSWORD:safar}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      idle-timeout: 30000
+      connection-timeout: 10000
+      leak-detection-threshold: 60000
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+    show-sql: false
+    properties:
+      hibernate:
+        default_schema: supply
+
+  flyway:
+    enabled: true
+    schemas: supply
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+jwt:
+  secret: ${JWT_SECRET:l0UNaBuoYCf7Y/G8G1bihPxkUI7NZuPaZdzTbbEYqzM=}
+
+# Supplier adapter framework. Master switch — when false, ManualSupplierAdapter
+# alone runs and the registry is wired but never invoked from the PO state machine.
+# Flip to true ONLY after at least one real integration (Udaan / FNP) has signed
+# MSA + sandbox creds + filled-in HTTP calls.
+supply:
+  adapters:
+    enabled: ${SUPPLY_ADAPTERS_ENABLED:false}
+
+# Per-supplier integration credentials. Empty by default — fill in once
+# sandbox creds arrive. NEVER commit real prod keys; use env vars / secrets.
+udaan:
+  base-url: ${UDAAN_BASE_URL:https://api.udaan.com}
+  api-key:  ${UDAAN_API_KEY:}
+
+fnp:
+  base-url:   ${FNP_BASE_URL:https://api.fnp.com/b2b/v2}
+  partner-id: ${FNP_PARTNER_ID:}
+  token:     ${FNP_TOKEN:}
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+springdoc:
+  api-docs.path: /api-docs
+  swagger-ui.path: /swagger-ui.html

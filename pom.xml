@@ -26,6 +26,7 @@
         <module>services/messaging-service</module>
         <module>services/chef-service</module>
         <module>services/flight-service</module>
+        <module>services/supply-service</module>
     </modules>
 
     <parent>
