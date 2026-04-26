@@ -51,6 +51,29 @@ public class Trip {
     @Column(length = 120)
     private String destinationCity;
 
+    /** ISO-3166-1 alpha-2 country code (e.g. 'IN', 'AE', 'SG'). Multi-country ready. */
+    @Column(nullable = false, length = 2)
+    @Builder.Default
+    private String originCountry = "IN";
+
+    @Column(nullable = false, length = 2)
+    @Builder.Default
+    private String destinationCountry = "IN";
+
+    /** ISO-3166-2 subdivision (e.g. 'IN-KA' for Karnataka, 'AE-DU' for Dubai). */
+    @Column(length = 10)
+    private String originState;
+
+    @Column(length = 10)
+    private String destinationState;
+
+    /** Safar-defined broader bucket for routing rules (e.g. 'SOUTH_INDIA', 'GULF', 'SE_ASIA'). */
+    @Column(length = 30)
+    private String originRegion;
+
+    @Column(length = 30)
+    private String destinationRegion;
+
     private LocalDate startDate;
     private LocalDate endDate;
 
