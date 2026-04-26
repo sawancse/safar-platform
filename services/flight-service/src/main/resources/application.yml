@@ -72,6 +72,14 @@ duffel:
   payment-currency: ${DUFFEL_PAYMENT_CURRENCY:INR}
   webhook-secret: ${DUFFEL_WEBHOOK_SECRET:}        # blank → webhook accepts unsigned (dev only)
 
+tbo:
+  enabled: ${TBO_ENABLED:false}                    # MASTER SWITCH — flip when sandbox creds arrive
+  username: ${TBO_USERNAME:}
+  password: ${TBO_PASSWORD:}
+  agency-id: ${TBO_AGENCY_ID:}
+  base-url: ${TBO_BASE_URL:https://Affiliate.tektravels.com}
+  payment-currency: ${TBO_PAYMENT_CURRENCY:INR}
+
 services:
   payment-service:
     url: ${PAYMENT_SERVICE_URL:http://localhost:8086}

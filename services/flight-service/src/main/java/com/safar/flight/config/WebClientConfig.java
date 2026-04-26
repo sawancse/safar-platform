@@ -18,6 +18,9 @@ public class WebClientConfig {
     @Value("${duffel.base-url:https://api.duffel.com}")
     private String duffelBaseUrl;
 
+    @Value("${tbo.base-url:https://Affiliate.tektravels.com}")
+    private String tboBaseUrl;
+
     @Bean
     public WebClient amadeusWebClient(WebClient.Builder builder) {
         return builder
@@ -31,6 +34,15 @@ public class WebClientConfig {
     public WebClient duffelWebClient(WebClient.Builder builder) {
         return builder
                 .baseUrl(duffelBaseUrl)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
+    @Bean
+    public WebClient tboWebClient(WebClient.Builder builder) {
+        return builder
+                .baseUrl(tboBaseUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .build();
