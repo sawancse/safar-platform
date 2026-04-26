@@ -51,6 +51,13 @@ public class Trip {
     @Column(length = 120)
     private String destinationCity;
 
+    /** IATA airport code (e.g. 'BLR'). Used by TripIntentEvaluator for DESTINATION/ROUTE rule matching. */
+    @Column(length = 5)
+    private String originCode;
+
+    @Column(length = 5)
+    private String destinationCode;
+
     /** ISO-3166-1 alpha-2 country code (e.g. 'IN', 'AE', 'SG'). Multi-country ready. */
     @Column(nullable = false, length = 2)
     @Builder.Default

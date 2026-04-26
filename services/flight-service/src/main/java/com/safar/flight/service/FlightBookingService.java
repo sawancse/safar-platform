@@ -207,6 +207,21 @@ public class FlightBookingService {
         return "SF-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
+    /**
+     * Pax count from the persisted passengersJson array. Used by the
+     * cross-vertical Trip engine downstream — GROUP rules ("4+ pax wedding
+     * bundle") only fire when this is set correctly.
+     */
+    private int parsePassengerCount(String passengersJson) {
+        if (passengersJson == null || passengersJson.isBlank()) return 1;
+        try {
+            var node = objectMapper.readTree(passengersJson);
+            return node.isArray() ? Math.max(1, node.size()) : 1;
+        } catch (Exception e) {
+            return 1;
+        }
+    }
+
     private FlightBookingResponse toResponse(FlightBooking b) {
         return new FlightBookingResponse(
                 b.getId(), b.getUserId(), b.getBookingRef(), b.getDuffelOrderId(),
@@ -247,6 +262,7 @@ public class FlightBookingService {
             event.put("isInternational", booking.getIsInternational());
             event.put("contactEmail", Optional.ofNullable(booking.getContactEmail()).orElse(""));
             event.put("contactPhone", Optional.ofNullable(booking.getContactPhone()).orElse(""));
+            event.put("passengerCount", parsePassengerCount(booking.getPassengersJson()));
             if (booking.getRefundAmountPaise() != null) event.put("refundAmountPaise", booking.getRefundAmountPaise());
             if (booking.getPaymentStatus() != null) event.put("paymentStatus", booking.getPaymentStatus());
 

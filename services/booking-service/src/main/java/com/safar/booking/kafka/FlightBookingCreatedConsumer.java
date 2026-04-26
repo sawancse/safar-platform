@@ -55,9 +55,10 @@ public class FlightBookingCreatedConsumer {
             LocalDate departureDate = !departureDateStr.isBlank() ? LocalDate.parse(departureDateStr) : null;
             LocalDate returnDate = !returnDateStr.isBlank() ? LocalDate.parse(returnDateStr) : null;
 
-            // Pax count is not on the event payload today; default to 1.
-            // TODO: extend flight-service publishEvent() with passengerCount to drive better Trip Intent matching
-            Integer paxCount = 1;
+            // Pax count from the Kafka event (added in flight-service publishEvent()).
+            // Falls back to 1 for legacy events that pre-date the field.
+            int paxCount = node.path("passengerCount").asInt(1);
+            if (paxCount < 1) paxCount = 1;
 
             Long totalAmountPaise = node.path("totalAmountPaise").asLong(0);
             String currency = node.path("currency").asText("INR");

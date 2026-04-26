@@ -5,6 +5,7 @@ import com.safar.booking.entity.TripLeg;
 import com.safar.booking.entity.enums.LegType;
 import com.safar.booking.service.TripIntentEvaluator;
 import com.safar.booking.service.TripService;
+import com.safar.booking.service.UserClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -36,6 +37,7 @@ public class TripController {
 
     private final TripService tripService;
     private final TripIntentEvaluator intentEvaluator;
+    private final UserClient userClient;
 
     @GetMapping("/{id}")
     public ResponseEntity<Trip> getTrip(@PathVariable UUID id) {
@@ -62,7 +64,11 @@ public class TripController {
     @GetMapping("/{id}/suggestions")
     public ResponseEntity<SuggestionsResponse> getSuggestions(@PathVariable UUID id) {
         Trip trip = tripService.findById(id);
-        TripIntentEvaluator.Result result = intentEvaluator.evaluateForTrip(trip);
+        // Fetch user flags so MEDICAL/HISTORY rules can fire — empty Set today
+        // (user-service /flags endpoint not yet built); MEDICAL rules will
+        // light up automatically when it ships.
+        var userFlags = userClient.getUserFlags(trip.getUserId());
+        TripIntentEvaluator.Result result = intentEvaluator.evaluateForTrip(trip, userFlags);
         return ResponseEntity.ok(new SuggestionsResponse(
                 trip.getId(),
                 result.intent().name(),

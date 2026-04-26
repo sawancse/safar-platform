@@ -42,6 +42,7 @@ public class TripService {
     @Transactional
     public Trip create(UUID userId, String tripName,
                        String originCity, String destinationCity,
+                       String originCode, String destinationCode,
                        String originCountry, String destinationCountry,
                        LocalDate startDate, LocalDate endDate,
                        Integer paxCount, TripIntent intent) {
@@ -50,6 +51,8 @@ public class TripService {
                 .tripName(tripName != null ? tripName : defaultTripName(originCity, destinationCity, startDate))
                 .originCity(originCity)
                 .destinationCity(destinationCity)
+                .originCode(originCode)
+                .destinationCode(destinationCode)
                 .originCountry(originCountry != null ? originCountry : "IN")
                 .destinationCountry(destinationCountry != null ? destinationCountry : "IN")
                 .startDate(startDate)
@@ -99,6 +102,7 @@ public class TripService {
         Trip trip = create(userId, tripName,
                 originCity != null ? originCity : originCityCode,
                 destinationCity != null ? destinationCity : destinationCityCode,
+                originCityCode, destinationCityCode,
                 originCountry, destinationCountry,
                 departureDate, endDate, paxCount, null);
 

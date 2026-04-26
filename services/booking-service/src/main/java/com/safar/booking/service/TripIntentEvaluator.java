@@ -96,18 +96,21 @@ public class TripIntentEvaluator {
      * Used by TripController.suggestions().
      */
     public Result evaluateForTrip(Trip trip) {
+        return evaluateForTrip(trip, Set.of());
+    }
+
+    public Result evaluateForTrip(Trip trip, Set<String> userFlags) {
         TripContext ctx = new TripContext();
-        ctx.origin = null;                   // trips table stores city names, not IATA. Engine matches on city codes
-        ctx.destination = null;              // — this evaluator returns FALLBACK for trips without explicit codes;
-                                             // future: extend Trip schema with origin/destination IATA, or seed rules with city-name matches.
+        ctx.origin = trip.getOriginCode();             // IATA (e.g. 'BLR') from V47
+        ctx.destination = trip.getDestinationCode();
+        ctx.originCity = trip.getOriginCity();
+        ctx.destinationCity = trip.getDestinationCity();
         ctx.originCountry = trip.getOriginCountry();
         ctx.destinationCountry = trip.getDestinationCountry();
         ctx.departureDate = trip.getStartDate();
         ctx.returnDate = trip.getEndDate();
         ctx.pax = trip.getPaxCount() != null ? trip.getPaxCount() : 1;
-        ctx.userFlags = Set.of();            // user-flags resolved at higher layer (TripController) once we have UserClient
-        ctx.destinationCity = trip.getDestinationCity();
-        ctx.originCity = trip.getOriginCity();
+        ctx.userFlags = userFlags != null ? userFlags : Set.of();
         return evaluate(ctx);
     }
 
