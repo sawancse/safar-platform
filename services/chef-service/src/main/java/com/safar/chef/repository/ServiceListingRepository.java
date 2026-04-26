@@ -23,6 +23,8 @@ public interface ServiceListingRepository extends JpaRepository<ServiceListing, 
 
     List<ServiceListing> findByServiceTypeAndStatus(String serviceType, ServiceListingStatus status);
 
+    List<ServiceListing> findByHasPendingChangesTrue();
+
     @Query("SELECT l FROM ServiceListing l WHERE l.status = 'VERIFIED' AND l.serviceType = :serviceType AND l.homeCity = :city")
     List<ServiceListing> findVerifiedByTypeAndCity(String serviceType, String city);
 

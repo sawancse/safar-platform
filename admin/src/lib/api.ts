@@ -680,6 +680,16 @@ export const adminApi = {
   cancelVendorInvite(id: string, token: string) {
     return axios.post(`${BASE}/services/admin/invites/${id}/cancel`, {}, { headers: authHeaders(token) }).then(r => r.data);
   },
+  // ── Pending changes (post-VERIFIED re-review) ──
+  listPendingChanges(token: string) {
+    return axios.get(`${BASE}/services/admin/listings/pending-changes`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  approvePendingChanges(listingId: string, token: string) {
+    return axios.post(`${BASE}/services/admin/listings/${listingId}/approve-changes`, {}, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  rejectPendingChanges(listingId: string, token: string) {
+    return axios.post(`${BASE}/services/admin/listings/${listingId}/reject-changes`, {}, { headers: authHeaders(token) }).then(r => r.data);
+  },
 
   // Vendor assignment on a specific event booking
   getActiveBookingVendor(bookingId: string, token: string) {

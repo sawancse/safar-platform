@@ -91,6 +91,29 @@ public class AdminServiceListingController {
             java.math.BigDecimal commissionPctOverride,
             String commissionOverrideReason) {}
 
+    // ── Pending changes (post-VERIFIED re-review) ────────────────
+
+    @GetMapping("/pending-changes")
+    public ResponseEntity<List<ServiceListingResponse>> queuePendingChanges(Authentication auth) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(listingService.listWithPendingChanges().stream()
+                .map(ServiceListingResponse::from).toList());
+    }
+
+    @PostMapping("/{id}/approve-changes")
+    public ResponseEntity<ServiceListingResponse> approveChanges(@PathVariable UUID id, Authentication auth) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(ServiceListingResponse.from(
+                listingService.approvePendingChanges(id, userId(auth))));
+    }
+
+    @PostMapping("/{id}/reject-changes")
+    public ResponseEntity<ServiceListingResponse> rejectChanges(@PathVariable UUID id, Authentication auth) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(ServiceListingResponse.from(
+                listingService.rejectPendingChanges(id, userId(auth))));
+    }
+
     @PutMapping("/{id}/commission-override")
     public ResponseEntity<ServiceListingResponse> setCommissionOverride(
             @PathVariable UUID id,

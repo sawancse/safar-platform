@@ -46,6 +46,9 @@ public record ServiceListingResponse(
         BigDecimal commissionPctOverride,
         String subscriptionPlan,
         OffsetDateTime subscriptionExpiresAt,
+        Boolean hasPendingChanges,
+        String pendingChanges,
+        OffsetDateTime pendingChangesSubmittedAt,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {
@@ -83,6 +86,9 @@ public record ServiceListingResponse(
                 l.getCommissionPctOverride(),
                 l.getSubscriptionPlan(),
                 l.getSubscriptionExpiresAt(),
+                l.getHasPendingChanges(),
+                l.getPendingChanges(),
+                l.getPendingChangesSubmittedAt(),
                 l.getCreatedAt(),
                 l.getUpdatedAt()
         );

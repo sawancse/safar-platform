@@ -141,6 +141,17 @@ public class ServiceListing {
     @Column(name = "commission_override_reason", columnDefinition = "TEXT")
     private String commissionOverrideReason;
 
+    // Post-VERIFIED re-review — material edits land here until admin approves
+    @Column(name = "has_pending_changes", nullable = false)
+    private Boolean hasPendingChanges = false;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "pending_changes", columnDefinition = "jsonb")
+    private String pendingChanges;
+
+    @Column(name = "pending_changes_submitted_at")
+    private OffsetDateTime pendingChangesSubmittedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

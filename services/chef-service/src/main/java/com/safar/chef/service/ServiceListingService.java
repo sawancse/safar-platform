@@ -16,6 +16,7 @@ import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -74,28 +75,142 @@ public class ServiceListingService {
         return saved;
     }
 
+    /**
+     * Material fields — edits to these on a VERIFIED listing route to
+     * pending_changes for admin re-review. Everything else applies silently.
+     *
+     * Why these specifically:
+     *  - businessName + slug = vendor identity, drives URL stability
+     *  - pricingPattern + pricingFormula = customer expectation guarantee;
+     *    a vendor silently changing per-kg from 500 to 5000 mid-day would
+     *    break trust
+     *  - homeCity / homeAddress / homePincode = legal coverage scope; can
+     *    affect FSSAI jurisdiction etc.
+     */
+    private static final Set<String> MATERIAL_FIELDS = Set.of(
+            "businessName", "vendorSlug",
+            "pricingPattern", "pricingFormula",
+            "homeCity", "homeAddress", "homePincode"
+    );
+
     @Transactional
     public ServiceListing update(UUID listingId, UpdateServiceListingRequest req, UUID vendorUserId) {
         ServiceListing existing = mustOwn(listingId, vendorUserId);
-        if (existing.getStatus() != ServiceListingStatus.DRAFT) {
+
+        ServiceListingStatus s = existing.getStatus();
+        if (s == ServiceListingStatus.SUSPENDED) {
+            throw new IllegalStateException("Cannot edit a SUSPENDED listing — contact support");
+        }
+        if (s == ServiceListingStatus.PENDING_REVIEW) {
             throw new IllegalStateException(
-                    "Only DRAFT listings can be edited; current=" + existing.getStatus());
+                    "Listing is awaiting admin review — cannot edit until approved or rejected");
         }
 
-        // Apply non-null fields onto the existing entity. Use objectMapper.updateValue
-        // for type-specific fields so the right child setters fire.
         Map<String, Object> patch = sharedFieldsFromUpdate(req);
         if (req.typeAttributes() != null) patch.putAll(req.typeAttributes());
 
+        // VERIFIED + PAUSED listings: split patch into material (re-review)
+        // and non-material (apply silently).
+        if (s == ServiceListingStatus.VERIFIED || s == ServiceListingStatus.PAUSED) {
+            return applyEditPostVerified(existing, patch, vendorUserId);
+        }
+
+        // DRAFT — no gate, apply directly.
+        applyPatch(existing, patch);
+        ServiceListing saved = repo.save(existing);
+        log.info("Updated DRAFT service listing {} by vendor {}", saved.getId(), vendorUserId);
+        return saved;
+    }
+
+    private ServiceListing applyEditPostVerified(ServiceListing existing, Map<String, Object> patch, UUID vendorUserId) {
+        Map<String, Object> material = new HashMap<>();
+        Map<String, Object> nonMaterial = new HashMap<>();
+        for (var entry : patch.entrySet()) {
+            (MATERIAL_FIELDS.contains(entry.getKey()) ? material : nonMaterial).put(entry.getKey(), entry.getValue());
+        }
+
+        // Non-material edits apply immediately
+        if (!nonMaterial.isEmpty()) applyPatch(existing, nonMaterial);
+
+        // Material edits go into pending_changes JSON; admin must approve
+        if (!material.isEmpty()) {
+            try {
+                Map<String, Object> existingPending = readPendingChanges(existing);
+                existingPending.putAll(material);                    // merge over any prior pending edit
+                existing.setPendingChanges(objectMapper.writeValueAsString(existingPending));
+                existing.setHasPendingChanges(true);
+                if (existing.getPendingChangesSubmittedAt() == null) {
+                    existing.setPendingChangesSubmittedAt(OffsetDateTime.now());
+                }
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Could not stage pending change: " + e.getMessage(), e);
+            }
+            log.info("VERIFIED listing {} has {} material change(s) pending review",
+                    existing.getId(), material.size());
+        }
+
+        ServiceListing saved = repo.save(existing);
+        log.info("Updated {} listing {} by vendor {} ({} non-material applied, {} material pending)",
+                existing.getStatus(), saved.getId(), vendorUserId, nonMaterial.size(), material.size());
+        return saved;
+    }
+
+    private void applyPatch(ServiceListing existing, Map<String, Object> patch) {
         try {
             objectMapper.updateValue(existing, patch);
         } catch (Exception e) {
             throw new IllegalArgumentException("Could not apply update: " + e.getMessage(), e);
         }
+    }
 
-        ServiceListing saved = repo.save(existing);
-        log.info("Updated DRAFT service listing {} by vendor {}", saved.getId(), vendorUserId);
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> readPendingChanges(ServiceListing listing) {
+        if (listing.getPendingChanges() == null || listing.getPendingChanges().isBlank()) {
+            return new HashMap<>();
+        }
+        try {
+            return new HashMap<>(objectMapper.readValue(listing.getPendingChanges(), Map.class));
+        } catch (Exception e) {
+            return new HashMap<>();
+        }
+    }
+
+    /** Admin approves the staged material changes — merges into the live entity. */
+    @Transactional
+    public ServiceListing approvePendingChanges(UUID listingId, UUID adminUserId) {
+        ServiceListing listing = get(listingId);
+        if (!Boolean.TRUE.equals(listing.getHasPendingChanges())) {
+            throw new IllegalStateException("No pending changes on this listing");
+        }
+        Map<String, Object> changes = readPendingChanges(listing);
+        applyPatch(listing, changes);
+        listing.setHasPendingChanges(false);
+        listing.setPendingChanges(null);
+        listing.setPendingChangesSubmittedAt(null);
+        ServiceListing saved = repo.save(listing);
+        log.info("Approved pending changes ({} fields) on listing {} by admin {}",
+                changes.size(), listingId, adminUserId);
         return saved;
+    }
+
+    /** Admin rejects the staged changes — entity is unchanged, pending is cleared. */
+    @Transactional
+    public ServiceListing rejectPendingChanges(UUID listingId, UUID adminUserId) {
+        ServiceListing listing = get(listingId);
+        if (!Boolean.TRUE.equals(listing.getHasPendingChanges())) {
+            throw new IllegalStateException("No pending changes on this listing");
+        }
+        listing.setHasPendingChanges(false);
+        listing.setPendingChanges(null);
+        listing.setPendingChangesSubmittedAt(null);
+        ServiceListing saved = repo.save(listing);
+        log.info("Rejected pending changes on listing {} by admin {}", listingId, adminUserId);
+        return saved;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ServiceListing> listWithPendingChanges() {
+        return repo.findByHasPendingChangesTrue();
     }
 
     private Class<? extends ServiceListing> entityClassFor(ServiceListingType type) {

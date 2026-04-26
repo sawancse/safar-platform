@@ -27,6 +27,9 @@ type ListingRow = {
   avgRating?: number;
   ratingCount?: number;
   completedBookingsCount?: number;
+  hasPendingChanges?: boolean;
+  pendingChanges?: string;
+  pendingChangesSubmittedAt?: string;
   createdAt?: string;
 };
 
@@ -42,11 +45,12 @@ type KycDocRow = {
 };
 
 const STATUS_TABS = [
-  { key: 'PENDING_REVIEW', label: 'Pending Review',  color: 'orange' },
-  { key: 'VERIFIED',       label: 'Verified',        color: 'green' },
-  { key: 'PAUSED',         label: 'Paused',          color: 'gold' },
-  { key: 'SUSPENDED',      label: 'Suspended',       color: 'red' },
-  { key: 'DRAFT',          label: 'Drafts',          color: 'default' },
+  { key: 'PENDING_REVIEW',  label: 'Pending Review',  color: 'orange' },
+  { key: 'PENDING_CHANGES', label: 'Pending Changes', color: 'magenta' },
+  { key: 'VERIFIED',        label: 'Verified',        color: 'green' },
+  { key: 'PAUSED',          label: 'Paused',          color: 'gold' },
+  { key: 'SUSPENDED',       label: 'Suspended',       color: 'red' },
+  { key: 'DRAFT',           label: 'Drafts',          color: 'default' },
 ];
 
 const SERVICE_TYPE_ICON: Record<string, string> = {
@@ -86,13 +90,37 @@ export default function ServiceListingsPage() {
   async function load() {
     setLoading(true);
     try {
-      const data = await adminApi.listServiceListings(token, tab);
+      const data = tab === 'PENDING_CHANGES'
+        ? await adminApi.listPendingChanges(token)
+        : await adminApi.listServiceListings(token, tab);
       setRows(data || []);
     } catch (err: any) {
       console.error(err);
       message.error(err?.response?.data?.detail || 'Failed to load listings');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function approveChanges(row: ListingRow) {
+    try {
+      await adminApi.approvePendingChanges(row.id, token);
+      message.success(`Pending changes applied to ${row.businessName}`);
+      setDrawerOpen(false);
+      load();
+    } catch (err: any) {
+      message.error(err?.response?.data?.detail || 'Approve failed');
+    }
+  }
+
+  async function rejectChanges(row: ListingRow) {
+    try {
+      await adminApi.rejectPendingChanges(row.id, token);
+      message.success(`Pending changes rejected for ${row.businessName} (listing unchanged)`);
+      setDrawerOpen(false);
+      load();
+    } catch (err: any) {
+      message.error(err?.response?.data?.detail || 'Reject failed');
     }
   }
 
@@ -241,16 +269,27 @@ export default function ServiceListingsPage() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         width={620}
-        extra={active?.status === 'PENDING_REVIEW' && (
-          <Space>
-            <Button type="primary" icon={<CheckOutlined />} onClick={() => active && approve(active)}>
-              Approve
-            </Button>
-            <Button danger icon={<CloseOutlined />} onClick={() => { setRejectMode('reject'); setRejectOpen(true); }}>
-              Reject
-            </Button>
-          </Space>
-        )}
+        extra={
+          active?.hasPendingChanges ? (
+            <Space>
+              <Button type="primary" icon={<CheckOutlined />} onClick={() => active && approveChanges(active)}>
+                Approve changes
+              </Button>
+              <Button danger icon={<CloseOutlined />} onClick={() => active && rejectChanges(active)}>
+                Reject changes
+              </Button>
+            </Space>
+          ) : active?.status === 'PENDING_REVIEW' ? (
+            <Space>
+              <Button type="primary" icon={<CheckOutlined />} onClick={() => active && approve(active)}>
+                Approve
+              </Button>
+              <Button danger icon={<CloseOutlined />} onClick={() => { setRejectMode('reject'); setRejectOpen(true); }}>
+                Reject
+              </Button>
+            </Space>
+          ) : null
+        }
       >
         {active && (
           <>
@@ -286,6 +325,37 @@ export default function ServiceListingsPage() {
                 <Paragraph style={{ whiteSpace: 'pre-wrap' }}>{active.aboutMd}</Paragraph>
               </>
             )}
+
+            {/* Pending changes diff (post-VERIFIED re-review) */}
+            {active.hasPendingChanges && active.pendingChanges && (() => {
+              let parsed: Record<string, any> = {};
+              try { parsed = JSON.parse(active.pendingChanges); } catch { /* ignore */ }
+              return (
+                <div style={{ marginBottom: 24, padding: 16, background: '#fff0f6', border: '1px solid #ffadd2', borderRadius: 12 }}>
+                  <Title level={5} style={{ marginTop: 0, color: '#c41d7f' }}>
+                    🔄 Pending material changes — vendor submitted{' '}
+                    {active.pendingChangesSubmittedAt && new Date(active.pendingChangesSubmittedAt).toLocaleString('en-IN')}
+                  </Title>
+                  <Paragraph type="secondary" style={{ fontSize: 12 }}>
+                    Listing is still LIVE with current values. Approve to apply the changes; reject to keep current values and discard.
+                  </Paragraph>
+                  <Descriptions bordered column={1} size="small">
+                    {Object.entries(parsed).map(([key, val]) => (
+                      <Descriptions.Item key={key} label={key}>
+                        <div style={{ fontSize: 12 }}>
+                          <div style={{ color: '#999', textDecoration: 'line-through' }}>
+                            current: {String((active as any)[key] ?? '—')}
+                          </div>
+                          <div style={{ color: '#c41d7f', fontWeight: 500 }}>
+                            new: {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                          </div>
+                        </div>
+                      </Descriptions.Item>
+                    ))}
+                  </Descriptions>
+                </div>
+              );
+            })()}
 
             <Title level={5}>KYC documents</Title>
             {activeKyc.length === 0 ? (
