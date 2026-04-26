@@ -86,6 +86,12 @@ spring:
           predicates:
             - Path=/api/v1/bookings/**
 
+        # ── Universal Trip (cross-vertical hub) ───────────────────────────────
+        - id: booking-service-trips
+          uri: ${BOOKING_SERVICE_URL:http://localhost:8095}
+          predicates:
+            - Path=/api/v1/trips/**
+
         # ── Payments — webhook first (no JWT), then authenticated routes ──────
         - id: payment-service-webhook
           uri: ${PAYMENT_SERVICE_URL:http://localhost:8086}
