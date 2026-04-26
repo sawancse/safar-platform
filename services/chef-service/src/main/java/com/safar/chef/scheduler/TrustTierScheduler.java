@@ -1,8 +1,11 @@
 package com.safar.chef.scheduler;
 
 import com.safar.chef.entity.ServiceListing;
+import com.safar.chef.entity.enums.CommissionTier;
 import com.safar.chef.entity.enums.ServiceListingStatus;
+import com.safar.chef.entity.enums.ServiceListingType;
 import com.safar.chef.repository.ServiceListingRepository;
+import com.safar.chef.service.CommissionRateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -33,6 +36,7 @@ import java.util.List;
 public class TrustTierScheduler {
 
     private final ServiceListingRepository repo;
+    private final CommissionRateService commissionRates;
 
     private static final BigDecimal SAFAR_VERIFIED_RATING = new BigDecimal("4.0");
     private static final int        SAFAR_VERIFIED_REVIEWS = 3;
@@ -46,21 +50,50 @@ public class TrustTierScheduler {
     @Transactional
     public void recomputeAll() {
         List<ServiceListing> verified = repo.findByStatus(ServiceListingStatus.VERIFIED);
-        int promoted = 0, demoted = 0, unchanged = 0;
+        int trustChanged = 0, commissionPromoted = 0, unchanged = 0;
         for (ServiceListing l : verified) {
-            String previous = l.getTrustTier();
-            String next = computeTier(l);
-            if (!next.equals(previous)) {
-                l.setTrustTier(next);
-                repo.save(l);
-                if (tierIndex(next) > tierIndex(previous)) promoted++;
-                else demoted++;
-            } else {
-                unchanged++;
+            boolean changed = false;
+
+            // Trust tier (rating + booking thresholds — JustDial dual-gate)
+            String previousTrust = l.getTrustTier();
+            String nextTrust = computeTier(l);
+            if (!nextTrust.equals(previousTrust)) {
+                l.setTrustTier(nextTrust);
+                changed = true;
+                trustChanged++;
             }
+
+            // Commission tier (per-service-type promotion — never demotes auto-set)
+            String previousComm = l.getCommissionTier();
+            String nextComm = computeCommissionTier(l, previousComm);
+            if (!nextComm.equals(previousComm)) {
+                l.setCommissionTier(nextComm);
+                changed = true;
+                commissionPromoted++;
+            }
+
+            if (changed) repo.save(l);
+            else unchanged++;
         }
-        log.info("Trust tier recompute: scanned {}, promoted {}, demoted {}, unchanged {}",
-                verified.size(), promoted, demoted, unchanged);
+        log.info("Listing tier recompute: scanned={}, trust_tier_changed={}, commission_promoted={}, unchanged={}",
+                verified.size(), trustChanged, commissionPromoted, unchanged);
+    }
+
+    /**
+     * Decide the right commission tier from completed_bookings_count, but never
+     * auto-demote — vendors who got a tier keep it even if a booking is later
+     * cancelled or refunded. Demotions go through admin override only.
+     */
+    private String computeCommissionTier(ServiceListing l, String currentStr) {
+        int bookings = l.getCompletedBookingsCount() == null ? 0 : l.getCompletedBookingsCount();
+        CommissionTier qualifying = commissionRates.qualifyingTier(l.getServiceType(), bookings);
+
+        CommissionTier current;
+        try { current = CommissionTier.valueOf(currentStr); }
+        catch (Exception e) { return qualifying.name(); }
+
+        // Promote only — never auto-demote
+        return qualifying.ordinal() > current.ordinal() ? qualifying.name() : currentStr;
     }
 
     private String computeTier(ServiceListing l) {

@@ -125,6 +125,22 @@ public class ServiceListing {
     @Column(name = "trust_tier", nullable = false, length = 20)
     private String trustTier = "LISTED";
 
+    // Monetization (Hybrid C — commission default, subscription as upgrade)
+    @Column(name = "commission_tier", nullable = false, length = 20)
+    private String commissionTier = "STARTER";
+
+    @Column(name = "subscription_plan", nullable = false, length = 20)
+    private String subscriptionPlan = "NONE";
+
+    @Column(name = "subscription_expires_at")
+    private OffsetDateTime subscriptionExpiresAt;
+
+    @Column(name = "commission_pct_override", precision = 5, scale = 2)
+    private BigDecimal commissionPctOverride;
+
+    @Column(name = "commission_override_reason", columnDefinition = "TEXT")
+    private String commissionOverrideReason;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

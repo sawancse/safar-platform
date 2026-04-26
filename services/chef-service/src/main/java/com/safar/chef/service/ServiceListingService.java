@@ -288,6 +288,12 @@ public class ServiceListingService {
         return transitionTo(listing, ServiceListingStatus.DRAFT, adminUserId, null);
     }
 
+    /** Admin-only escape hatch for metadata edits (e.g. commission override). */
+    @Transactional
+    public ServiceListing adminSaveListing(ServiceListing listing) {
+        return repo.save(listing);
+    }
+
     // ── Helpers ─────────────────────────────────────────────
 
     private ServiceListing mustOwn(UUID listingId, UUID vendorUserId) {

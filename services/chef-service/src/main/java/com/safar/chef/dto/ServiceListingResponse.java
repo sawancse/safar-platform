@@ -42,6 +42,10 @@ public record ServiceListingResponse(
         Integer ratingCount,
         Integer completedBookingsCount,
         String trustTier,
+        String commissionTier,
+        BigDecimal commissionPctOverride,
+        String subscriptionPlan,
+        OffsetDateTime subscriptionExpiresAt,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {
@@ -75,6 +79,10 @@ public record ServiceListingResponse(
                 l.getRatingCount(),
                 l.getCompletedBookingsCount(),
                 l.getTrustTier(),
+                l.getCommissionTier(),
+                l.getCommissionPctOverride(),
+                l.getSubscriptionPlan(),
+                l.getSubscriptionExpiresAt(),
                 l.getCreatedAt(),
                 l.getUpdatedAt()
         );

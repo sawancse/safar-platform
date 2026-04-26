@@ -80,4 +80,34 @@ public class AdminServiceListingController {
         return ResponseEntity.ok(ServiceListingResponse.from(
                 listingService.restore(id, userId(auth))));
     }
+
+    /**
+     * Per-vendor commission override (negotiated deal — e.g. high-volume vendor
+     * gets a flat 8% regardless of tier, or a strategic vendor gets 0% for the
+     * launch period). Pass {@code commissionPctOverride: null} to clear and
+     * fall back to the rate-config table.
+     */
+    public record CommissionOverrideRequest(
+            java.math.BigDecimal commissionPctOverride,
+            String commissionOverrideReason) {}
+
+    @PutMapping("/{id}/commission-override")
+    public ResponseEntity<ServiceListingResponse> setCommissionOverride(
+            @PathVariable UUID id,
+            @RequestBody CommissionOverrideRequest body,
+            Authentication auth) {
+        requireAdmin(auth);
+        var listing = listingService.get(id);
+        if (body.commissionPctOverride() != null) {
+            if (body.commissionPctOverride().signum() < 0
+                    || body.commissionPctOverride().compareTo(new java.math.BigDecimal("50")) > 0) {
+                throw new IllegalArgumentException("commissionPctOverride must be in [0, 50]");
+            }
+        }
+        listing.setCommissionPctOverride(body.commissionPctOverride());
+        listing.setCommissionOverrideReason(body.commissionOverrideReason());
+        // Bypass the lifecycle service — admin override is a metadata edit
+        return ResponseEntity.ok(ServiceListingResponse.from(
+                listingService.adminSaveListing(listing)));
+    }
 }
