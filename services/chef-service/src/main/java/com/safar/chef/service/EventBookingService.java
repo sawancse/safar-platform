@@ -381,7 +381,13 @@ public class EventBookingService {
         if (event.getChefId() == null || !event.getChefId().equals(chef.getId())) {
             throw new IllegalArgumentException("Not authorized to start this event");
         }
-        if (event.getStatus() != EventBookingStatus.CONFIRMED && event.getStatus() != EventBookingStatus.ADVANCE_PAID) {
+        // Allow CONFIRMED/ADVANCE_PAID → IN_PROGRESS, and also let an IN_PROGRESS event
+        // whose jobStartedAt is null (legacy / stuck rows) be recovered via the OTP path.
+        boolean recoverableInProgress = event.getStatus() == EventBookingStatus.IN_PROGRESS
+                && event.getJobStartedAt() == null;
+        if (event.getStatus() != EventBookingStatus.CONFIRMED
+                && event.getStatus() != EventBookingStatus.ADVANCE_PAID
+                && !recoverableInProgress) {
             throw new IllegalArgumentException("Event must be CONFIRMED or ADVANCE_PAID to start");
         }
         if (event.getStartJobOtp() == null || !event.getStartJobOtp().equals(otp)) {

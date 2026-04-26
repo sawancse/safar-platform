@@ -386,6 +386,12 @@ spring:
           predicates:
             - Path=/api/v1/chef-events,/api/v1/chef-events/**
 
+        # ── Partner Vendors directory (chef-service) ────────────────────────
+        - id: vendors
+          uri: ${CHEF_SERVICE_URL:http://localhost:8093}
+          predicates:
+            - Path=/api/v1/vendors,/api/v1/vendors/**
+
         # ── Flights (flight-service) ──────────────────────────────────────
         - id: flights
           uri: ${FLIGHT_SERVICE_URL:http://localhost:8094}

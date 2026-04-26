@@ -3,21 +3,19 @@ package com.safar.supply.adapter.udaan;
 import com.safar.supply.adapter.OrderStatusSnapshot;
 import com.safar.supply.adapter.SupplierAdapter;
 import com.safar.supply.adapter.SupplierAdapterException;
-import com.safar.supply.adapter.SupplierAdapterRegistry;
 import com.safar.supply.entity.PurchaseOrder;
 import com.safar.supply.entity.PurchaseOrderItem;
 import com.safar.supply.entity.Supplier;
 import com.safar.supply.entity.SupplierCatalogItem;
 import com.safar.supply.entity.enums.IntegrationType;
 import com.safar.supply.entity.enums.PurchaseOrderStatus;
+import com.safar.supply.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,8 +43,7 @@ import java.util.UUID;
 public class UdaanSupplierAdapter implements SupplierAdapter {
 
     private final RestTemplate restTemplate;
-    @Lazy
-    private final SupplierAdapterRegistry registry;   // for loading supplier config
+    private final SupplierRepository supplierRepo;   // for loading supplier config
 
     @Value("${udaan.base-url:https://api.udaan.com}")
     private String baseUrl;
@@ -61,7 +58,7 @@ public class UdaanSupplierAdapter implements SupplierAdapter {
 
     @Override
     public String placePo(PurchaseOrder po, List<PurchaseOrderItem> items) {
-        Supplier s = registry.loadSupplier(po.getSupplierId());
+        Supplier s = loadSupplier(po.getSupplierId());
         log.info("[UdaanAdapter] placePo {} (ext lines={}) supplier={} cfg={}",
                 po.getPoNumber(), items.size(), s.getBusinessName(), s.getIntegrationConfig());
 
@@ -106,7 +103,7 @@ public class UdaanSupplierAdapter implements SupplierAdapter {
 
     @Override
     public List<SupplierCatalogItem> fetchCatalog(UUID supplierId) {
-        Supplier s = registry.loadSupplier(supplierId);
+        Supplier s = loadSupplier(supplierId);
         log.info("[UdaanAdapter] fetchCatalog supplier={} cfg={}", s.getBusinessName(), s.getIntegrationConfig());
 
         // TODO(udaan-msa):
@@ -125,6 +122,11 @@ public class UdaanSupplierAdapter implements SupplierAdapter {
         //   200 ok or 409 already shipped (swallow the 409)
         throw new SupplierAdapterException(
                 "UdaanSupplierAdapter.cancelPo not implemented yet.", false);
+    }
+
+    private Supplier loadSupplier(UUID supplierId) {
+        return supplierRepo.findById(supplierId)
+                .orElseThrow(() -> new IllegalArgumentException("Supplier not found: " + supplierId));
     }
 
     /** Map Udaan status strings to our PO state machine. */

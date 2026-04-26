@@ -8,11 +8,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 
-/**
- * Configures WebClient for Amadeus Self-Service APIs.
- * Auth: OAuth2 Client Credentials (client_id + client_secret → Bearer token).
- * Docs: https://developers.amadeus.com/self-service
- */
 @Configuration
 @Slf4j
 public class WebClientConfig {
@@ -20,10 +15,22 @@ public class WebClientConfig {
     @Value("${amadeus.base-url}")
     private String amadeusBaseUrl;
 
+    @Value("${duffel.base-url:https://api.duffel.com}")
+    private String duffelBaseUrl;
+
     @Bean
     public WebClient amadeusWebClient(WebClient.Builder builder) {
         return builder
                 .baseUrl(amadeusBaseUrl)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
+    @Bean
+    public WebClient duffelWebClient(WebClient.Builder builder) {
+        return builder
+                .baseUrl(duffelBaseUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .build();

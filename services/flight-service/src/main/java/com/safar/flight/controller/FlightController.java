@@ -1,7 +1,8 @@
 package com.safar.flight.controller;
 
 import com.safar.flight.dto.*;
-import com.safar.flight.service.AmadeusFlightService;
+import com.safar.flight.service.FlightBookingService;
+import com.safar.flight.service.FlightSearchService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,34 +23,24 @@ import java.util.UUID;
 @Slf4j
 public class FlightController {
 
-    private final AmadeusFlightService flightService;
+    private final FlightSearchService searchService;
+    private final FlightBookingService bookingService;
 
-    /**
-     * Search flights — public endpoint.
-     */
     @GetMapping("/search")
     public ResponseEntity<FlightSearchResponse> searchFlights(@Valid FlightSearchRequest request) {
         log.info("Flight search: {} -> {} on {}", request.origin(), request.destination(), request.departureDate());
-        FlightSearchResponse response = flightService.searchFlights(request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(searchService.search(request));
     }
 
-    /**
-     * Create a flight booking — requires authentication.
-     */
     @PostMapping("/book")
     public ResponseEntity<FlightBookingResponse> createBooking(
             Authentication auth,
             @Valid @RequestBody CreateFlightBookingRequest request) {
         UUID userId = UUID.fromString(auth.getName());
         log.info("Creating flight booking for user {}", userId);
-        FlightBookingResponse response = flightService.createBooking(userId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(bookingService.createBooking(userId, request));
     }
 
-    /**
-     * Confirm payment for a booking — requires authentication.
-     */
     @PostMapping("/{id}/confirm-payment")
     public ResponseEntity<FlightBookingResponse> confirmPayment(
             Authentication auth,
@@ -59,43 +50,30 @@ public class FlightController {
         String razorpayOrderId = paymentDetails.get("razorpayOrderId");
         String razorpayPaymentId = paymentDetails.get("razorpayPaymentId");
         log.info("Confirming payment for booking {} user {}", id, userId);
-        FlightBookingResponse response = flightService.confirmPayment(userId, id, razorpayOrderId, razorpayPaymentId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(bookingService.confirmPayment(userId, id, razorpayOrderId, razorpayPaymentId));
     }
 
-    /**
-     * Cancel a booking — requires authentication.
-     */
     @PostMapping("/{id}/cancel")
     public ResponseEntity<FlightBookingResponse> cancelBooking(
             Authentication auth,
             @PathVariable UUID id) {
         UUID userId = UUID.fromString(auth.getName());
         log.info("Cancelling flight booking {} for user {}", id, userId);
-        FlightBookingResponse response = flightService.cancelBooking(userId, id);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(bookingService.cancelBooking(userId, id));
     }
 
-    /**
-     * Get current user's bookings — requires authentication.
-     */
     @GetMapping("/my")
     public ResponseEntity<Page<FlightBookingResponse>> getMyBookings(
             Authentication auth,
             @PageableDefault(size = 10, sort = "createdAt") Pageable pageable) {
         UUID userId = UUID.fromString(auth.getName());
-        Page<FlightBookingResponse> bookings = flightService.getMyBookings(userId, pageable);
-        return ResponseEntity.ok(bookings);
+        return ResponseEntity.ok(bookingService.getMyBookings(userId, pageable));
     }
 
-    /**
-     * Get a single booking by ID — requires authentication.
-     */
     @GetMapping("/{id}")
     public ResponseEntity<FlightBookingResponse> getBooking(
             Authentication auth,
             @PathVariable UUID id) {
-        FlightBookingResponse response = flightService.getBooking(id);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(bookingService.getBooking(id));
     }
 }

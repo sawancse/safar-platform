@@ -4,7 +4,7 @@ import com.safar.flight.dto.FlightBookingResponse;
 import com.safar.flight.entity.FlightBooking;
 import com.safar.flight.entity.FlightBookingStatus;
 import com.safar.flight.repository.FlightBookingRepository;
-import com.safar.flight.service.AmadeusFlightService;
+import com.safar.flight.service.FlightBookingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -26,7 +26,7 @@ import java.util.*;
 public class FlightAdminController {
 
     private final FlightBookingRepository bookingRepository;
-    private final AmadeusFlightService flightService;
+    private final FlightBookingService flightService;
 
     private void requireAdmin(Authentication auth) {
         boolean isAdmin = auth.getAuthorities().stream()

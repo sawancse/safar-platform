@@ -1,5 +1,7 @@
 package com.safar.flight.dto;
 
+import com.safar.flight.adapter.FlightProvider;
+
 import java.util.List;
 
 public record FlightSearchResponse(
@@ -17,7 +19,8 @@ public record FlightSearchResponse(
             long pricePaise,
             String currency,
             String cabinClass,
-            List<Segment> segments
+            List<Segment> segments,
+            FlightProvider provider
     ) {}
 
     public record Segment(

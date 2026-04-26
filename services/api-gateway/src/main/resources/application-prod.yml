@@ -286,6 +286,11 @@ spring:
           predicates:
             - Path=/api/v1/chef-events,/api/v1/chef-events/**
 
+        - id: vendors
+          uri: http://${CHEF_SERVICE_HOST:localhost}:8093
+          predicates:
+            - Path=/api/v1/vendors,/api/v1/vendors/**
+
         - id: suppliers
           uri: http://${SUPPLY_SERVICE_HOST:localhost}:8096
           predicates:

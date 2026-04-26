@@ -134,6 +134,8 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
                 && !path.contains("/my-projects") && !path.contains("/admin")) return true;
         // Localities — public read + bulk-import (seed script, no user auth)
         if (path.startsWith("/api/v1/localities")) return true;
+        // Locations autocomplete (city → localities) — public, used by sign-up & cook registration
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/locations")) return true;
         // Safar Cooks — public browse and chef profiles (exclude admin and /me which needs auth)
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/chefs")
                 && !path.contains("/admin") && !path.contains("/me")) return true;

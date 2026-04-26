@@ -3,17 +3,16 @@ package com.safar.supply.adapter.fnp;
 import com.safar.supply.adapter.OrderStatusSnapshot;
 import com.safar.supply.adapter.SupplierAdapter;
 import com.safar.supply.adapter.SupplierAdapterException;
-import com.safar.supply.adapter.SupplierAdapterRegistry;
 import com.safar.supply.entity.PurchaseOrder;
 import com.safar.supply.entity.PurchaseOrderItem;
 import com.safar.supply.entity.Supplier;
 import com.safar.supply.entity.SupplierCatalogItem;
 import com.safar.supply.entity.enums.IntegrationType;
 import com.safar.supply.entity.enums.PurchaseOrderStatus;
+import com.safar.supply.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -40,8 +39,7 @@ import java.util.UUID;
 public class FnpSupplierAdapter implements SupplierAdapter {
 
     private final RestTemplate restTemplate;
-    @Lazy
-    private final SupplierAdapterRegistry registry;
+    private final SupplierRepository supplierRepo;
 
     @Value("${fnp.base-url:https://api.fnp.com/b2b/v2}")
     private String baseUrl;
@@ -59,7 +57,7 @@ public class FnpSupplierAdapter implements SupplierAdapter {
 
     @Override
     public String placePo(PurchaseOrder po, List<PurchaseOrderItem> items) {
-        Supplier s = registry.loadSupplier(po.getSupplierId());
+        Supplier s = loadSupplier(po.getSupplierId());
         log.info("[FnpAdapter] placePo {} (lines={}) supplier={} cfg={}",
                 po.getPoNumber(), items.size(), s.getBusinessName(), s.getIntegrationConfig());
 
@@ -100,7 +98,7 @@ public class FnpSupplierAdapter implements SupplierAdapter {
 
     @Override
     public List<SupplierCatalogItem> fetchCatalog(UUID supplierId) {
-        Supplier s = registry.loadSupplier(supplierId);
+        Supplier s = loadSupplier(supplierId);
         log.info("[FnpAdapter] fetchCatalog supplier={} cfg={}", s.getBusinessName(), s.getIntegrationConfig());
 
         // TODO(fnp-msa):
@@ -119,6 +117,11 @@ public class FnpSupplierAdapter implements SupplierAdapter {
                 po.getPoNumber());
         throw new SupplierAdapterException(
                 "FnpSupplierAdapter.cancelPo not implemented yet.", false);
+    }
+
+    private Supplier loadSupplier(UUID supplierId) {
+        return supplierRepo.findById(supplierId)
+                .orElseThrow(() -> new IllegalArgumentException("Supplier not found: " + supplierId));
     }
 
     /** Map FNP status strings to our PO state machine. */

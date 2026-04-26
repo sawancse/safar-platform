@@ -60,6 +60,7 @@ public class ChefBookingService {
         int meals = req.numberOfMeals() != null ? req.numberOfMeals() : 1;
 
         // Calculate total: use menu price if menuId provided, otherwise chef's daily rate
+        ServiceType svcType = req.serviceType() != null ? ServiceType.valueOf(req.serviceType()) : ServiceType.DAILY;
         long totalAmountPaise;
         String menuName = null;
         if (req.menuId() != null) {
@@ -71,7 +72,11 @@ public class ChefBookingService {
             if (chef.getDailyRatePaise() == null) {
                 throw new IllegalArgumentException("Chef has no daily rate configured");
             }
-            totalAmountPaise = chef.getDailyRatePaise() * guests * meals;
+            // DAILY = flat household day-rate (cook visits and cooks; headcount is informational).
+            // Other service types (e.g. EVENT) bill per guest using the daily rate as a per-plate fallback.
+            totalAmountPaise = svcType == ServiceType.DAILY
+                    ? chef.getDailyRatePaise() * meals
+                    : chef.getDailyRatePaise() * guests * meals;
         }
 
         long platformFeePaise = totalAmountPaise * 15 / 100;
@@ -277,7 +282,11 @@ public class ChefBookingService {
         if (!booking.getChefId().equals(chef.getId())) {
             throw new IllegalArgumentException("Not authorized to start this job");
         }
-        if (booking.getStatus() != ChefBookingStatus.CONFIRMED) {
+        // Allow CONFIRMED → IN_PROGRESS, and also let an IN_PROGRESS booking
+        // whose jobStartedAt is null (legacy / stuck rows) be recovered via the OTP path.
+        boolean recoverableInProgress = booking.getStatus() == ChefBookingStatus.IN_PROGRESS
+                && booking.getJobStartedAt() == null;
+        if (booking.getStatus() != ChefBookingStatus.CONFIRMED && !recoverableInProgress) {
             throw new IllegalArgumentException("Booking must be CONFIRMED to start job");
         }
         if (booking.getStartJobOtp() == null || !booking.getStartJobOtp().equals(otp)) {
@@ -420,7 +429,9 @@ public class ChefBookingService {
             } else {
                 ChefProfile chef = chefProfileRepo.findById(booking.getChefId())
                         .orElseThrow(() -> new IllegalArgumentException("Chef not found"));
-                totalAmountPaise = chef.getDailyRatePaise() * guests * meals;
+                totalAmountPaise = booking.getServiceType() == ServiceType.DAILY
+                        ? chef.getDailyRatePaise() * meals
+                        : chef.getDailyRatePaise() * guests * meals;
             }
 
             long platformFeePaise = totalAmountPaise * 15 / 100;
@@ -618,17 +629,32 @@ public class ChefBookingService {
     private String buildEventJson(ChefBooking b, ChefProfile chef) {
         return String.format(
                 "{\"bookingId\":\"%s\",\"bookingRef\":\"%s\",\"chefId\":\"%s\",\"customerId\":\"%s\","
-                + "\"chefName\":\"%s\",\"customerName\":\"%s\",\"serviceDate\":\"%s\",\"mealType\":\"%s\","
+                + "\"chefName\":\"%s\",\"customerName\":\"%s\",\"serviceDate\":\"%s\",\"serviceTime\":\"%s\","
+                + "\"mealType\":\"%s\",\"guestsCount\":%d,\"numberOfMeals\":%d,"
                 + "\"status\":\"%s\",\"totalAmountPaise\":%d,\"advanceAmountPaise\":%d,"
-                + "\"balanceAmountPaise\":%d,\"paymentStatus\":\"%s\",\"city\":\"%s\"}",
+                + "\"balanceAmountPaise\":%d,\"paymentStatus\":\"%s\","
+                + "\"address\":\"%s\",\"locality\":\"%s\",\"city\":\"%s\",\"pincode\":\"%s\"}",
                 b.getId(), b.getBookingRef(), b.getChefId(), b.getCustomerId(),
-                b.getChefName() != null ? b.getChefName() : (chef != null ? chef.getName() : ""),
-                b.getCustomerName() != null ? b.getCustomerName() : "",
-                b.getServiceDate(), b.getMealType() != null ? b.getMealType() : "",
-                b.getStatus(), b.getTotalAmountPaise() != null ? b.getTotalAmountPaise() : 0,
+                jsonEscape(b.getChefName() != null ? b.getChefName() : (chef != null ? chef.getName() : "")),
+                jsonEscape(b.getCustomerName() != null ? b.getCustomerName() : ""),
+                b.getServiceDate(),
+                b.getServiceTime() != null ? b.getServiceTime() : "",
+                b.getMealType() != null ? b.getMealType() : "",
+                b.getGuestsCount() != null ? b.getGuestsCount() : 0,
+                b.getNumberOfMeals() != null ? b.getNumberOfMeals() : 1,
+                b.getStatus(),
+                b.getTotalAmountPaise() != null ? b.getTotalAmountPaise() : 0,
                 b.getAdvanceAmountPaise() != null ? b.getAdvanceAmountPaise() : 0,
                 b.getBalanceAmountPaise() != null ? b.getBalanceAmountPaise() : 0,
                 b.getPaymentStatus() != null ? b.getPaymentStatus() : "UNPAID",
-                b.getCity() != null ? b.getCity() : "");
+                jsonEscape(b.getAddress() != null ? b.getAddress() : ""),
+                jsonEscape(b.getLocality() != null ? b.getLocality() : ""),
+                jsonEscape(b.getCity() != null ? b.getCity() : ""),
+                jsonEscape(b.getPincode() != null ? b.getPincode() : ""));
+    }
+
+    private static String jsonEscape(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", " ").replace("\r", " ");
     }
 }

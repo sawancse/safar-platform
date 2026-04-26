@@ -54,11 +54,22 @@ spring:
 jwt:
   secret: ${JWT_SECRET:l0UNaBuoYCf7Y/G8G1bihPxkUI7NZuPaZdzTbbEYqzM=}
 
+flight:
+  providers:
+    primary: ${FLIGHT_PRIMARY_PROVIDER:DUFFEL}     # which adapter handles new bookings
+
 amadeus:
   client-id: ${AMADEUS_CLIENT_ID:test_client_id}
   client-secret: ${AMADEUS_CLIENT_SECRET:test_client_secret}
   base-url: ${AMADEUS_BASE_URL:https://test.api.amadeus.com}
   # Production: https://api.amadeus.com  |  Test: https://test.api.amadeus.com
+
+duffel:
+  enabled: ${DUFFEL_ENABLED:true}
+  access-token: ${DUFFEL_ACCESS_TOKEN:}            # blank → adapter reports !isEnabled, search returns no Duffel offers
+  base-url: ${DUFFEL_BASE_URL:https://api.duffel.com}
+  api-version: ${DUFFEL_API_VERSION:v2}
+  payment-currency: ${DUFFEL_PAYMENT_CURRENCY:INR}
 
 services:
   payment-service:
