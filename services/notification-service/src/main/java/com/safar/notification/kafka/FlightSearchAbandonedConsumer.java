@@ -5,7 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.safar.notification.dto.EmailContext;
 import com.safar.notification.service.EmailTemplateService;
 import com.safar.notification.service.InAppNotificationService;
+import com.safar.notification.service.PushNotificationService;
+import com.safar.notification.service.SmsService;
 import com.safar.notification.service.UserClient;
+import com.safar.notification.service.WhatsAppService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -15,17 +18,23 @@ import java.util.UUID;
 
 /**
  * Consumes {@code flight.search.abandoned} events from the
- * AbandonedSearchDetector and fans out reminder notifications via the
- * Push → WhatsApp → Email cascade.
+ * AbandonedSearchDetector and fans out reminders across the full
+ * Push → WhatsApp → Email + SMS + In-App cascade.
  *
- * Day-1 delivery scope:
- *   - Email: live (template flight-search-abandoned.html)
- *   - In-app: live (existing inAppNotificationService)
- *   - SMS:   live via existing SmsService (re-uses MSG91, DLT template
- *            registration pending operationally)
- *   - WhatsApp: code path live; actual delivery requires MSG91 WA template
- *               approval by Meta (operational, not coding)
- *   - Push:  TODO once mobile-side push gets a flight-search-abandoned event type
+ * Channel-per-pulse strategy:
+ *   1H pulse  — Push + WhatsApp + Email + In-app  (high frequency, low friction)
+ *   6H pulse  — Push + WhatsApp + Email + In-app  (same as 1H)
+ *   24H pulse — Push + WhatsApp + Email + SMS + In-app  (last chance, add SMS)
+ *
+ * Channel-by-channel "live" status:
+ *   Email      — LIVE (template flight-search-abandoned.html)
+ *   In-app     — LIVE (existing inAppNotificationService)
+ *   SMS        — LIVE in code; activates when MSG91 DLT template id is set
+ *                in env (msg91.sms.flight-search-abandoned-template-id)
+ *   WhatsApp   — LIVE in code; activates when Meta-approved template name
+ *                is set in env (msg91.wa.flight-search-abandoned-template)
+ *   Push       — LIVE in code; activates when mobile starts capturing
+ *                Expo push tokens + user-service exposes /push-tokens lookup
  */
 @Component
 @RequiredArgsConstructor
@@ -34,6 +43,9 @@ public class FlightSearchAbandonedConsumer {
 
     private final EmailTemplateService emailTemplateService;
     private final InAppNotificationService inAppNotificationService;
+    private final SmsService smsService;
+    private final WhatsAppService whatsAppService;
+    private final PushNotificationService pushNotificationService;
     private final UserClient userClient;
     private final ObjectMapper objectMapper;
 
@@ -55,13 +67,33 @@ public class FlightSearchAbandonedConsumer {
 
             String route = origin + " → " + destination;
             String fareHint = formatFareHint(fareTrend, farePaise);
+            UUID userId = parseUuid(userIdStr);
 
-            log.info("Abandoned-search reminder #{} ({}-pulse) for {} {}",
-                    reminderNumber, pulse, route, depDate);
+            log.info("Abandoned-search reminder #{} ({}-pulse) for {} {} via Push+WA+Email{}",
+                    reminderNumber, pulse, route, depDate,
+                    "24H".equals(pulse) ? "+SMS" : "");
 
-            // ── Email ──
+            // ── Push (every pulse, mobile users only) ──
+            if (userId != null) {
+                try {
+                    pushNotificationService.sendFlightSearchAbandoned(userId, route, depDate, fareHint);
+                } catch (Exception e) {
+                    log.warn("Push reminder failed: {}", e.getMessage());
+                }
+            }
+
+            // ── WhatsApp (every pulse, highest engagement) ──
+            if (!phone.isBlank()) {
+                try {
+                    whatsAppService.sendFlightSearchAbandoned(phone, route, depDate, fareHint);
+                } catch (Exception e) {
+                    log.warn("WhatsApp reminder failed: {}", e.getMessage());
+                }
+            }
+
+            // ── Email (every pulse) ──
             if (!email.isBlank()) {
-                UserClient.UserInfo user = !userIdStr.isBlank() ? userClient.getUser(userIdStr) : null;
+                UserClient.UserInfo user = userId != null ? userClient.getUser(userIdStr) : null;
                 String name = user != null ? user.name() : "Traveller";
 
                 EmailContext ctx = new EmailContext();
@@ -76,23 +108,21 @@ public class FlightSearchAbandonedConsumer {
                 log.info("Sent abandoned-search reminder email to {} (reminder #{})", email, reminderNumber);
             }
 
-            // ── SMS (TODO: needs a sendFlightSearchAbandoned(...) method on SmsService
-            //          that uses an MSG91 DLT-approved template id; deliberately skipped
-            //          on Day-1 to avoid sending SMS without DLT registration)
-            //
-            // ── WhatsApp (TODO: requires MSG91 WA template approval) ──
-            // When wired:
-            //   smsService.sendWhatsAppTemplate(phone, "flight_search_abandoned",
-            //                                    Map.of("route", route, "date", depDate, "fare", fareHint));
-            //
-            // ── Push notification (TODO: needs mobile event-type registration) ──
+            // ── SMS (24H pulse only — last chance, most expensive channel) ──
+            if (!phone.isBlank() && "24H".equals(pulse)) {
+                try {
+                    smsService.sendFlightSearchAbandoned(phone, route, depDate, fareHint);
+                } catch (Exception e) {
+                    log.warn("SMS reminder failed: {}", e.getMessage());
+                }
+            }
 
-            // ── In-app ──
-            if (!userIdStr.isBlank()) {
+            // ── In-app (every pulse, logged-in users only) ──
+            if (userId != null) {
                 try {
                     String body = "Still going " + route + " on " + depDate + "? "
                             + fareHint + " Tap to book.";
-                    inAppNotificationService.create(UUID.fromString(userIdStr),
+                    inAppNotificationService.create(userId,
                             "Complete your flight search",
                             body,
                             "FLIGHT_SEARCH_ABANDONED",
@@ -106,6 +136,11 @@ public class FlightSearchAbandonedConsumer {
         } catch (Exception e) {
             log.error("Failed to handle abandoned-search event: {}", e.getMessage(), e);
         }
+    }
+
+    private static UUID parseUuid(String s) {
+        if (s == null || s.isBlank()) return null;
+        try { return UUID.fromString(s); } catch (Exception e) { return null; }
     }
 
     private static String subjectFor(int reminderNumber, String route, String depDate, String fareTrend) {

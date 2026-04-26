@@ -127,6 +127,9 @@ public class SmsService {
     @Value("${msg91.sms.flight-checkin-template-id:}")
     private String flightCheckinTemplateId;
 
+    @Value("${msg91.sms.flight-search-abandoned-template-id:}")
+    private String flightSearchAbandonedTemplateId;
+
     public void sendFlightConfirmation(String phone, String bookingRef, String route, String date, String flight) {
         if (!isConfigured(flightConfirmedTemplateId)) return;
         sendTemplateSms(phone, flightConfirmedTemplateId, Map.of(
@@ -146,6 +149,17 @@ public class SmsService {
         sendTemplateSms(phone, flightCheckinTemplateId, Map.of(
                 "ref", bookingRef, "route", route, "flight", flight));
         log.info("Sent flight check-in reminder SMS to {}", maskPhone(phone));
+    }
+
+    /**
+     * Abandoned-search recovery SMS — fired by the FlightSearchAbandonedConsumer
+     * on the 24-hr pulse only (last-chance nudge). Earlier pulses use email + WA.
+     */
+    public void sendFlightSearchAbandoned(String phone, String route, String date, String fareHint) {
+        if (!isConfigured(flightSearchAbandonedTemplateId)) return;
+        sendTemplateSms(phone, flightSearchAbandonedTemplateId, Map.of(
+                "route", route, "date", date, "fare", fareHint != null ? fareHint : ""));
+        log.info("Sent flight search-abandoned SMS to {}", maskPhone(phone));
     }
 
     // ── Core SMS sender ─────────────────────────────────────────
