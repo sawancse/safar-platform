@@ -251,11 +251,19 @@ public class EventBookingService {
                 .specialRequests(req.specialRequests())
                 .servicesJson(req.servicesJson())
                 .staffRolesJson(req.staffRolesJson())
-                .status(EventBookingStatus.INQUIRY)
+                // Bespoke service bookings (singer / decor / cake / pandit /
+                // staff / appliance) ship with a fixed catalog price — there's
+                // no chef quote step. Skip INQUIRY → QUOTED → CONFIRMED and
+                // mark them CONFIRMED on creation so the customer can pay the
+                // advance immediately. Traditional cook events still start
+                // at INQUIRY and wait for the chef to quote.
+                .status(bespoke != null ? EventBookingStatus.CONFIRMED : EventBookingStatus.INQUIRY)
+                .confirmedAt(bespoke != null ? OffsetDateTime.now() : null)
+                .startJobOtp(bespoke != null ? String.format("%04d", new java.security.SecureRandom().nextInt(10000)) : null)
                 .build();
 
         EventBooking saved = eventRepo.save(event);
-        log.info("Event booking created: {} ref={} chef={} customer={}", saved.getId(), saved.getBookingRef(), chef != null ? chef.getId() : "unassigned", customerId);
+        log.info("Event booking created: {} ref={} chef={} customer={} status={}", saved.getId(), saved.getBookingRef(), chef != null ? chef.getId() : "unassigned", customerId, saved.getStatus());
 
         try {
             kafka.send("event.booking.created", saved.getId().toString(), buildEventJson(saved));

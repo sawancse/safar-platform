@@ -392,6 +392,17 @@ spring:
           predicates:
             - Path=/api/v1/vendors,/api/v1/vendors/**
 
+        # ── Services-leg listings (chef-service, to be renamed services-service) ──
+        - id: service-listings
+          uri: ${CHEF_SERVICE_URL:http://localhost:8093}
+          predicates:
+            - Path=/api/v1/services/listings,/api/v1/services/listings/**
+
+        - id: service-listings-admin
+          uri: ${CHEF_SERVICE_URL:http://localhost:8093}
+          predicates:
+            - Path=/api/v1/services/admin/**
+
         # ── Flights (flight-service) ──────────────────────────────────────
         - id: flights
           uri: ${FLIGHT_SERVICE_URL:http://localhost:8094}

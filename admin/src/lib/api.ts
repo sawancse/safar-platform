@@ -633,6 +633,32 @@ export const adminApi = {
     return axios.delete(`${BASE}/vendors/admin/${id}`, { headers: authHeaders(token) }).then(r => r.data);
   },
 
+  // ── Services-leg listings (admin queue + lifecycle) ──
+  // Vendors self-onboard via /vendor/onboard/{type} on safar-web; admin only
+  // approves/rejects here. Replaces the manual partner-vendor onboarding flow
+  // for new vendors going forward.
+  listServiceListings(token: string, status: string = 'PENDING_REVIEW') {
+    return axios.get(`${BASE}/services/admin/listings?status=${status}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  getServiceListing(id: string, token: string) {
+    return axios.get(`${BASE}/services/admin/listings/${id}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  approveServiceListing(id: string, token: string) {
+    return axios.post(`${BASE}/services/admin/listings/${id}/approve`, {}, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  rejectServiceListing(id: string, reason: string, token: string) {
+    return axios.post(`${BASE}/services/admin/listings/${id}/reject`, { reason }, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  suspendServiceListing(id: string, reason: string, token: string) {
+    return axios.post(`${BASE}/services/admin/listings/${id}/suspend`, { reason }, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  restoreServiceListing(id: string, token: string) {
+    return axios.post(`${BASE}/services/admin/listings/${id}/restore`, {}, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  listServiceListingKyc(id: string, token: string) {
+    return axios.get(`${BASE}/services/listings/${id}/kyc-documents`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+
   // Vendor assignment on a specific event booking
   getActiveBookingVendor(bookingId: string, token: string) {
     return axios.get(`${BASE}/chef-events/${bookingId}/vendor`, { headers: authHeaders(token) })

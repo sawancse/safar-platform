@@ -181,16 +181,53 @@ export default function CooksPage() {
   };
 
   // ── Bespoke vendor assignment helpers ──
+  // The cake order page emits menuDescription.type === "DESIGNER_CAKE", but the
+  // canonical VendorServiceType enum (and every seeded baker row) uses
+  // "CAKE_DESIGNER". Normalise so listEligibleVendors() matches the directory.
   const bespokeServiceType = (raw?: string): string | null => {
     if (!raw) return null;
     try {
       const t = JSON.parse(raw)?.type;
-      if (typeof t === 'string') {
-        const allowed = ['CAKE_DESIGNER', 'EVENT_DECOR', 'PANDIT_PUJA', 'LIVE_MUSIC', 'APPLIANCE_RENTAL', 'STAFF_HIRE'];
-        return allowed.includes(t) ? t : null;
-      }
+      if (typeof t !== 'string') return null;
+      const aliases: Record<string, string> = { DESIGNER_CAKE: 'CAKE_DESIGNER' };
+      const normalized = aliases[t] ?? t;
+      const allowed = ['CAKE_DESIGNER', 'EVENT_DECOR', 'PANDIT_PUJA', 'LIVE_MUSIC', 'APPLIANCE_RENTAL', 'STAFF_HIRE'];
+      return allowed.includes(normalized) ? normalized : null;
     } catch { /* legacy menu_description, no type */ }
     return null;
+  };
+
+  // Friendly label + color for the row's service. Returns null only when this
+  // is a traditional cook event with no bespoke service type (caller renders
+  // a default "Cook Event" tag in that case).
+  const eventServiceLabel = (raw?: string): { label: string; color: string } | null => {
+    if (!raw) return null;
+    let md: any = null;
+    try { md = JSON.parse(raw); } catch { return null; }
+    if (!md?.type) return null;
+    const palette: Record<string, string> = {
+      LIVE_MUSIC:       'volcano',
+      EVENT_DECOR:      'magenta',
+      DESIGNER_CAKE:    'pink',
+      CAKE_DESIGNER:    'pink',
+      PANDIT_PUJA:      'gold',
+      STAFF_HIRE:       'geekblue',
+      APPLIANCE_RENTAL: 'cyan',
+    };
+    switch (md.type) {
+      case 'LIVE_MUSIC':       return { label: md.genreLabel ? `Live Singer · ${md.genreLabel}` : 'Live Singer',         color: palette.LIVE_MUSIC };
+      case 'EVENT_DECOR':      return { label: md.decorLabel ? `Decor · ${md.decorLabel}`        : 'Event Decor',          color: palette.EVENT_DECOR };
+      case 'DESIGNER_CAKE':
+      case 'CAKE_DESIGNER':    return { label: md.cakeLabel  ? `Cake · ${md.cakeLabel}`          : 'Designer Cake',        color: palette.DESIGNER_CAKE };
+      case 'PANDIT_PUJA':      return { label: md.pujaLabel  ? `Pandit · ${md.pujaLabel}`        : 'Pandit / Puja',        color: palette.PANDIT_PUJA };
+      case 'STAFF_HIRE': {
+        const n = md.count || 1;
+        const role = md.roleLabel || 'Staff';
+        return { label: `${n} × ${role}${n > 1 ? 's' : ''}`, color: palette.STAFF_HIRE };
+      }
+      case 'APPLIANCE_RENTAL': return { label: 'Appliance Rental', color: palette.APPLIANCE_RENTAL };
+      default: return null;
+    }
   };
 
   const fetchVendorForBooking = async (bookingId: string) => {
@@ -468,15 +505,52 @@ export default function CooksPage() {
   const eventCols: ColumnsType<any> = [
     { title: 'Ref', dataIndex: 'bookingRef', width: 120, render: (v: string) => <Text copyable={{ text: v }} style={{ fontSize: 12, fontFamily: 'monospace' }}>{v}</Text> },
     {
-      title: 'Cook', width: 160,
+      title: 'Service', width: 170,
+      render: (_: any, r: any) => {
+        const svc = eventServiceLabel(r.menuDescription);
+        return svc
+          ? <Tag color={svc.color} style={{ fontSize: 12, padding: '2px 8px' }}>{svc.label}</Tag>
+          : <Tag color="orange">Cook Event</Tag>;
+      },
+      filters: [
+        { text: 'Cook Event',       value: 'COOK' },
+        { text: 'Live Singer',      value: 'LIVE_MUSIC' },
+        { text: 'Event Decor',      value: 'EVENT_DECOR' },
+        { text: 'Designer Cake',    value: 'DESIGNER_CAKE' },
+        { text: 'Pandit / Puja',    value: 'PANDIT_PUJA' },
+        { text: 'Staff Hire',       value: 'STAFF_HIRE' },
+        { text: 'Appliance Rental', value: 'APPLIANCE_RENTAL' },
+      ],
+      onFilter: (val: any, r: any) => {
+        const t = bespokeServiceType(r.menuDescription);
+        if (val === 'COOK') return !t;
+        if (val === 'DESIGNER_CAKE') return t === 'DESIGNER_CAKE' || t === 'CAKE_DESIGNER';
+        return t === val;
+      },
+    },
+    {
+      title: 'Cook / Vendor', width: 160,
       render: (_, r) => {
         const chef = chefMap[r.chefId];
-        return r.chefName ? (
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 13 }}>{r.chefName}</div>
-            {chef?.phone && <div style={{ fontSize: 11, color: '#6b7280' }}><PhoneOutlined style={{ marginRight: 3 }} /><a href={`tel:${chef.phone}`}>{chef.phone}</a></div>}
-          </div>
-        ) : <Tag color="red">Unassigned</Tag>;
+        if (r.chefName) {
+          return (
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 13 }}>{r.chefName}</div>
+              {chef?.phone && <div style={{ fontSize: 11, color: '#6b7280' }}><PhoneOutlined style={{ marginRight: 3 }} /><a href={`tel:${chef.phone}`}>{chef.phone}</a></div>}
+            </div>
+          );
+        }
+        // For bespoke services there's no chef — surface the assigned vendor inline.
+        const v = vendorByBookingId[r.id];
+        if (v) {
+          return (
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 13 }}>{v.vendorBusinessName}</div>
+              {v.vendorPhone && <div style={{ fontSize: 11, color: '#6b7280' }}><PhoneOutlined style={{ marginRight: 3 }} /><a href={`tel:${v.vendorPhone}`}>{v.vendorPhone}</a></div>}
+            </div>
+          );
+        }
+        return <Tag color="red">Unassigned</Tag>;
       },
     },
     {
@@ -558,26 +632,35 @@ export default function CooksPage() {
       },
     },
     { title: 'Actions', width: 220, fixed: 'right' as const,
-      render: (_: any, r: any) => (
-        <Space size="small" wrap>
-          <Button size="small" type="primary"
-            onClick={() => { setAssignModal({ visible: true, type: 'event', id: r.id }); setSelectedChef(r.chefId || null); }}>
-            {r.chefName ? 'Reassign' : 'Assign'}
-          </Button>
-          {!['CANCELLED', 'COMPLETED'].includes(r.status) && (
-            <>
-              <Popconfirm title="Mark as completed?" onConfirm={() => handleCompleteEvent(r.id)}>
-                <Button size="small" style={{ color: '#52c41a', borderColor: '#52c41a' }}>Complete</Button>
-              </Popconfirm>
-              <Button size="small" danger
-                onClick={() => setCancelModal({ visible: true, type: 'event', id: r.id, ref: r.bookingRef })}>
-                Cancel
+      render: (_: any, r: any) => {
+        // Bespoke events (cake / decor / singer / pandit / staff / appliance)
+        // have no chef — they're fulfilled by partner vendors. The Vendor
+        // column already exposes Assign-vendor, so suppress Assign-Cook here
+        // to avoid the misleading "Assign Cook to Event" modal.
+        const isBespoke = bespokeServiceType(r.menuDescription) !== null;
+        return (
+          <Space size="small" wrap>
+            {!isBespoke && (
+              <Button size="small" type="primary"
+                onClick={() => { setAssignModal({ visible: true, type: 'event', id: r.id }); setSelectedChef(r.chefId || null); }}>
+                {r.chefName ? 'Reassign Cook' : 'Assign Cook'}
               </Button>
-            </>
-          )}
-          <Tooltip title="Print"><Button size="small" icon={<PrinterOutlined />} onClick={() => printEvent(r, chefMap[r.chefId])} /></Tooltip>
-        </Space>
-      ),
+            )}
+            {!['CANCELLED', 'COMPLETED'].includes(r.status) && (
+              <>
+                <Popconfirm title="Mark as completed?" onConfirm={() => handleCompleteEvent(r.id)}>
+                  <Button size="small" style={{ color: '#52c41a', borderColor: '#52c41a' }}>Complete</Button>
+                </Popconfirm>
+                <Button size="small" danger
+                  onClick={() => setCancelModal({ visible: true, type: 'event', id: r.id, ref: r.bookingRef })}>
+                  Cancel
+                </Button>
+              </>
+            )}
+            <Tooltip title="Print"><Button size="small" icon={<PrinterOutlined />} onClick={() => printEvent(r, chefMap[r.chefId])} /></Tooltip>
+          </Space>
+        );
+      },
     },
   ];
 
@@ -769,7 +852,7 @@ export default function CooksPage() {
       ]} />
 
       <Modal
-        title={`Assign Cook to ${assignModal?.type === 'booking' ? 'Booking' : 'Event'}`}
+        title={`Assign Cook to ${assignModal?.type === 'booking' ? 'Booking' : 'Cook Event'}`}
         open={!!assignModal?.visible}
         onOk={handleAssign}
         onCancel={() => { setAssignModal(null); setSelectedChef(null); }}

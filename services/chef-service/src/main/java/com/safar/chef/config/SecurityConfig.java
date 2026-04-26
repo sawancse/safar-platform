@@ -65,6 +65,19 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/chef-bookings/*/tracking").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/chef-bookings/*/invoice").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/chef-events/*/invoice").permitAll()
+                        // Services-leg listings: admin queue + lifecycle (admin)
+                        .requestMatchers("/api/v1/services/admin/**").authenticated()
+                        // Services-leg listings: vendor-owned ops
+                        .requestMatchers("/api/v1/services/listings/me", "/api/v1/services/listings/me/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/services/listings").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/services/listings/*").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/services/listings/*/submit").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/services/listings/*/pause").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/services/listings/*/resume").authenticated()
+                        .requestMatchers("/api/v1/services/listings/*/kyc-documents", "/api/v1/services/listings/*/kyc-documents/**").authenticated()
+                        // Services-leg listings: public storefront browse
+                        .requestMatchers(HttpMethod.GET, "/api/v1/services/listings", "/api/v1/services/listings/by-slug/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/services/listings/*").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(e -> e
