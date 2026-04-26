@@ -48,7 +48,32 @@ axios.interceptors.response.use(
   }
 );
 
+function tokenHeaders() {
+  const t = localStorage.getItem('admin_token');
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
+// Strip leading /api/v1 if a caller passes it in (BASE already includes it).
+function url(path: string) {
+  return path.startsWith('/api/v1') ? path.replace(/^\/api\/v1/, BASE) : `${BASE}${path}`;
+}
+
 export const adminApi = {
+  // Generic verbs — auto-attach admin bearer token from localStorage. Use these
+  // when a page just needs a quick REST call without a dedicated typed wrapper.
+  get<T = any>(path: string) {
+    return axios.get<T>(url(path), { headers: tokenHeaders() });
+  },
+  post<T = any>(path: string, body?: any) {
+    return axios.post<T>(url(path), body, { headers: tokenHeaders() });
+  },
+  put<T = any>(path: string, body?: any) {
+    return axios.put<T>(url(path), body, { headers: tokenHeaders() });
+  },
+  delete<T = any>(path: string) {
+    return axios.delete<T>(url(path), { headers: tokenHeaders() });
+  },
+
   // Auth
   sendOtp(phone: string) {
     return axios.post(`${BASE}/auth/otp/send`, { phone });

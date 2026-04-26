@@ -70,6 +70,7 @@ duffel:
   base-url: ${DUFFEL_BASE_URL:https://api.duffel.com}
   api-version: ${DUFFEL_API_VERSION:v2}
   payment-currency: ${DUFFEL_PAYMENT_CURRENCY:INR}
+  webhook-secret: ${DUFFEL_WEBHOOK_SECRET:}        # blank → webhook accepts unsigned (dev only)
 
 services:
   payment-service:

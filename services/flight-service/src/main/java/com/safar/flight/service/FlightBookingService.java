@@ -57,6 +57,7 @@ public class FlightBookingService {
                     .userId(userId)
                     .bookingRef(bookingRef)
                     .duffelOrderId(result.externalOrderId())
+                    .provider(provider.name())
                     .status(FlightBookingStatus.PENDING_PAYMENT)
                     .tripType(result.tripType() != null ? result.tripType() : TripType.ONE_WAY)
                     .cabinClass(result.cabinClass() != null ? result.cabinClass() : CabinClass.ECONOMY)
@@ -127,10 +128,13 @@ public class FlightBookingService {
             throw new IllegalStateException("Booking is already cancelled/refunded");
         }
 
-        // Best-effort: cancel at primary provider. If we ever persist the
-        // originating provider on the booking, route there instead.
+        // Route cancel to the originating provider (persisted on book).
+        // Fallback to primary for legacy rows where provider was never set.
         try {
-            registry.primary().cancel(booking.getDuffelOrderId());
+            FlightProvider bookingProvider = booking.getProvider() != null
+                    ? FlightProvider.valueOf(booking.getProvider())
+                    : registry.primary().providerType();
+            registry.get(bookingProvider).cancel(booking.getDuffelOrderId());
         } catch (Exception e) {
             log.warn("Provider cancel failed for {}; proceeding with local cancel: {}",
                     booking.getBookingRef(), e.getMessage());

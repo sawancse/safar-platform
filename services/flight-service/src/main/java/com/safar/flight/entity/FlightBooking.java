@@ -31,6 +31,9 @@ public class FlightBooking {
     @Column(length = 100)
     private String duffelOrderId;
 
+    @Column(nullable = false, length = 20)
+    private String provider;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private FlightBookingStatus status;

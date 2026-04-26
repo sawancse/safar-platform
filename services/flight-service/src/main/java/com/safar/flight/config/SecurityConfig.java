@@ -31,6 +31,8 @@ public class SecurityConfig {
                         .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         // Public: flight search
                         .requestMatchers(HttpMethod.GET, "/api/v1/flights/search").permitAll()
+                        // Public: provider webhooks (HMAC-verified inside controller)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/flights/webhooks/**").permitAll()
                         // Admin endpoints
                         .requestMatchers("/api/v1/flights/admin/**").hasRole("ADMIN")
                         // Authenticated: booking, payment, cancel, my bookings

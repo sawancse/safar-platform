@@ -31,4 +31,9 @@ public class KafkaTopicConfig {
     public NewTopic flightReminderCheckinTopic() {
         return new NewTopic("flight.reminder.checkin", 1, (short) 1);
     }
+
+    @Bean
+    public NewTopic flightAirlineChangedTopic() {
+        return new NewTopic("flight.airline.changed", 1, (short) 1);
+    }
 }

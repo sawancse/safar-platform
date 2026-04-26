@@ -106,6 +106,8 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         // Razorpay webhook — signed by Razorpay, no user JWT
         if (path.startsWith("/api/v1/payments/webhook")) return true;
         if (path.startsWith("/api/v1/payments/tenancy/webhook")) return true;
+        // Flight provider webhooks (Duffel etc.) — HMAC-verified inside flight-service, no user JWT
+        if (path.startsWith("/api/v1/flights/webhooks/")) return true;
         // Donations — create and verify are public (anonymous donations allowed), stats are public GET
         if (path.equals("/api/v1/donations") && HttpMethod.POST.equals(method)) return true;
         if (path.equals("/api/v1/donations/verify") && HttpMethod.POST.equals(method)) return true;
