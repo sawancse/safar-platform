@@ -38,6 +38,7 @@ public class ServiceListingService {
     private final ServiceListingRepository repo;
     private final ServiceListingPublishValidator publishValidator;
     private final ObjectMapper objectMapper;
+    private final ResilientKafkaService kafka;
 
     // ── Create / Update ─────────────────────────────────────
 
@@ -188,6 +189,21 @@ public class ServiceListingService {
 
     @Transactional(readOnly = true)
     public List<ServiceListing> listVerified(String serviceType, String city) {
+        return listVerified(serviceType, city, null);
+    }
+
+    /**
+     * Search VERIFIED listings, optionally filtered by service type, city, and
+     * a date the vendor must be available on (Sprint 4 — date-availability
+     * filter, competitive differentiator from The Knot).
+     */
+    @Transactional(readOnly = true)
+    public List<ServiceListing> listVerified(String serviceType, String city, java.time.LocalDate availableOn) {
+        if (availableOn != null) {
+            return repo.findVerifiedAvailableOn(availableOn,
+                    serviceType,
+                    (city != null && !city.isBlank()) ? city.trim() : null);
+        }
         if (serviceType != null && city != null && !city.isBlank()) {
             return repo.findVerifiedByTypeAndCity(serviceType, city.trim());
         }
@@ -293,6 +309,47 @@ public class ServiceListingService {
         ServiceListing saved = repo.save(listing);
         log.info("Service listing {} transitioned {} -> {} by {}",
                 listing.getId(), prev, next, changedBy);
+        publishLifecycleEvent(saved, prev, next);
         return saved;
+    }
+
+    /**
+     * Publishes a Kafka event when a listing reaches a notable lifecycle state.
+     * Consumers: notification-service (vendor email/SMS), search-service (index/de-index),
+     * booking-service (validate available bookings on suspend).
+     */
+    private void publishLifecycleEvent(ServiceListing saved, ServiceListingStatus prev, ServiceListingStatus next) {
+        String topic;
+        switch (next) {
+            case VERIFIED -> topic = (prev == ServiceListingStatus.PAUSED) ? "service.listing.resumed" : "service.listing.published";
+            case SUSPENDED -> topic = "service.listing.suspended";
+            case PAUSED -> topic = "service.listing.paused";
+            case DRAFT -> {
+                // DRAFT can be reached from PENDING_REVIEW (rejection) or SUSPENDED (admin restore).
+                // Only the rejection path is interesting to subscribers (vendor notification).
+                if (prev == ServiceListingStatus.PENDING_REVIEW) topic = "service.listing.rejected";
+                else return;
+            }
+            case PENDING_REVIEW -> topic = "service.listing.submitted";
+            default -> { return; }
+        }
+
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("id", saved.getId().toString());
+            payload.put("vendorUserId", saved.getVendorUserId().toString());
+            payload.put("serviceType", saved.getServiceType());
+            payload.put("businessName", saved.getBusinessName());
+            payload.put("vendorSlug", saved.getVendorSlug());
+            payload.put("status", next.name());
+            payload.put("previousStatus", prev.name());
+            if (saved.getRejectionReason() != null) payload.put("reason", saved.getRejectionReason());
+            payload.put("at", OffsetDateTime.now().toString());
+
+            kafka.send(topic, saved.getId().toString(), objectMapper.writeValueAsString(payload));
+        } catch (Exception e) {
+            // Outbox already takes care of retries; this catch is just for serialization issues
+            log.error("Failed to publish lifecycle event {} for listing {}: {}", topic, saved.getId(), e.getMessage());
+        }
     }
 }

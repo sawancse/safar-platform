@@ -75,6 +75,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/services/listings/*/pause").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/services/listings/*/resume").authenticated()
                         .requestMatchers("/api/v1/services/listings/*/kyc-documents", "/api/v1/services/listings/*/kyc-documents/**").authenticated()
+                        // Service items: vendor-owned writes, public reads
+                        .requestMatchers(HttpMethod.GET, "/api/v1/services/listings/*/items").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/services/items/*").permitAll()
+                        .requestMatchers("/api/v1/services/listings/*/items/all").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/services/listings/*/items").authenticated()
+                        .requestMatchers("/api/v1/services/items/**").authenticated()
                         // Services-leg listings: public storefront browse
                         .requestMatchers(HttpMethod.GET, "/api/v1/services/listings", "/api/v1/services/listings/by-slug/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/services/listings/*").permitAll()

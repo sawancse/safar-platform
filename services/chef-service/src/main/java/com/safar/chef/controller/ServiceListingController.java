@@ -44,8 +44,10 @@ public class ServiceListingController {
     @GetMapping
     public ResponseEntity<List<ServiceListingResponse>> listVerified(
             @RequestParam(required = false) String serviceType,
-            @RequestParam(required = false) String city) {
-        List<ServiceListing> listings = listingService.listVerified(serviceType, city);
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+            java.time.LocalDate availableOn) {
+        List<ServiceListing> listings = listingService.listVerified(serviceType, city, availableOn);
         return ResponseEntity.ok(listings.stream().map(ServiceListingResponse::from).toList());
     }
 
