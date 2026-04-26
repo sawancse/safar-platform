@@ -669,6 +669,17 @@ export const adminApi = {
   setVendorCommissionOverride(listingId: string, body: { commissionPctOverride: number | null; commissionOverrideReason?: string }, token: string) {
     return axios.put(`${BASE}/services/admin/listings/${listingId}/commission-override`, body, { headers: authHeaders(token) }).then(r => r.data);
   },
+  // ── Vendor invites (Pattern E — WhatsApp BD outreach) ──
+  listVendorInvites(token: string, serviceType?: string) {
+    const qs = serviceType ? `?serviceType=${encodeURIComponent(serviceType)}` : '';
+    return axios.get(`${BASE}/services/admin/invites${qs}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  createVendorInvite(body: { phone: string; serviceType: string; businessName?: string; notes?: string; sentVia?: string }, token: string) {
+    return axios.post(`${BASE}/services/admin/invites`, body, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  cancelVendorInvite(id: string, token: string) {
+    return axios.post(`${BASE}/services/admin/invites/${id}/cancel`, {}, { headers: authHeaders(token) }).then(r => r.data);
+  },
 
   // Vendor assignment on a specific event booking
   getActiveBookingVendor(bookingId: string, token: string) {

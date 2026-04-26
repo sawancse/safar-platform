@@ -19,6 +19,7 @@ import EventPricingPage from './pages/EventPricingPage';
 import PartnerVendorsPage from './pages/PartnerVendorsPage';
 import ServiceListingsPage from './pages/ServiceListingsPage';
 import CommissionRatesPage from './pages/CommissionRatesPage';
+import VendorInvitesPage from './pages/VendorInvitesPage';
 import SuppliersPage from './pages/SuppliersPage';
 import PurchaseOrdersPage from './pages/PurchaseOrdersPage';
 import StockPage from './pages/StockPage';
@@ -71,6 +72,7 @@ export default function App() {
         <Route path="vendors" element={<PartnerVendorsPage />} />
         <Route path="service-listings" element={<ServiceListingsPage />} />
         <Route path="commission-rates" element={<CommissionRatesPage />} />
+        <Route path="vendor-invites" element={<VendorInvitesPage />} />
         <Route path="suppliers" element={<SuppliersPage />} />
         <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
         <Route path="stock" element={<StockPage />} />

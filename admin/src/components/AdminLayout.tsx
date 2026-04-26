@@ -42,6 +42,7 @@ const menuItems = [
   { key: '/vendors',         icon: <ShopOutlined />,       label: 'Vendors' },
   { key: '/service-listings',icon: <SafetyOutlined />,    label: 'Service Listings' },
   { key: '/commission-rates', icon: <FundOutlined />,     label: 'Commission Rates' },
+  { key: '/vendor-invites',  icon: <ApiOutlined />,        label: 'Vendor Invites' },
   { key: '/suppliers',       icon: <ShopOutlined />,       label: 'Suppliers' },
   { key: '/purchase-orders', icon: <FileTextOutlined />,   label: 'Purchase Orders' },
   { key: '/stock',           icon: <AppstoreOutlined />,   label: 'Stock' },

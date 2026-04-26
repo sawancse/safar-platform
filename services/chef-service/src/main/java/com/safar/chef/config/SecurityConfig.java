@@ -81,6 +81,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/services/listings/*/items/all").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/services/listings/*/items").authenticated()
                         .requestMatchers("/api/v1/services/items/**").authenticated()
+                        // Vendor invites — token resolve is public (the token IS the auth)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/services/invites/**").permitAll()
                         // Services-leg listings: public storefront browse
                         .requestMatchers(HttpMethod.GET, "/api/v1/services/listings", "/api/v1/services/listings/by-slug/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/services/listings/*").permitAll()
