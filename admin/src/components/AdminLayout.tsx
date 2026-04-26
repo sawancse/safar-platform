@@ -41,6 +41,7 @@ const menuItems = [
   { key: '/staff-pool',     icon: <TeamOutlined />,       label: 'Staff Pool' },
   { key: '/vendors',         icon: <ShopOutlined />,       label: 'Vendors' },
   { key: '/service-listings',icon: <SafetyOutlined />,    label: 'Service Listings' },
+  { key: '/commission-rates', icon: <FundOutlined />,     label: 'Commission Rates' },
   { key: '/suppliers',       icon: <ShopOutlined />,       label: 'Suppliers' },
   { key: '/purchase-orders', icon: <FileTextOutlined />,   label: 'Purchase Orders' },
   { key: '/stock',           icon: <AppstoreOutlined />,   label: 'Stock' },

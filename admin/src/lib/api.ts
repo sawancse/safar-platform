@@ -658,6 +658,17 @@ export const adminApi = {
   listServiceListingKyc(id: string, token: string) {
     return axios.get(`${BASE}/services/listings/${id}/kyc-documents`, { headers: authHeaders(token) }).then(r => r.data);
   },
+  // ── Commission rates (platform-flexible monetization) ──
+  listCommissionRates(token: string, serviceType?: string) {
+    const qs = serviceType ? `?serviceType=${encodeURIComponent(serviceType)}` : '';
+    return axios.get(`${BASE}/services/admin/commission-rates${qs}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  updateCommissionRate(serviceType: string, tier: string, body: { commissionPct: number; promotionThreshold?: number; notes?: string }, token: string) {
+    return axios.put(`${BASE}/services/admin/commission-rates/${serviceType}/${tier}`, body, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  setVendorCommissionOverride(listingId: string, body: { commissionPctOverride: number | null; commissionOverrideReason?: string }, token: string) {
+    return axios.put(`${BASE}/services/admin/listings/${listingId}/commission-override`, body, { headers: authHeaders(token) }).then(r => r.data);
+  },
 
   // Vendor assignment on a specific event booking
   getActiveBookingVendor(bookingId: string, token: string) {
