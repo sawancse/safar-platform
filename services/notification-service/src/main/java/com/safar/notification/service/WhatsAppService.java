@@ -36,6 +36,22 @@ public class WhatsAppService {
     @Value("${msg91.wa.flight-search-abandoned-template:}")
     private String flightSearchAbandonedTemplate;
 
+    // WA BD — book/manage flights + insurance via WhatsApp commerce
+    @Value("${msg91.wa.flight-booking-confirmed-template:}")
+    private String flightBookingConfirmedTemplate;
+
+    @Value("${msg91.wa.insurance-policy-issued-template:}")
+    private String insurancePolicyIssuedTemplate;
+
+    @Value("${msg91.wa.book-flight-deeplink-template:}")
+    private String bookFlightDeeplinkTemplate;
+
+    @Value("${msg91.wa.book-insurance-deeplink-template:}")
+    private String bookInsuranceDeeplinkTemplate;
+
+    @Value("${msg91.wa.bot-help-template:}")
+    private String botHelpTemplate;
+
     @Value("${msg91.base-url:https://control.msg91.com/api/v5}")
     private String baseUrl;
 
@@ -52,6 +68,43 @@ public class WhatsAppService {
         sendTemplate(phone, flightSearchAbandonedTemplate, List.of(
                 route, date, fareHint != null ? fareHint : ""));
         log.info("Sent flight search-abandoned WA to {}", maskPhone(phone));
+    }
+
+    /** E-ticket confirmation via WhatsApp — fired by FlightEventConsumer on flight.booking.confirmed. */
+    public void sendFlightBookingConfirmed(String phone, String bookingRef, String route, String date, String airline) {
+        if (!isConfigured(flightBookingConfirmedTemplate)) return;
+        sendTemplate(phone, flightBookingConfirmedTemplate, List.of(
+                bookingRef, route, date, airline != null ? airline : ""));
+        log.info("Sent flight confirmation WA to {} ({})", maskPhone(phone), bookingRef);
+    }
+
+    /** Policy doc + cert URL via WhatsApp — fired on insurance.policy.issued. */
+    public void sendInsurancePolicyIssued(String phone, String policyRef, String insurer, String coverage, String certUrl) {
+        if (!isConfigured(insurancePolicyIssuedTemplate)) return;
+        sendTemplate(phone, insurancePolicyIssuedTemplate, List.of(
+                policyRef, insurer, coverage, certUrl != null ? certUrl : "ysafar.com/insurance"));
+        log.info("Sent insurance policy WA to {} ({})", maskPhone(phone), policyRef);
+    }
+
+    /** Reply to inbound "BOOK FLIGHT" with a deep link back to safar-web. */
+    public void sendBookFlightDeeplink(String phone, String deeplink) {
+        if (!isConfigured(bookFlightDeeplinkTemplate)) return;
+        sendTemplate(phone, bookFlightDeeplinkTemplate, List.of(deeplink));
+        log.info("Sent book-flight deeplink WA to {}", maskPhone(phone));
+    }
+
+    /** Reply to inbound "BOOK INSURANCE" with a deep link back to safar-web. */
+    public void sendBookInsuranceDeeplink(String phone, String deeplink) {
+        if (!isConfigured(bookInsuranceDeeplinkTemplate)) return;
+        sendTemplate(phone, bookInsuranceDeeplinkTemplate, List.of(deeplink));
+        log.info("Sent book-insurance deeplink WA to {}", maskPhone(phone));
+    }
+
+    /** Catch-all reply for unknown inbound keywords — explains commands. */
+    public void sendBotHelp(String phone) {
+        if (!isConfigured(botHelpTemplate)) return;
+        sendTemplate(phone, botHelpTemplate, List.of());
+        log.info("Sent bot-help WA to {}", maskPhone(phone));
     }
 
     // ── Core WA sender ──────────────────────────────────────────

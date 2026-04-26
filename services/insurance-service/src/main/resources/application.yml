@@ -1,0 +1,90 @@
+server:
+  port: 8097
+  tomcat:
+    threads:
+      max: 50
+      min-spare: 5
+    max-connections: 200
+    accept-count: 50
+    connection-timeout: 10000
+
+spring:
+  application:
+    name: insurance-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/safar?currentSchema=insurance}
+    username: ${DB_USERNAME:safar}
+    password: ${DB_PASSWORD:safar}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      idle-timeout: 30000
+      connection-timeout: 10000
+      leak-detection-threshold: 60000
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+    show-sql: false
+    properties:
+      hibernate:
+        default_schema: insurance
+
+  flyway:
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    default-schema: insurance
+    schemas: insurance
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        max.block.ms: 3000
+        request.timeout.ms: 3000
+        delivery.timeout.ms: 5000
+
+jwt:
+  secret: ${JWT_SECRET:l0UNaBuoYCf7Y/G8G1bihPxkUI7NZuPaZdzTbbEYqzM=}
+
+insurance:
+  providers:
+    primary: ${INSURANCE_PRIMARY_PROVIDER:ACKO}    # which adapter issues policies by default
+
+acko:
+  enabled: ${ACKO_ENABLED:false}                   # MASTER SWITCH — flip when sandbox creds arrive
+  api-key: ${ACKO_API_KEY:}
+  partner-id: ${ACKO_PARTNER_ID:}
+  base-url: ${ACKO_BASE_URL:https://api.acko.com}
+
+icici-lombard:
+  enabled: ${ICICI_LOMBARD_ENABLED:false}
+  api-key: ${ICICI_LOMBARD_API_KEY:}
+  partner-code: ${ICICI_LOMBARD_PARTNER_CODE:}
+  base-url: ${ICICI_LOMBARD_BASE_URL:https://api.icicilombard.com}
+
+services:
+  payment-service:
+    url: ${PAYMENT_SERVICE_URL:http://localhost:8086}
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8092}
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+springdoc:
+  api-docs.path: /api-docs
+  swagger-ui.path: /swagger-ui.html

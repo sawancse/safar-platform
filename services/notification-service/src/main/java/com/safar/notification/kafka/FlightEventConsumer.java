@@ -8,6 +8,7 @@ import com.safar.notification.service.EmailTemplateService;
 import com.safar.notification.service.InAppNotificationService;
 import com.safar.notification.service.SmsService;
 import com.safar.notification.service.UserClient;
+import com.safar.notification.service.WhatsAppService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -28,6 +29,7 @@ public class FlightEventConsumer {
     private final EmailTemplateService emailTemplateService;
     private final InAppNotificationService inAppNotificationService;
     private final SmsService smsService;
+    private final WhatsAppService whatsAppService;
     private final UserClient userClient;
     private final ObjectMapper objectMapper;
 
@@ -91,6 +93,15 @@ public class FlightEventConsumer {
         // SMS
         if (!phone.isBlank()) {
             smsService.sendFlightConfirmation(phone, bookingRef, route, depDate, airline + " " + flightNum);
+        }
+
+        // WhatsApp (e-ticket)
+        if (!phone.isBlank()) {
+            try {
+                whatsAppService.sendFlightBookingConfirmed(phone, bookingRef, route, depDate, airline + " " + flightNum);
+            } catch (Exception e) {
+                log.warn("WA flight confirmation failed: {}", e.getMessage());
+            }
         }
 
         // In-App
