@@ -10,6 +10,7 @@ import com.safar.flight.dto.CreateFlightBookingRequest;
 import com.safar.flight.dto.FlightBookingResponse;
 import com.safar.flight.entity.*;
 import com.safar.flight.repository.FlightBookingRepository;
+import com.safar.flight.repository.FlightSearchEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -33,6 +34,7 @@ public class FlightBookingService {
 
     private final FlightProviderRegistry registry;
     private final FlightBookingRepository bookingRepository;
+    private final FlightSearchEventRepository searchEventRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
@@ -88,7 +90,40 @@ public class FlightBookingService {
         log.info("Flight booking created: {} for user {} (provider={}, externalOrderId={})",
                 bookingRef, userId, provider, result.externalOrderId());
         publishEvent("flight.booking.created", booking);
+        suppressMatchingSearchEvents(userId, booking);
         return toResponse(booking);
+    }
+
+    /**
+     * When a user books a route they previously searched, mark all matching
+     * open search events as suppressed=BOOKED so the AbandonedSearchDetector
+     * stops nudging them about a route they've already converted on.
+     */
+    private void suppressMatchingSearchEvents(UUID userId, FlightBooking booking) {
+        try {
+            if (userId == null || booking.getDepartureCityCode() == null
+                    || booking.getArrivalCityCode() == null
+                    || booking.getDepartureDate() == null) {
+                return;
+            }
+            var matches = searchEventRepository
+                    .findByUserIdAndOriginAndDestinationAndDepartureDateAndSuppressedFalse(
+                            userId,
+                            booking.getDepartureCityCode(),
+                            booking.getArrivalCityCode(),
+                            booking.getDepartureDate());
+            for (var event : matches) {
+                event.setSuppressed(true);
+                event.setSuppressionReason("BOOKED");
+            }
+            if (!matches.isEmpty()) {
+                searchEventRepository.saveAll(matches);
+                log.info("Suppressed {} abandoned-search events for booking {}",
+                        matches.size(), booking.getBookingRef());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to suppress matching search events (non-fatal): {}", e.getMessage());
+        }
     }
 
     @Transactional

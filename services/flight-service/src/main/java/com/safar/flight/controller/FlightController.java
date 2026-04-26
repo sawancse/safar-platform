@@ -27,9 +27,18 @@ public class FlightController {
     private final FlightBookingService bookingService;
 
     @GetMapping("/search")
-    public ResponseEntity<FlightSearchResponse> searchFlights(@Valid FlightSearchRequest request) {
+    public ResponseEntity<FlightSearchResponse> searchFlights(
+            @Valid FlightSearchRequest request,
+            Authentication auth,
+            @org.springframework.web.bind.annotation.RequestHeader(value = "X-Device-Id", required = false) String deviceId) {
         log.info("Flight search: {} -> {} on {}", request.origin(), request.destination(), request.departureDate());
-        return ResponseEntity.ok(searchService.search(request));
+        UUID userId = (auth != null && auth.isAuthenticated() && auth.getName() != null)
+                ? safeUserId(auth.getName()) : null;
+        return ResponseEntity.ok(searchService.search(request, userId, deviceId, null, null));
+    }
+
+    private static UUID safeUserId(String name) {
+        try { return UUID.fromString(name); } catch (Exception e) { return null; }
     }
 
     @PostMapping("/book")

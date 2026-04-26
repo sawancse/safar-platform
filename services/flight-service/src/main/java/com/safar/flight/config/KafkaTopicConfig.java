@@ -36,4 +36,9 @@ public class KafkaTopicConfig {
     public NewTopic flightAirlineChangedTopic() {
         return new NewTopic("flight.airline.changed", 1, (short) 1);
     }
+
+    @Bean
+    public NewTopic flightSearchAbandonedTopic() {
+        return new NewTopic("flight.search.abandoned", 1, (short) 1);
+    }
 }
