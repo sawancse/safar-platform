@@ -172,9 +172,9 @@ services:
       kafka:
         condition: service_started
 
-  chef-service:
-    build: ./services/chef-service
-    container_name: safar-chef
+  services-service:
+    build: ./services/services-service
+    container_name: safar-services-service
     ports:
       - "8093:8093"
     environment:
