@@ -11,6 +11,7 @@ import com.safar.flight.dto.FlightBookingResponse;
 import com.safar.flight.entity.*;
 import com.safar.flight.repository.FlightBookingRepository;
 import com.safar.flight.repository.FlightSearchEventRepository;
+import com.safar.flight.repository.RefundApprovalRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -35,8 +36,14 @@ public class FlightBookingService {
     private final FlightProviderRegistry registry;
     private final FlightBookingRepository bookingRepository;
     private final FlightSearchEventRepository searchEventRepository;
+    private final RefundApprovalRepository refundApprovalRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
+
+    /** Refunds at-or-below this amount auto-confirm; above goes to admin review. Per Tree-4. */
+    private static final long AUTO_REFUND_THRESHOLD_PAISE = 10_00_000L;     // ₹10,000
+    /** Refunds above this OR international OR group bookings get HIGH priority (4hr SLA). */
+    private static final long HIGH_PRIORITY_THRESHOLD_PAISE = 50_00_000L;   // ₹50,000
 
     @Transactional
     public FlightBookingResponse createBooking(UUID userId, CreateFlightBookingRequest request) {
@@ -175,20 +182,92 @@ public class FlightBookingService {
                     booking.getBookingRef(), e.getMessage());
         }
 
-        booking.setStatus(FlightBookingStatus.CANCELLED);
+        long refundPaise = booking.getTotalAmountPaise() != null ? booking.getTotalAmountPaise() : 0L;
+        boolean isPaid = "PAID".equals(booking.getPaymentStatus());
+
         booking.setCancelledAt(Instant.now());
         booking.setCancellationReason("Cancelled by user");
-        booking.setRefundAmountPaise(booking.getTotalAmountPaise());
 
-        if ("PAID".equals(booking.getPaymentStatus())) {
+        if (!isPaid) {
+            // No payment to refund — straight to CANCELLED
+            booking.setStatus(FlightBookingStatus.CANCELLED);
+        } else if (refundPaise <= AUTO_REFUND_THRESHOLD_PAISE) {
+            // Auto-confirm small refunds per Tree-4
+            booking.setRefundAmountPaise(refundPaise);
             booking.setPaymentStatus("REFUND_INITIATED");
             booking.setStatus(FlightBookingStatus.REFUNDED);
+            log.info("Flight booking {} auto-refunded ₹{}", booking.getBookingRef(), refundPaise / 100);
+        } else {
+            // Above threshold → admin queue
+            booking.setStatus(FlightBookingStatus.CANCELLED);
+            // Refund amount stays unset until admin approves
+            String priority = (refundPaise > HIGH_PRIORITY_THRESHOLD_PAISE
+                    || Boolean.TRUE.equals(booking.getIsInternational())) ? "HIGH" : "NORMAL";
+            RefundApproval approval = RefundApproval.builder()
+                    .flightBookingId(booking.getId())
+                    .userId(userId)
+                    .requestedAmountPaise(refundPaise)
+                    .priority(priority)
+                    .reason("User-initiated cancellation")
+                    .fareRule("REFUNDABLE") // TODO: derive from provider fare-rules when available
+                    .status("PENDING")
+                    .build();
+            refundApprovalRepository.save(approval);
+            log.info("Flight booking {} cancellation queued for admin approval (₹{}, priority={})",
+                    booking.getBookingRef(), refundPaise / 100, priority);
         }
 
         booking = bookingRepository.save(booking);
         log.info("Flight booking cancelled: {}", booking.getBookingRef());
         publishEvent("flight.booking.cancelled", booking);
         return toResponse(booking);
+    }
+
+    /** Admin approves a pending refund request — confirms the payout. */
+    @Transactional
+    public RefundApproval approveRefund(UUID approvalId, UUID adminUserId, Long approvedAmountPaise, String notes) {
+        RefundApproval approval = refundApprovalRepository.findById(approvalId)
+                .orElseThrow(() -> new NoSuchElementException("Refund approval not found: " + approvalId));
+        if (!"PENDING".equals(approval.getStatus())) {
+            throw new IllegalStateException("Refund approval is not in PENDING status: " + approval.getStatus());
+        }
+        long amount = approvedAmountPaise != null && approvedAmountPaise > 0
+                ? Math.min(approvedAmountPaise, approval.getRequestedAmountPaise())
+                : approval.getRequestedAmountPaise();
+
+        approval.setApprovedAmountPaise(amount);
+        approval.setStatus("APPROVED");
+        approval.setReviewedAt(Instant.now());
+        approval.setReviewedByUserId(adminUserId);
+        approval.setReviewNotes(notes);
+        approval = refundApprovalRepository.save(approval);
+
+        // Update the linked booking to mark refund initiated
+        FlightBooking booking = bookingRepository.findById(approval.getFlightBookingId()).orElse(null);
+        if (booking != null) {
+            booking.setRefundAmountPaise(amount);
+            booking.setPaymentStatus("REFUND_INITIATED");
+            booking.setStatus(FlightBookingStatus.REFUNDED);
+            bookingRepository.save(booking);
+        }
+        approval.setStatus("COMPLETED");
+        approval.setCompletedAt(Instant.now());
+        return refundApprovalRepository.save(approval);
+    }
+
+    /** Admin rejects a refund request — booking stays CANCELLED but no refund. */
+    @Transactional
+    public RefundApproval rejectRefund(UUID approvalId, UUID adminUserId, String notes) {
+        RefundApproval approval = refundApprovalRepository.findById(approvalId)
+                .orElseThrow(() -> new NoSuchElementException("Refund approval not found: " + approvalId));
+        if (!"PENDING".equals(approval.getStatus())) {
+            throw new IllegalStateException("Refund approval is not in PENDING status: " + approval.getStatus());
+        }
+        approval.setStatus("REJECTED");
+        approval.setReviewedAt(Instant.now());
+        approval.setReviewedByUserId(adminUserId);
+        approval.setReviewNotes(notes);
+        return refundApprovalRepository.save(approval);
     }
 
     public Page<FlightBookingResponse> getMyBookings(UUID userId, Pageable pageable) {

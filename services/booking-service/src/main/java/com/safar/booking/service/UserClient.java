@@ -5,6 +5,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -40,14 +43,13 @@ public class UserClient {
     public Set<String> getUserFlags(UUID userId) {
         if (userId == null) return Set.of();
         try {
-            // TODO(user-service): wire this once /api/v1/users/{id}/flags exists.
-            // var resp = restClient.get()
-            //         .uri(userServiceUrl + "/api/v1/users/" + userId + "/flags")
-            //         .retrieve()
-            //         .body(Map.class);
-            // List<String> flags = (List<String>) resp.get("flags");
-            // return flags == null ? Set.of() : new HashSet<>(flags);
-            return Set.of();
+            var resp = restClient.get()
+                    .uri(userServiceUrl + "/api/v1/users/" + userId + "/flags")
+                    .retrieve()
+                    .body(Map.class);
+            if (resp == null) return Set.of();
+            List<String> flags = (List<String>) resp.get("flags");
+            return flags == null ? Set.of() : new HashSet<>(flags);
         } catch (Exception e) {
             log.debug("getUserFlags({}) failed (non-fatal, falling back to empty): {}", userId, e.getMessage());
             return Set.of();

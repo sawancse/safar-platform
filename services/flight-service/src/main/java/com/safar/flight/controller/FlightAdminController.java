@@ -3,7 +3,9 @@ package com.safar.flight.controller;
 import com.safar.flight.dto.FlightBookingResponse;
 import com.safar.flight.entity.FlightBooking;
 import com.safar.flight.entity.FlightBookingStatus;
+import com.safar.flight.entity.RefundApproval;
 import com.safar.flight.repository.FlightBookingRepository;
+import com.safar.flight.repository.RefundApprovalRepository;
 import com.safar.flight.service.FlightBookingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,7 @@ import java.util.*;
 public class FlightAdminController {
 
     private final FlightBookingRepository bookingRepository;
+    private final RefundApprovalRepository refundApprovalRepository;
     private final FlightBookingService flightService;
 
     private void requireAdmin(Authentication auth) {
@@ -144,5 +147,48 @@ public class FlightAdminController {
                         ? String.format("%.1f%%", bookingRepository.countByStatus(FlightBookingStatus.CANCELLED) * 100.0 / bookingRepository.count())
                         : "0%");
         return ResponseEntity.ok(revenue);
+    }
+
+    // ─── Two-step refund approval queue (per Tree-4) ────────────────
+
+    @GetMapping("/refunds/pending")
+    public ResponseEntity<Page<RefundApproval>> pendingRefunds(
+            @org.springframework.data.web.PageableDefault(size = 20) Pageable pageable,
+            Authentication auth) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(refundApprovalRepository
+                .findByStatusOrderByPriorityAscRequestedAtAsc("PENDING", pageable));
+    }
+
+    @GetMapping("/refunds/stats")
+    public ResponseEntity<Map<String, Object>> refundStats(Authentication auth) {
+        requireAdmin(auth);
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("pending", refundApprovalRepository.countByStatus("PENDING"));
+        stats.put("approved", refundApprovalRepository.countByStatus("APPROVED"));
+        stats.put("rejected", refundApprovalRepository.countByStatus("REJECTED"));
+        stats.put("completed", refundApprovalRepository.countByStatus("COMPLETED"));
+        return ResponseEntity.ok(stats);
+    }
+
+    @PostMapping("/refunds/{id}/approve")
+    public ResponseEntity<RefundApproval> approveRefund(
+            @PathVariable UUID id,
+            @RequestParam(required = false) Long approvedAmountPaise,
+            @RequestParam(required = false) String notes,
+            Authentication auth) {
+        requireAdmin(auth);
+        UUID adminId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(flightService.approveRefund(id, adminId, approvedAmountPaise, notes));
+    }
+
+    @PostMapping("/refunds/{id}/reject")
+    public ResponseEntity<RefundApproval> rejectRefund(
+            @PathVariable UUID id,
+            @RequestParam(required = false) String notes,
+            Authentication auth) {
+        requireAdmin(auth);
+        UUID adminId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(flightService.rejectRefund(id, adminId, notes));
     }
 }

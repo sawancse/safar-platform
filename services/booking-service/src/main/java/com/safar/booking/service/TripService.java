@@ -38,6 +38,7 @@ public class TripService {
 
     private final TripRepository tripRepository;
     private final TripLegRepository tripLegRepository;
+    private final LegCancelRouter legCancelRouter;
 
     @Transactional
     public Trip create(UUID userId, String tripName,
@@ -140,6 +141,9 @@ public class TripService {
                 .findFirst()
                 .orElseThrow(() -> new NoSuchElementException("Leg not found in trip: " + legId));
 
+        // Best-effort downstream cancel — log but don't block local state update
+        legCancelRouter.cancelLeg(leg, reason);
+
         leg.setStatus(LegStatus.CANCELLED);
         leg.setCancelledAt(Instant.now());
         leg.setCancellationReason(reason);
@@ -157,8 +161,10 @@ public class TripService {
     public void cancelTrip(UUID tripId, String reason) {
         Trip trip = requireTrip(tripId);
         Instant now = Instant.now();
+        // Cascade-cancel each active leg's underlying booking via the router
         for (TripLeg leg : trip.getLegs()) {
             if (leg.getStatus() == LegStatus.CONFIRMED || leg.getStatus() == LegStatus.PENDING) {
+                legCancelRouter.cancelLeg(leg, reason);
                 leg.setStatus(LegStatus.CANCELLED);
                 leg.setCancelledAt(now);
                 leg.setCancellationReason(reason);

@@ -71,17 +71,9 @@ public class PushNotificationService {
 
     // ── Token lookup ────────────────────────────────────────────
 
-    /**
-     * TODO: replace with real lookup once user-service exposes
-     * GET /api/v1/users/{id}/push-tokens. For now returns empty so all
-     * push paths are no-ops until mobile + user-service wiring lands.
-     */
     private List<String> lookupTokens(UUID userId) {
         try {
-            // When user-service implements it:
-            //   return userClient.getPushTokens(userId);
-            // For now: probe to see if the method exists; safe to no-op.
-            return List.of();
+            return userClient.getPushTokens(userId);
         } catch (Exception e) {
             log.debug("Push token lookup failed for {}: {}", userId, e.getMessage());
             return List.of();

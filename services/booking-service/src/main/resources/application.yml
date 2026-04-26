@@ -82,6 +82,10 @@ services:
     url: ${USER_SERVICE_URL:http://localhost:8092}
   chef-service:
     url: ${CHEF_SERVICE_URL:http://localhost:8093}
+  flight-service:
+    url: ${FLIGHT_SERVICE_URL:http://localhost:8094}
+  insurance-service:
+    url: ${INSURANCE_SERVICE_URL:http://localhost:8097}
 
 resilience4j:
   circuitbreaker:

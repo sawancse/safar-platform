@@ -6,7 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -191,6 +193,17 @@ public class UserProfile {
 
     @Column(name = "suspended_by")
     private UUID suspendedBy;
+
+    /**
+     * User flags for cross-service consumption (e.g. booking-service's
+     * TripIntentEvaluator reads these to fire MEDICAL/HISTORY rules).
+     * Stored as JSONB array of strings — flexible bag of flags like
+     * "medical_history", "new_pg_signup". Other services write here
+     * via internal API.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "user_flags", columnDefinition = "jsonb")
+    private String userFlags;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
