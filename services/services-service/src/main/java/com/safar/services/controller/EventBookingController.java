@@ -8,6 +8,7 @@ import com.safar.services.dto.ModifyEventBookingRequest;
 import com.safar.services.dto.VendorAssignmentResponse;
 import com.safar.services.entity.EventBooking;
 import com.safar.services.entity.EventBookingStaff;
+import com.safar.services.entity.EventBookingVendor;
 import com.safar.services.repository.ChefProfileRepository;
 import com.safar.services.repository.EventBookingStaffRepository;
 import com.safar.services.service.EventBookingService;
@@ -299,6 +300,29 @@ public class EventBookingController {
     public ResponseEntity<List<EventBooking>> getChefEvents(Authentication auth) {
         UUID chefId = UUID.fromString(auth.getName());
         return ResponseEntity.ok(eventBookingService.getChefEvents(chefId));
+    }
+
+    // ── V28: vendor-facing endpoints (self-service ServiceListing vendors) ──
+
+    /** Bookings already assigned to the authenticated vendor. */
+    @GetMapping("/vendor/my")
+    public ResponseEntity<List<EventBooking>> getMyVendorBookings(Authentication auth) {
+        UUID vendorUserId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(eventBookingService.getMyVendorBookings(vendorUserId));
+    }
+
+    /** Open inquiries the authenticated vendor could claim (unassigned, type+city match). */
+    @GetMapping("/vendor/inquiries")
+    public ResponseEntity<List<EventBooking>> getOpenInquiries(Authentication auth) {
+        UUID vendorUserId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(eventBookingService.getOpenInquiriesForVendor(vendorUserId));
+    }
+
+    /** Self-claim an open inquiry. Idempotent for the same vendor; rejects if already claimed by another. */
+    @PostMapping("/{id}/claim")
+    public ResponseEntity<EventBookingVendor> claimEvent(Authentication auth, @PathVariable UUID id) {
+        UUID vendorUserId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(eventBookingService.claimBooking(vendorUserId, id));
     }
 
     @GetMapping("/{id}")

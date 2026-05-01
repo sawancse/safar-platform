@@ -6,11 +6,19 @@ import com.safar.services.dto.CreateEventBookingRequest;
 import com.safar.services.dto.ModifyEventBookingRequest;
 import com.safar.services.entity.ChefProfile;
 import com.safar.services.entity.EventBooking;
+import com.safar.services.entity.EventBookingVendor;
 import com.safar.services.entity.EventPricingDefault;
+import com.safar.services.entity.PartnerVendor;
+import com.safar.services.entity.ServiceListing;
 import com.safar.services.entity.enums.EventBookingStatus;
+import com.safar.services.entity.enums.ServiceListingStatus;
+import com.safar.services.entity.enums.VendorAssignmentStatus;
 import com.safar.services.repository.ChefProfileRepository;
 import com.safar.services.repository.EventBookingRepository;
+import com.safar.services.repository.EventBookingVendorRepository;
 import com.safar.services.repository.EventPricingDefaultRepository;
+import com.safar.services.repository.PartnerVendorRepository;
+import com.safar.services.repository.ServiceListingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -34,6 +42,9 @@ public class EventBookingService {
     private final ChefProfileRepository chefProfileRepo;
     private final EventPricingDefaultRepository eventPricingRepo;
     private final KafkaTemplate<String, String> kafka;
+    private final PartnerVendorRepository partnerVendorRepo;
+    private final ServiceListingRepository serviceListingRepo;
+    private final EventBookingVendorRepository eventBookingVendorRepo;
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -691,6 +702,100 @@ public class EventBookingService {
     public EventBooking getEvent(UUID eventId) {
         return eventRepo.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Event booking not found"));
+    }
+
+    // ── V28: vendor-side queries (self-service ServiceListing vendors) ──────
+
+    /** All bookings currently assigned to this vendor (via PartnerVendor stub). */
+    @Transactional(readOnly = true)
+    public List<EventBooking> getMyVendorBookings(UUID vendorUserId) {
+        return eventRepo.findAssignedToVendorUser(vendorUserId);
+    }
+
+    /**
+     * Open inquiries this vendor could fulfill. Derives the vendor's eligible
+     * service-types + cities from their VERIFIED ServiceListings, then asks the
+     * repo for unassigned bookings matching either filter.
+     */
+    @Transactional(readOnly = true)
+    public List<EventBooking> getOpenInquiriesForVendor(UUID vendorUserId) {
+        List<ServiceListing> myListings = serviceListingRepo.findByVendorUserId(vendorUserId).stream()
+                .filter(l -> l.getStatus() == ServiceListingStatus.VERIFIED)
+                .toList();
+        if (myListings.isEmpty()) return List.of();
+
+        // Collect distinct menuDescription.type strings the vendor can serve
+        java.util.Set<String> typesSet = new java.util.HashSet<>();
+        java.util.Set<String> citiesSet = new java.util.HashSet<>();
+        boolean serveEverywhere = false;
+        for (ServiceListing l : myListings) {
+            String mappedType = mapListingTypeToMenuType(l.getServiceType());
+            if (mappedType != null) typesSet.add(mappedType);
+            if (l.getCities() != null && !l.getCities().isEmpty()) {
+                for (String c : l.getCities()) {
+                    if (c != null && !c.isBlank()) citiesSet.add(c.toLowerCase());
+                }
+            } else if (l.getHomeCity() != null && !l.getHomeCity().isBlank()) {
+                citiesSet.add(l.getHomeCity().toLowerCase());
+            } else {
+                // No city info → treat as serve-everywhere for this listing
+                serveEverywhere = true;
+            }
+        }
+        if (typesSet.isEmpty()) return List.of();
+
+        String[] types  = typesSet.toArray(new String[0]);
+        String[] cities = serveEverywhere ? new String[0] : citiesSet.toArray(new String[0]);
+        return eventRepo.findOpenInquiries(types, cities);
+    }
+
+    /**
+     * Self-claim an open inquiry. Idempotent — if the vendor already has a row
+     * on this booking, returns it. Refuses if a different vendor has already
+     * claimed (active row exists) or if the booking has a chef assigned.
+     */
+    @Transactional
+    public EventBookingVendor claimBooking(UUID vendorUserId, UUID bookingId) {
+        EventBooking booking = eventRepo.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found: " + bookingId));
+        if (booking.getChefId() != null) {
+            throw new IllegalStateException("Booking already has a chef assigned");
+        }
+        PartnerVendor stub = partnerVendorRepo.findByUserId(vendorUserId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "No vendor profile found — your service listing must be approved first"));
+
+        // Already claimed by someone (including possibly self)?
+        for (EventBookingVendor existing : eventBookingVendorRepo.findByEventBookingIdOrderByCreatedAtDesc(bookingId)) {
+            if (existing.getStatus() != VendorAssignmentStatus.CANCELLED) {
+                if (existing.getVendorId().equals(stub.getId())) return existing;
+                throw new IllegalStateException("Booking already claimed by another vendor");
+            }
+        }
+
+        EventBookingVendor row = EventBookingVendor.builder()
+                .eventBookingId(bookingId)
+                .vendorId(stub.getId())
+                .status(VendorAssignmentStatus.ASSIGNED)
+                .assignedAt(OffsetDateTime.now())
+                .adminNotes("Self-claimed by vendor")
+                .build();
+        EventBookingVendor saved = eventBookingVendorRepo.save(row);
+        log.info("Vendor user={} stub={} self-claimed booking={}", vendorUserId, stub.getId(), bookingId);
+        return saved;
+    }
+
+    /** Inverse of ServiceListingService.mapToVendorType — listing type → menuDescription.type. */
+    private static String mapListingTypeToMenuType(String serviceListingType) {
+        if (serviceListingType == null) return null;
+        return switch (serviceListingType) {
+            case "CAKE_DESIGNER" -> "DESIGNER_CAKE";
+            case "PANDIT"        -> "PANDIT_PUJA";
+            case "DECORATOR"     -> "EVENT_DECOR";
+            case "SINGER"        -> "LIVE_MUSIC";
+            case "STAFF_HIRE"    -> "STAFF_HIRE";
+            default              -> null;
+        };
     }
 
     private String buildEventJson(EventBooking e) {

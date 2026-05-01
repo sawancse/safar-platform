@@ -6,6 +6,8 @@ import com.safar.services.dto.UpdateServiceListingRequest;
 import com.safar.services.entity.*;
 import com.safar.services.entity.enums.ServiceListingStatus;
 import com.safar.services.entity.enums.ServiceListingType;
+import com.safar.services.entity.enums.VendorServiceType;
+import com.safar.services.repository.PartnerVendorRepository;
 import com.safar.services.repository.ServiceListingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +42,7 @@ public class ServiceListingService {
     private final ServiceListingPublishValidator publishValidator;
     private final ObjectMapper objectMapper;
     private final ResilientKafkaService kafka;
+    private final PartnerVendorRepository partnerVendorRepo;
 
     // ── Create / Update ─────────────────────────────────────
 
@@ -348,7 +351,57 @@ public class ServiceListingService {
             throw new IllegalStateException(
                     "Only PENDING_REVIEW listings can be approved; current=" + listing.getStatus());
         }
-        return transitionTo(listing, ServiceListingStatus.VERIFIED, adminUserId, null);
+        ServiceListing approved = transitionTo(listing, ServiceListingStatus.VERIFIED, adminUserId, null);
+        ensurePartnerVendorStub(approved);
+        return approved;
+    }
+
+    /**
+     * V28 — keep partner_vendors in lockstep with self-service approvals so
+     * vendor-side booking queries (assigned + open inquiries) and the existing
+     * admin assignment picker both see this vendor. Idempotent: existing stubs
+     * are refreshed in place.
+     */
+    private void ensurePartnerVendorStub(ServiceListing listing) {
+        VendorServiceType svcType = mapToVendorType(listing.getServiceType());
+        if (svcType == null) return;
+
+        PartnerVendor stub = partnerVendorRepo.findByServiceListingId(listing.getId()).orElse(null);
+        boolean isNew = stub == null;
+        if (isNew) {
+            stub = PartnerVendor.builder()
+                    .serviceType(svcType)
+                    .businessName(listing.getBusinessName())
+                    .userId(listing.getVendorUserId())
+                    .serviceListingId(listing.getId())
+                    .kycStatus("VERIFIED")
+                    .active(true)
+                    .build();
+        } else {
+            stub.setBusinessName(listing.getBusinessName());
+            stub.setUserId(listing.getVendorUserId());
+            stub.setActive(true);
+        }
+        if (listing.getCities() != null && !listing.getCities().isEmpty()) {
+            stub.setServiceCities(listing.getCities().toArray(new String[0]));
+        } else if (listing.getHomeCity() != null) {
+            stub.setServiceCities(new String[]{ listing.getHomeCity().toLowerCase() });
+        }
+        partnerVendorRepo.save(stub);
+        log.info("PartnerVendor stub {} for ServiceListing {} (user {}, type {})",
+                isNew ? "created" : "refreshed", listing.getId(), listing.getVendorUserId(), svcType);
+    }
+
+    private static VendorServiceType mapToVendorType(String serviceListingType) {
+        if (serviceListingType == null) return null;
+        return switch (serviceListingType) {
+            case "CAKE_DESIGNER" -> VendorServiceType.CAKE_DESIGNER;
+            case "PANDIT"        -> VendorServiceType.PANDIT_PUJA;
+            case "DECORATOR"     -> VendorServiceType.EVENT_DECOR;
+            case "SINGER"        -> VendorServiceType.LIVE_MUSIC;
+            case "STAFF_HIRE"    -> VendorServiceType.STAFF_HIRE;
+            default              -> null;
+        };
     }
 
     @Transactional

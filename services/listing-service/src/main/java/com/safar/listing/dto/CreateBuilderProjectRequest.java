@@ -1,6 +1,7 @@
 package com.safar.listing.dto;
 
 import com.safar.listing.entity.enums.ProjectStatus;
+import com.safar.listing.entity.enums.ProjectType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -11,6 +12,7 @@ import java.util.List;
 public record CreateBuilderProjectRequest(
         @NotBlank String builderName,
         String builderLogoUrl,
+        ProjectType projectType,           // null → defaults to APARTMENT_TOWNSHIP
         @NotBlank String projectName,
         String tagline,
         String description,

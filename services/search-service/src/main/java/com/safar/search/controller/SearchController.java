@@ -263,6 +263,7 @@ public class SearchController {
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String locality,
             @RequestParam(required = false) String projectStatus,
+            @RequestParam(required = false) String projectType,
             @RequestParam(required = false) Long priceMin,
             @RequestParam(required = false) Long priceMax,
             @RequestParam(required = false) List<Integer> bhk,
@@ -274,7 +275,7 @@ public class SearchController {
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false, defaultValue = "20") Integer size) {
         return ResponseEntity.ok(builderSearchService.search(query, state, city, locality,
-                projectStatus, priceMin, priceMax, bhk, reraVerified,
+                projectStatus, projectType, priceMin, priceMax, bhk, reraVerified,
                 lat, lng, radiusKm, sort, page, size));
     }
 

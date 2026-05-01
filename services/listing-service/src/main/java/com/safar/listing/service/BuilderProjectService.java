@@ -42,6 +42,8 @@ public class BuilderProjectService {
                 .builderId(builderId)
                 .builderName(req.builderName())
                 .builderLogoUrl(req.builderLogoUrl())
+                .projectType(req.projectType() != null ? req.projectType()
+                        : com.safar.listing.entity.enums.ProjectType.APARTMENT_TOWNSHIP)
                 .projectName(req.projectName())
                 .tagline(req.tagline())
                 .description(req.description())
@@ -189,14 +191,40 @@ public class BuilderProjectService {
                 .orElseThrow(() -> new RuntimeException("Project not found"));
         if (!project.getBuilderId().equals(builderId)) throw new RuntimeException("Not authorized");
 
+        com.safar.listing.entity.enums.UnitKind kind = req.unitKind() != null
+                ? req.unitKind() : com.safar.listing.entity.enums.UnitKind.UNIT;
+
+        // Plot pricing — frontend may send pricePerSqftPaise instead of basePricePaise.
+        // Compute base = perSqft × area when missing, so the rest of the platform
+        // (price-range rollup, search facets) keeps working unchanged.
+        Long basePrice = req.basePricePaise();
+        if (kind == com.safar.listing.entity.enums.UnitKind.PLOT) {
+            if (req.plotAreaSqft() == null || req.plotAreaSqft() <= 0) {
+                throw new IllegalArgumentException("Plot configuration must include plotAreaSqft");
+            }
+            if (basePrice == null && req.pricePerSqftPaise() != null) {
+                basePrice = req.pricePerSqftPaise() * req.plotAreaSqft();
+            }
+            if (basePrice == null) {
+                throw new IllegalArgumentException(
+                        "Plot configuration needs either basePricePaise or pricePerSqftPaise");
+            }
+        } else {
+            // UNIT (apartment/villa) — preserve original requirements
+            if (req.bhk() == null) throw new IllegalArgumentException("bhk is required for UNIT");
+            if (basePrice == null) throw new IllegalArgumentException("basePricePaise is required");
+        }
+
         ProjectUnitType unit = ProjectUnitType.builder()
                 .projectId(projectId)
                 .name(req.name())
+                .unitKind(kind)
                 .bhk(req.bhk())
                 .carpetAreaSqft(req.carpetAreaSqft())
                 .builtUpAreaSqft(req.builtUpAreaSqft())
                 .superBuiltUpAreaSqft(req.superBuiltUpAreaSqft())
-                .basePricePaise(req.basePricePaise())
+                .basePricePaise(basePrice)
+                .pricePerSqftPaise(req.pricePerSqftPaise())
                 .floorRisePaise(req.floorRisePaise() != null ? req.floorRisePaise() : 0L)
                 .facingPremiumPaise(req.facingPremiumPaise() != null ? req.facingPremiumPaise() : 0L)
                 .premiumFloorsFrom(req.premiumFloorsFrom())
@@ -205,6 +233,11 @@ public class BuilderProjectService {
                 .bathrooms(req.bathrooms())
                 .balconies(req.balconies())
                 .furnishing(req.furnishing())
+                .plotAreaSqft(req.plotAreaSqft())
+                .plotLengthFt(req.plotLengthFt())
+                .plotBreadthFt(req.plotBreadthFt())
+                .cornerPlot(req.cornerPlot() != null ? req.cornerPlot() : false)
+                .facing(req.facing())
                 .floorPlanUrl(req.floorPlanUrl())
                 .unitLayoutUrl(req.unitLayoutUrl())
                 .photos(req.photos())
@@ -256,9 +289,10 @@ public class BuilderProjectService {
         }
         price += facingPremium;
 
-        // Price per sqft
+        // Price per sqft — prefer carpet for UNIT, fall back to plot area for PLOT
         int area = unit.getCarpetAreaSqft() != null ? unit.getCarpetAreaSqft()
-                : unit.getBuiltUpAreaSqft() != null ? unit.getBuiltUpAreaSqft() : 0;
+                : unit.getBuiltUpAreaSqft() != null ? unit.getBuiltUpAreaSqft()
+                : unit.getPlotAreaSqft() != null ? unit.getPlotAreaSqft() : 0;
         long pricePerSqft = area > 0 ? price / area : 0;
 
         // EMI estimate at 8.5% for 20 years
@@ -376,6 +410,7 @@ public class BuilderProjectService {
             map.put("totalTowers", resp.totalTowers());
             map.put("totalFloorsMax", resp.totalFloorsMax());
             map.put("projectStatus", resp.projectStatus());
+            map.put("projectType", resp.projectType() != null ? resp.projectType().name() : "APARTMENT_TOWNSHIP");
             map.put("launchDate", resp.launchDate());
             map.put("possessionDate", resp.possessionDate());
             map.put("constructionProgressPercent", resp.constructionProgressPercent());
@@ -479,16 +514,30 @@ public class BuilderProjectService {
         BuilderProject project = projectRepository.findById(projectId).orElse(null);
         if (project == null) return;
 
-        project.setMinPricePaise(units.stream().mapToLong(ProjectUnitType::getBasePricePaise).min().orElse(0));
-        project.setMaxPricePaise(units.stream().mapToLong(ProjectUnitType::getBasePricePaise).max().orElse(0));
-        project.setMinBhk(units.stream().mapToInt(ProjectUnitType::getBhk).min().orElse(0));
-        project.setMaxBhk(units.stream().mapToInt(ProjectUnitType::getBhk).max().orElse(0));
+        // Null-safe stream filters — V83 made bhk + carpet area nullable for
+        // PLOT rows. Unbox via primitive only AFTER filtering nulls so we
+        // never NPE here.
+        project.setMinPricePaise(units.stream()
+                .filter(u -> u.getBasePricePaise() != null)
+                .mapToLong(ProjectUnitType::getBasePricePaise).min().orElse(0));
+        project.setMaxPricePaise(units.stream()
+                .filter(u -> u.getBasePricePaise() != null)
+                .mapToLong(ProjectUnitType::getBasePricePaise).max().orElse(0));
+        project.setMinBhk(units.stream()
+                .filter(u -> u.getBhk() != null)
+                .mapToInt(ProjectUnitType::getBhk).min().orElse(0));
+        project.setMaxBhk(units.stream()
+                .filter(u -> u.getBhk() != null)
+                .mapToInt(ProjectUnitType::getBhk).max().orElse(0));
+        // Area: prefer carpet for UNIT rows, plot area for PLOT rows
         project.setMinAreaSqft(units.stream()
-                .filter(u -> u.getCarpetAreaSqft() != null)
-                .mapToInt(ProjectUnitType::getCarpetAreaSqft).min().orElse(0));
+                .map(u -> u.getCarpetAreaSqft() != null ? u.getCarpetAreaSqft() : u.getPlotAreaSqft())
+                .filter(java.util.Objects::nonNull)
+                .mapToInt(Integer::intValue).min().orElse(0));
         project.setMaxAreaSqft(units.stream()
-                .filter(u -> u.getCarpetAreaSqft() != null)
-                .mapToInt(ProjectUnitType::getCarpetAreaSqft).max().orElse(0));
+                .map(u -> u.getCarpetAreaSqft() != null ? u.getCarpetAreaSqft() : u.getPlotAreaSqft())
+                .filter(java.util.Objects::nonNull)
+                .mapToInt(Integer::intValue).max().orElse(0));
 
         int totalUnits = units.stream().filter(u -> u.getTotalUnits() != null).mapToInt(ProjectUnitType::getTotalUnits).sum();
         int availableUnits = units.stream().filter(u -> u.getAvailableUnits() != null).mapToInt(ProjectUnitType::getAvailableUnits).sum();
@@ -512,6 +561,7 @@ public class BuilderProjectService {
 
         return new BuilderProjectResponse(
                 p.getId(), p.getBuilderId(), p.getBuilderName(), p.getBuilderLogoUrl(),
+                p.getProjectType(),
                 p.getProjectName(), p.getTagline(), p.getDescription(),
                 p.getReraId(), p.getReraVerified(),
                 p.getCity(), p.getState(), p.getLocality(), p.getPincode(),
@@ -530,19 +580,27 @@ public class BuilderProjectService {
     }
 
     private UnitTypeResponse toUnitResponse(ProjectUnitType u) {
-        int area = u.getCarpetAreaSqft() != null ? u.getCarpetAreaSqft()
-                : u.getBuiltUpAreaSqft() != null ? u.getBuiltUpAreaSqft() : 0;
-        Long pricePerSqft = area > 0 ? u.getBasePricePaise() / area : null;
+        // Per-sqft rollup — for plots, use stored value or compute from base/area;
+        // for built units, derive from basePricePaise / carpet (or built-up).
+        Long pricePerSqft = u.getPricePerSqftPaise();
+        if (pricePerSqft == null) {
+            int area = u.getPlotAreaSqft() != null ? u.getPlotAreaSqft()
+                    : u.getCarpetAreaSqft() != null ? u.getCarpetAreaSqft()
+                    : u.getBuiltUpAreaSqft() != null ? u.getBuiltUpAreaSqft() : 0;
+            pricePerSqft = area > 0 ? u.getBasePricePaise() / area : null;
+        }
 
         return new UnitTypeResponse(
-                u.getId(), u.getProjectId(), u.getName(), u.getBhk(),
+                u.getId(), u.getProjectId(), u.getName(), u.getUnitKind(), u.getBhk(),
                 u.getCarpetAreaSqft(), u.getBuiltUpAreaSqft(), u.getSuperBuiltUpAreaSqft(),
-                u.getBasePricePaise(), u.getFloorRisePaise(), u.getFacingPremiumPaise(),
+                u.getBasePricePaise(), pricePerSqft,
+                u.getFloorRisePaise(), u.getFacingPremiumPaise(),
                 u.getPremiumFloorsFrom(),
                 u.getTotalUnits(), u.getAvailableUnits(),
                 u.getBathrooms(), u.getBalconies(), u.getFurnishing(),
-                u.getFloorPlanUrl(), u.getUnitLayoutUrl(), u.getPhotos(),
-                pricePerSqft
+                u.getPlotAreaSqft(), u.getPlotLengthFt(), u.getPlotBreadthFt(),
+                u.getCornerPlot(), u.getFacing(),
+                u.getFloorPlanUrl(), u.getUnitLayoutUrl(), u.getPhotos()
         );
     }
 

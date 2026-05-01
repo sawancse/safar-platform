@@ -46,6 +46,10 @@ public class BuilderProjectDocument {
     @Field(type = FieldType.Keyword)
     private String projectStatus; // UPCOMING, UNDER_CONSTRUCTION, READY_TO_MOVE
 
+    /** APARTMENT_TOWNSHIP / PLOTTED_DEVELOPMENT / VILLA_COMMUNITY (V83) */
+    @Field(type = FieldType.Keyword)
+    private String projectType;
+
     @Field(type = FieldType.Integer)
     private Integer constructionProgressPercent;
 

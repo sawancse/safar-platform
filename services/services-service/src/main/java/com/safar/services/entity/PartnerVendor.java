@@ -34,7 +34,18 @@ public class PartnerVendor {
     @Column(name = "owner_name", length = 120)
     private String ownerName;
 
-    @Column(nullable = false, length = 20)
+    /**
+     * Set when this row is the stub auto-created for a self-service ServiceListing
+     * vendor (V28). Null for legacy admin-onboarded rows.
+     */
+    @Column(name = "user_id")
+    private UUID userId;
+
+    @Column(name = "service_listing_id")
+    private UUID serviceListingId;
+
+    /** Relaxed in V28 — self-service stubs may have no phone until enriched. */
+    @Column(length = 20)
     private String phone;
 
     @Column(length = 160)

@@ -52,6 +52,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/chef-bookings/my", "/api/v1/chef-bookings/chef").authenticated()
                         .requestMatchers("/api/v1/chef-subscriptions/my", "/api/v1/chef-subscriptions/chef").authenticated()
                         .requestMatchers("/api/v1/chef-events/my", "/api/v1/chef-events/chef").authenticated()
+                        .requestMatchers("/api/v1/chef-events/vendor/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/chef-events/*/claim").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/chef-events/pricing").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/chef-events/aggregate-ratings").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/chefs", "/api/v1/chefs/**").permitAll()

@@ -51,6 +51,8 @@ public class BuilderProjectIndexConsumer {
                     .address(str(payload.get("address")))
                     .location(location)
                     .projectStatus(str(payload.get("projectStatus")))
+                    .projectType(str(payload.get("projectType")) != null
+                            ? str(payload.get("projectType")) : "APARTMENT_TOWNSHIP")
                     .constructionProgressPercent(toInt(payload.get("constructionProgressPercent")))
                     .minPricePaise(toLong(payload.get("minPricePaise")))
                     .maxPricePaise(toLong(payload.get("maxPricePaise")))

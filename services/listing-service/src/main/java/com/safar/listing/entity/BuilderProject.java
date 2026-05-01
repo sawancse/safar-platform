@@ -2,6 +2,7 @@ package com.safar.listing.entity;
 
 import com.safar.listing.entity.enums.BuilderListingStatus;
 import com.safar.listing.entity.enums.ProjectStatus;
+import com.safar.listing.entity.enums.ProjectType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -39,6 +40,11 @@ public class BuilderProject {
     private String builderLogoUrl;
 
     // ── Project Info ──
+    @Enumerated(EnumType.STRING)
+    @Column(name = "project_type", nullable = false, length = 40)
+    @Builder.Default
+    private ProjectType projectType = ProjectType.APARTMENT_TOWNSHIP;
+
     @Column(name = "project_name", nullable = false, length = 200)
     private String projectName;
 

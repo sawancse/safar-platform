@@ -202,8 +202,9 @@ public class UserProfile {
      * via internal API.
      */
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "user_flags", columnDefinition = "jsonb")
-    private String userFlags;
+    @Column(name = "user_flags", columnDefinition = "jsonb", nullable = false)
+    @Builder.Default
+    private String userFlags = "[]";
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

@@ -2,6 +2,7 @@ package com.safar.listing.dto;
 
 import com.safar.listing.entity.enums.BuilderListingStatus;
 import com.safar.listing.entity.enums.ProjectStatus;
+import com.safar.listing.entity.enums.ProjectType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -14,6 +15,7 @@ public record BuilderProjectResponse(
         UUID builderId,
         String builderName,
         String builderLogoUrl,
+        ProjectType projectType,
         String projectName,
         String tagline,
         String description,

@@ -7,9 +7,16 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface PartnerVendorRepository extends JpaRepository<PartnerVendor, UUID> {
+
+    /** V28 — locate a vendor row by the linked user account. */
+    Optional<PartnerVendor> findByUserId(UUID userId);
+
+    /** V28 — locate the stub created for a specific ServiceListing. */
+    Optional<PartnerVendor> findByServiceListingId(UUID serviceListingId);
 
     /**
      * NOTE: Spring Data JPA does not parse `NullsLast` as a keyword in derived query

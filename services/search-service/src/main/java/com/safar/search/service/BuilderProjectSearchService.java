@@ -26,7 +26,8 @@ public class BuilderProjectSearchService {
     private final ElasticsearchOperations esOps;
 
     public Map<String, Object> search(String query, String state, String city, String locality,
-                                       String projectStatus, Long priceMin, Long priceMax,
+                                       String projectStatus, String projectType,
+                                       Long priceMin, Long priceMax,
                                        List<Integer> bhk, Boolean reraVerified,
                                        Double lat, Double lng, Double radiusKm,
                                        String sort, int page, int size) {
@@ -55,6 +56,9 @@ public class BuilderProjectSearchService {
         }
         if (projectStatus != null) {
             bool.filter(Query.of(q -> q.term(t -> t.field("projectStatus").value(projectStatus))));
+        }
+        if (projectType != null && !projectType.isBlank()) {
+            bool.filter(Query.of(q -> q.term(t -> t.field("projectType").value(projectType))));
         }
         // Price range: project overlaps with user's budget
         // User wants minPrice–maxPrice range; project has minPricePaise–maxPricePaise
