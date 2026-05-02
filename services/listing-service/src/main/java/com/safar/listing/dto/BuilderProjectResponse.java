@@ -15,6 +15,7 @@ public record BuilderProjectResponse(
         UUID builderId,
         String builderName,
         String builderLogoUrl,
+        String builderPhone,
         ProjectType projectType,
         String projectName,
         String tagline,

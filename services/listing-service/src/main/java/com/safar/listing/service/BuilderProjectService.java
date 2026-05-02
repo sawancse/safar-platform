@@ -42,6 +42,7 @@ public class BuilderProjectService {
                 .builderId(builderId)
                 .builderName(req.builderName())
                 .builderLogoUrl(req.builderLogoUrl())
+                .builderPhone(normalizePhone(req.builderPhone()))
                 .projectType(req.projectType() != null ? req.projectType()
                         : com.safar.listing.entity.enums.ProjectType.APARTMENT_TOWNSHIP)
                 .projectName(req.projectName())
@@ -130,6 +131,7 @@ public class BuilderProjectService {
                 .orElseThrow(() -> new RuntimeException("Not found: " + id));
         if (!p.getBuilderId().equals(builderId)) throw new RuntimeException("Not authorized");
 
+        if (req.builderPhone() != null) p.setBuilderPhone(normalizePhone(req.builderPhone()));
         if (req.projectName() != null) p.setProjectName(req.projectName());
         if (req.tagline() != null) p.setTagline(req.tagline());
         if (req.description() != null) p.setDescription(req.description());
@@ -498,6 +500,19 @@ public class BuilderProjectService {
 
     // ── Helpers ───────────────────────────────────────────────
 
+    /**
+     * Normalize India phone to bare 10 digits. Strips leading +91, 91, 0, and
+     * any non-digit chars. Returns null if input is blank or doesn't yield a
+     * 10-digit number — keeps DB clean (we'd rather store NULL than garbage).
+     */
+    private static String normalizePhone(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        String digits = raw.replaceAll("\\D", "");
+        if (digits.startsWith("91") && digits.length() == 12) digits = digits.substring(2);
+        if (digits.startsWith("0")  && digits.length() == 11) digits = digits.substring(1);
+        return digits.length() == 10 ? digits : null;
+    }
+
     private String toJson(Object obj) {
         try {
             return objectMapper.writeValueAsString(obj);
@@ -561,6 +576,7 @@ public class BuilderProjectService {
 
         return new BuilderProjectResponse(
                 p.getId(), p.getBuilderId(), p.getBuilderName(), p.getBuilderLogoUrl(),
+                p.getBuilderPhone(),
                 p.getProjectType(),
                 p.getProjectName(), p.getTagline(), p.getDescription(),
                 p.getReraId(), p.getReraVerified(),

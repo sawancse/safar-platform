@@ -39,6 +39,10 @@ public class BuilderProject {
     @Column(name = "builder_logo_url", length = 500)
     private String builderLogoUrl;
 
+    /** Builder's WhatsApp / call-back phone — used by buyer-side deep links. */
+    @Column(name = "builder_phone", length = 15)
+    private String builderPhone;
+
     // ── Project Info ──
     @Enumerated(EnumType.STRING)
     @Column(name = "project_type", nullable = false, length = 40)

@@ -12,6 +12,7 @@ import java.util.List;
 public record CreateBuilderProjectRequest(
         @NotBlank String builderName,
         String builderLogoUrl,
+        String builderPhone,               // 10-digit India number (validated frontend)
         ProjectType projectType,           // null → defaults to APARTMENT_TOWNSHIP
         @NotBlank String projectName,
         String tagline,
