@@ -750,6 +750,98 @@ public class EventBookingService {
     }
 
     /**
+     * Self-service vendor marks the booking complete after job is done.
+     * Mirrors {@link #completeEvent} but authorizes via PartnerVendor.
+     */
+    @Transactional
+    public EventBooking completeAsVendor(UUID vendorUserId, UUID bookingId) {
+        EventBooking event = eventRepo.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Event booking not found"));
+        PartnerVendor stub = partnerVendorRepo.findByUserId(vendorUserId)
+                .orElseThrow(() -> new IllegalStateException("No vendor profile found"));
+
+        boolean assigned = eventBookingVendorRepo.findByEventBookingIdOrderByCreatedAtDesc(bookingId).stream()
+                .anyMatch(v -> v.getVendorId().equals(stub.getId())
+                        && v.getStatus() != VendorAssignmentStatus.CANCELLED);
+        if (!assigned) throw new IllegalStateException("You are not assigned to this booking");
+
+        if (event.getStatus() != EventBookingStatus.ADVANCE_PAID
+                && event.getStatus() != EventBookingStatus.IN_PROGRESS) {
+            throw new IllegalArgumentException("Event must be ADVANCE_PAID or IN_PROGRESS to complete");
+        }
+
+        event.setStatus(EventBookingStatus.COMPLETED);
+        event.setCompletedAt(OffsetDateTime.now());
+        EventBooking saved = eventRepo.save(event);
+        log.info("Event booking {} completed by vendor user={} stub={}", bookingId, vendorUserId, stub.getId());
+        return saved;
+    }
+
+    /**
+     * Self-service vendor (pandit/decor/cake/singer/staff) starts the job by
+     * entering the OTP customer shared with them. Mirrors {@link #startJob}
+     * but authorizes via PartnerVendor + event_booking_vendor rather than
+     * ChefProfile (vendors don't have chef profiles).
+     */
+    @Transactional
+    public EventBooking startJobAsVendor(UUID vendorUserId, UUID bookingId, String otp) {
+        EventBooking event = eventRepo.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Event booking not found"));
+        PartnerVendor stub = partnerVendorRepo.findByUserId(vendorUserId)
+                .orElseThrow(() -> new IllegalStateException("No vendor profile found"));
+
+        boolean assigned = eventBookingVendorRepo.findByEventBookingIdOrderByCreatedAtDesc(bookingId).stream()
+                .anyMatch(v -> v.getVendorId().equals(stub.getId())
+                        && v.getStatus() != VendorAssignmentStatus.CANCELLED);
+        if (!assigned) throw new IllegalStateException("You are not assigned to this booking");
+
+        boolean recoverableInProgress = event.getStatus() == EventBookingStatus.IN_PROGRESS
+                && event.getJobStartedAt() == null;
+        if (event.getStatus() != EventBookingStatus.CONFIRMED
+                && event.getStatus() != EventBookingStatus.ADVANCE_PAID
+                && !recoverableInProgress) {
+            throw new IllegalArgumentException("Event must be CONFIRMED or ADVANCE_PAID to start");
+        }
+        if (event.getStartJobOtp() == null || !event.getStartJobOtp().equals(otp)) {
+            throw new IllegalArgumentException("Invalid OTP");
+        }
+
+        event.setStatus(EventBookingStatus.IN_PROGRESS);
+        event.setJobStartedAt(OffsetDateTime.now());
+        EventBooking saved = eventRepo.save(event);
+        log.info("Event booking {} started by vendor user={} stub={}", bookingId, vendorUserId, stub.getId());
+        return saved;
+    }
+
+    /**
+     * Vendor pushes their current geolocation + ETA to a booking they're
+     * assigned to. Authorization: caller must own a PartnerVendor row that is
+     * actively assigned to this booking. Customer's tracking panel polls these
+     * fields — works the same way it does for cook bookings.
+     */
+    @Transactional
+    public EventBooking updateVendorLocation(UUID vendorUserId, UUID bookingId,
+                                              Double lat, Double lng, Integer etaMinutes) {
+        EventBooking booking = eventRepo.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found: " + bookingId));
+        PartnerVendor stub = partnerVendorRepo.findByUserId(vendorUserId)
+                .orElseThrow(() -> new IllegalStateException("No vendor profile found for current user"));
+
+        boolean assigned = eventBookingVendorRepo.findByEventBookingIdOrderByCreatedAtDesc(bookingId).stream()
+                .anyMatch(v -> v.getVendorId().equals(stub.getId())
+                        && v.getStatus() != VendorAssignmentStatus.CANCELLED);
+        if (!assigned) {
+            throw new IllegalStateException("You are not assigned to this booking");
+        }
+
+        booking.setChefLat(lat);
+        booking.setChefLng(lng);
+        booking.setEtaMinutes(etaMinutes);
+        booking.setLocationUpdatedAt(OffsetDateTime.now());
+        return eventRepo.save(booking);
+    }
+
+    /**
      * Self-claim an open inquiry. Idempotent — if the vendor already has a row
      * on this booking, returns it. Refuses if a different vendor has already
      * claimed (active row exists) or if the booking has a chef assigned.

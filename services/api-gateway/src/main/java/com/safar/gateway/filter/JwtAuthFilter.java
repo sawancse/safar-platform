@@ -150,9 +150,31 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
                 && !path.contains("/admin") && !path.contains("/me")) return true;
         // Aggregate ratings for the services landing — public
         if (HttpMethod.GET.equals(method) && path.equals("/api/v1/chef-events/aggregate-ratings")) return true;
-        // Chef events — public browse and event inquiry (exclude /my and /chef which need auth)
-        if (path.startsWith("/api/v1/chef-events") && !path.contains("/my") && !path.contains("/chef")
-                && !path.contains("/admin")) return true;
+        // Chef events — only specific reads + the create-inquiry POST are public.
+        // All lifecycle actions (pay-balance, claim, location, start-job-as-vendor,
+        // complete-as-vendor, confirm, advance-paid, cancel, modify, etc.) require
+        // auth so the gateway propagates X-User-Id as a fallback for the downstream
+        // service. /my, /chef, /admin, /vendor/** are caught explicitly here too.
+        if (path.startsWith("/api/v1/chef-events")) {
+            // Public: GET /api/v1/chef-events            (browse)
+            // Public: GET /api/v1/chef-events/{id}        (read single — used by tracking poll)
+            // Public: GET /api/v1/chef-events/{id}/invoice
+            // Public: POST /api/v1/chef-events            (create inquiry — guest checkout)
+            if (HttpMethod.POST.equals(method) && path.equals("/api/v1/chef-events")) return true;
+            if (HttpMethod.GET.equals(method)) {
+                // bare list
+                if (path.equals("/api/v1/chef-events")) return true;
+                // anything containing an action segment must require auth
+                boolean hasAction = path.contains("/my") || path.contains("/chef") || path.contains("/admin")
+                        || path.contains("/vendor") || path.contains("/pay-balance")
+                        || path.contains("/claim") || path.contains("/cancel") || path.contains("/rate")
+                        || path.contains("/location") || path.contains("/start-job") || path.contains("/complete")
+                        || path.contains("/confirm") || path.contains("/quote") || path.contains("/advance-paid")
+                        || path.contains("/assign-staff") || path.contains("/no-show") || path.contains("/check-in");
+                if (!hasAction) return true; // GET /api/v1/chef-events/{id}, /{id}/invoice
+            }
+            return false; // every other /chef-events path requires auth
+        }
         // Chef bookings — public read for single booking detail, tracking & invoices
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/chef-bookings/")
                 && !path.contains("/my") && !path.contains("/chef")) return true;

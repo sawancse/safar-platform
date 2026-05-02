@@ -173,6 +173,19 @@ public class EventBooking {
     @Column(name = "balance_paid_at")
     private OffsetDateTime balancePaidAt;
 
+    // ── Live tracking (V29) — pushed by vendor's browser geolocation ──
+    @Column(name = "chef_lat")
+    private Double chefLat;
+
+    @Column(name = "chef_lng")
+    private Double chefLng;
+
+    @Column(name = "eta_minutes")
+    private Integer etaMinutes;
+
+    @Column(name = "location_updated_at")
+    private OffsetDateTime locationUpdatedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;

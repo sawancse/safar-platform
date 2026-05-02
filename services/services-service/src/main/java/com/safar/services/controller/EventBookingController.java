@@ -325,6 +325,42 @@ public class EventBookingController {
         return ResponseEntity.ok(eventBookingService.claimBooking(vendorUserId, id));
     }
 
+    /** V29 — Self-service vendor marks the booking complete (after job is done). */
+    @PostMapping("/{id}/complete-as-vendor")
+    public ResponseEntity<EventBooking> completeAsVendor(Authentication auth, @PathVariable UUID id) {
+        UUID vendorUserId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(eventBookingService.completeAsVendor(vendorUserId, id));
+    }
+
+    /**
+     * V29 — Self-service vendor starts the job after entering the OTP the
+     * customer shared. Mirrors /start-job but authorizes via PartnerVendor.
+     */
+    @PostMapping("/{id}/start-job-as-vendor")
+    public ResponseEntity<EventBooking> startJobAsVendor(Authentication auth,
+                                                          @PathVariable UUID id,
+                                                          @RequestParam String otp) {
+        UUID vendorUserId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(eventBookingService.startJobAsVendor(vendorUserId, id, otp));
+    }
+
+    /**
+     * V29 — Vendor pushes their current location + ETA. Customer's tracking
+     * panel reads this. Authorization handled in service: caller must be the
+     * assigned vendor on this booking.
+     */
+    @PostMapping("/{id}/location")
+    public ResponseEntity<EventBooking> updateLocation(
+            Authentication auth,
+            @PathVariable UUID id,
+            @RequestParam Double lat,
+            @RequestParam Double lng,
+            @RequestParam(required = false) Integer etaMinutes) {
+        UUID vendorUserId = UUID.fromString(auth.getName());
+        return ResponseEntity.ok(
+                eventBookingService.updateVendorLocation(vendorUserId, id, lat, lng, etaMinutes));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<EventBooking> get(@PathVariable UUID id) {
         return ResponseEntity.ok(eventBookingService.getEvent(id));
