@@ -161,6 +161,10 @@ public class EmailContext {
     private String schedule;
     private String repeatBookUrl;
 
+    /** Service vertical for an event booking (PANDIT_PUJA, CAKE_DESIGNER, EVENT_DECOR,
+     *  LIVE_MUSIC, STAFF_HIRE, APPLIANCE_RENTAL, COOK, …). Empty for legacy/cook-only flows. */
+    private String serviceCategory;
+
     // Extra dynamic data
     private Map<String, Object> extras;
 
@@ -572,6 +576,82 @@ public class EmailContext {
     public void setRepeatBookUrl(String repeatBookUrl) { this.repeatBookUrl = repeatBookUrl; }
     public String getCooksUrl() { return "https://ysafar.com/cooks"; }
     public String getCooksBookingsUrl() { return "https://ysafar.com/cooks/my-bookings"; }
+    public String getServiceCategory() { return serviceCategory; }
+    public void setServiceCategory(String serviceCategory) { this.serviceCategory = serviceCategory; }
+
+    /**
+     * Human-friendly noun for the booked offering — drops into copy like
+     * "Your <serviceLabel> inquiry has been submitted". Falls back to
+     * "event" so cook-only / unknown payloads still read naturally.
+     */
+    public String getServiceLabel() {
+        if (serviceCategory == null || serviceCategory.isBlank()) return "event";
+        return switch (serviceCategory) {
+            case "PANDIT_PUJA"      -> "puja";
+            case "CAKE_DESIGNER", "DESIGNER_CAKE" -> "cake";
+            case "EVENT_DECOR"      -> "decor";
+            case "LIVE_MUSIC"       -> "music";
+            case "STAFF_HIRE"       -> "staffing";
+            case "APPLIANCE_RENTAL" -> "appliance rental";
+            case "COOK", "CHEF"     -> "catering";
+            default                  -> "event";
+        };
+    }
+
+    /** Noun for the partner who fulfils the booking — used in match-making copy.
+     *  Empty/legacy payloads default to "chef" since cook bookings predate the
+     *  serviceCategory field. */
+    public String getServiceProviderNoun() {
+        if (serviceCategory == null || serviceCategory.isBlank()) return "chef";
+        return switch (serviceCategory) {
+            case "PANDIT_PUJA"      -> "pandit";
+            case "CAKE_DESIGNER", "DESIGNER_CAKE" -> "cake designer";
+            case "EVENT_DECOR"      -> "decor partner";
+            case "LIVE_MUSIC"       -> "performer";
+            case "STAFF_HIRE"       -> "staffing partner";
+            case "APPLIANCE_RENTAL" -> "rental partner";
+            case "COOK", "CHEF"     -> "chef";
+            default                  -> "service partner";
+        };
+    }
+
+    /** Header subtitle in event emails — "Cooks • Events" was hardcoded before. */
+    public String getEventBrandSubtitle() {
+        if (serviceCategory == null || serviceCategory.isBlank()) return "Cooks • Events";
+        return switch (serviceCategory) {
+            case "PANDIT_PUJA"      -> "Pandit • Pujas";
+            case "CAKE_DESIGNER", "DESIGNER_CAKE" -> "Cakes • Celebrations";
+            case "EVENT_DECOR"      -> "Decor • Events";
+            case "LIVE_MUSIC"       -> "Music • Events";
+            case "STAFF_HIRE"       -> "Staffing • Events";
+            case "APPLIANCE_RENTAL" -> "Rentals • Events";
+            case "COOK", "CHEF"     -> "Cooks • Events";
+            default                  -> "Events";
+        };
+    }
+
+    /** "Puja Inquiry Submitted" / "Cake Inquiry Submitted" / "Event Inquiry Submitted" — used in
+     *  email H1 + subject for created-booking notifications. */
+    public String getInquirySubmittedHeadline() {
+        String label = getServiceLabel();
+        return ("event".equals(label) ? "Event" : (Character.toUpperCase(label.charAt(0)) + label.substring(1)))
+                + " Inquiry Submitted";
+    }
+
+    /** Footer tagline — replaces the cook-only "Safar Cooks — Home-cooked, Happiness Delivered". */
+    public String getEventBrandFooter() {
+        if (serviceCategory == null || serviceCategory.isBlank()) return "Safar Cooks — Home-cooked, Happiness Delivered";
+        return switch (serviceCategory) {
+            case "PANDIT_PUJA"      -> "Safar — Trusted pandits for every occasion";
+            case "CAKE_DESIGNER", "DESIGNER_CAKE" -> "Safar — Custom cakes, freshly baked";
+            case "EVENT_DECOR"      -> "Safar — Decor that sets the mood";
+            case "LIVE_MUSIC"       -> "Safar — Live music for your moment";
+            case "STAFF_HIRE"       -> "Safar — Reliable staff for every event";
+            case "APPLIANCE_RENTAL" -> "Safar — Event rentals, on time";
+            case "COOK", "CHEF"     -> "Safar Cooks — Home-cooked, Happiness Delivered";
+            default                  -> "Safar — Events made simple";
+        };
+    }
 
     // ── Donation getters/setters ──
     public String getDonationRef() { return donationRef; }

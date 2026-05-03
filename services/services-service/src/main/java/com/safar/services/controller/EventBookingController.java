@@ -260,9 +260,12 @@ public class EventBookingController {
 
     @PostMapping("/{id}/pay-balance")
     public ResponseEntity<EventBooking> payBalance(Authentication auth,
-                                                    @PathVariable UUID id) {
+                                                    @PathVariable UUID id,
+                                                    @RequestParam String razorpayOrderId,
+                                                    @RequestParam String razorpayPaymentId) {
         UUID customerId = UUID.fromString(auth.getName());
-        return ResponseEntity.ok(eventBookingService.payBalance(customerId, id));
+        return ResponseEntity.ok(eventBookingService.payBalance(customerId, id,
+                razorpayOrderId, razorpayPaymentId));
     }
 
     @PostMapping("/{id}/cancel")

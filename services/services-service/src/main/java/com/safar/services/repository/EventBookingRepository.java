@@ -63,4 +63,16 @@ public interface EventBookingRepository extends JpaRepository<EventBooking, UUID
         """, nativeQuery = true)
     List<EventBooking> findOpenInquiries(@Param("types") String[] types,
                                           @Param("cities") String[] cities);
+
+    /**
+     * Backfill query — bookings past the CONFIRMED gate that are missing the
+     * start-job OTP. Used at startup to repair legacy rows so the customer's
+     * OTP tab always has something to share with the partner.
+     */
+    @Query(value = """
+        SELECT * FROM chefs.event_bookings
+        WHERE start_job_otp IS NULL
+          AND status IN ('CONFIRMED', 'ADVANCE_PAID', 'IN_PROGRESS')
+        """, nativeQuery = true)
+    List<EventBooking> findMissingStartJobOtp();
 }

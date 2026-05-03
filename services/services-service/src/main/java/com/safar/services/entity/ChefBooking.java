@@ -112,6 +112,13 @@ public class ChefBooking {
     @Column(name = "razorpay_payment_id")
     private String razorpayPaymentId;
 
+    // ── V30 balance Razorpay handles (advance handles use the columns above) ──
+    @Column(name = "balance_razorpay_order_id", length = 64)
+    private String balanceRazorpayOrderId;
+
+    @Column(name = "balance_razorpay_payment_id", length = 64)
+    private String balanceRazorpayPaymentId;
+
     @Column(name = "payment_status")
     @Builder.Default
     private String paymentStatus = "UNPAID";

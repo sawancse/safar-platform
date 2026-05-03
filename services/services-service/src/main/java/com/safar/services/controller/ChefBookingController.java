@@ -111,9 +111,12 @@ public class ChefBookingController {
 
     @PostMapping("/{id}/pay-balance")
     public ResponseEntity<ChefBooking> payBalance(Authentication auth,
-                                                   @PathVariable UUID id) {
+                                                   @PathVariable UUID id,
+                                                   @RequestParam String razorpayOrderId,
+                                                   @RequestParam String razorpayPaymentId) {
         UUID customerId = UUID.fromString(auth.getName());
-        return ResponseEntity.ok(chefBookingService.payBalance(customerId, id));
+        return ResponseEntity.ok(chefBookingService.payBalance(customerId, id,
+                razorpayOrderId, razorpayPaymentId));
     }
 
     @PostMapping("/{id}/rate")

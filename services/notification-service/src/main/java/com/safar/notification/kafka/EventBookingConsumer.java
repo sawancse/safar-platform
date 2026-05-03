@@ -66,6 +66,7 @@ public class EventBookingConsumer {
             String venueAddress = txt(node, "venueAddress", "");
             String city = txt(node, "city", "");
             String status = txt(node, "status", "");
+            String serviceCategory = txt(node, "serviceCategory", "");
             int guestCount = node.has("guestCount") ? node.get("guestCount").asInt() : 0;
             int durationHours = node.has("durationHours") ? node.get("durationHours").asInt() : 0;
             long totalPaise = node.has("totalAmountPaise") ? node.get("totalAmountPaise").asLong() : 0;
@@ -91,6 +92,7 @@ public class EventBookingConsumer {
             ctx.setAdvanceAmount(formatINR(advancePaise));
             ctx.setBalanceAmount(formatINR(balancePaise));
             ctx.setDuration(durationHours + " hours");
+            ctx.setServiceCategory(serviceCategory);
 
             switch (topic) {
                 case "event.booking.created" -> handleCreated(bookingId, customerId, chefId, chefName, customerName, bookingRef, eventType, eventDate, amount, ctx);
@@ -112,17 +114,29 @@ public class EventBookingConsumer {
                                 String chefName, String customerName, String bookingRef,
                                 String eventType, String eventDate, String amount, EmailContext ctx) {
         if (customerId != null) {
+            String label = ctx.getServiceLabel();
+            String partner = ctx.getServiceProviderNoun();
+            String occasion = (eventType != null && !eventType.isBlank()) ? (eventType + " ") : "";
+            String title = capitalise(label) + " Inquiry Submitted";
+            String body = "Your " + occasion + label + " inquiry " + bookingRef + " for " + eventDate
+                    + " has been submitted. We'll match you with the right " + partner + ".";
+
             inAppNotificationService.create(
                     UUID.fromString(customerId),
-                    "Event Inquiry Submitted",
-                    "Your " + eventType + " event inquiry " + bookingRef + " for " + eventDate + " has been submitted. We'll match you with the perfect chef.",
+                    title,
+                    body,
                     "EVENT_BOOKING_CREATED", bookingId, "EVENT_BOOKING");
 
-            sendHtmlEmail(customerId, "Event Inquiry Submitted — " + bookingRef,
+            sendHtmlEmail(customerId, title + " — " + bookingRef,
                     "event-booking-created", ctx);
         }
 
         log.info("Event booking created notifications sent: {} customer={}", bookingRef, customerId);
+    }
+
+    private static String capitalise(String s) {
+        if (s == null || s.isEmpty()) return s;
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 
     // ── Event Quoted ─────────────────────────────────────────────────────

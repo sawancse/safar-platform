@@ -301,7 +301,8 @@ public class ChefBookingService {
     }
 
     @Transactional
-    public ChefBooking payBalance(UUID customerId, UUID bookingId) {
+    public ChefBooking payBalance(UUID customerId, UUID bookingId,
+                                   String razorpayOrderId, String razorpayPaymentId) {
         ChefBooking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
 
@@ -314,11 +315,22 @@ public class ChefBookingService {
         if (booking.getStatus() == ChefBookingStatus.CANCELLED) {
             throw new IllegalArgumentException("Cannot pay a cancelled booking");
         }
+        // Razorpay handles are mandatory — without them we'd flip
+        // balance_paid_at on the customer's say-so. Both come from Razorpay's
+        // checkout success callback; a direct API caller skipping payment
+        // cannot fabricate them.
+        if (razorpayOrderId == null || razorpayOrderId.isBlank()
+                || razorpayPaymentId == null || razorpayPaymentId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "razorpayOrderId and razorpayPaymentId are required to record balance payment");
+        }
 
+        booking.setBalanceRazorpayOrderId(razorpayOrderId);
+        booking.setBalanceRazorpayPaymentId(razorpayPaymentId);
         booking.setBalancePaidAt(OffsetDateTime.now());
         booking.setPaymentStatus("PAID");
         ChefBooking saved = bookingRepo.save(booking);
-        log.info("Chef booking balance paid: {}", bookingId);
+        log.info("Chef booking balance paid: {} razorpayPaymentId={}", bookingId, razorpayPaymentId);
         return saved;
     }
 

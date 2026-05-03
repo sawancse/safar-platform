@@ -173,6 +173,19 @@ public class EventBooking {
     @Column(name = "balance_paid_at")
     private OffsetDateTime balancePaidAt;
 
+    // ── V30 Razorpay handles (audit trail + lets payBalance verify caller paid) ──
+    @Column(name = "advance_razorpay_order_id", length = 64)
+    private String advanceRazorpayOrderId;
+
+    @Column(name = "advance_razorpay_payment_id", length = 64)
+    private String advanceRazorpayPaymentId;
+
+    @Column(name = "balance_razorpay_order_id", length = 64)
+    private String balanceRazorpayOrderId;
+
+    @Column(name = "balance_razorpay_payment_id", length = 64)
+    private String balanceRazorpayPaymentId;
+
     // ── Live tracking (V29) — pushed by vendor's browser geolocation ──
     @Column(name = "chef_lat")
     private Double chefLat;

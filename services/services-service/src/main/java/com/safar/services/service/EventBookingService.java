@@ -376,6 +376,12 @@ public class EventBookingService {
         }
 
         event.setStatus(EventBookingStatus.ADVANCE_PAID);
+        // Backstop: if a CONFIRMED booking somehow lacks the start-job OTP (legacy
+        // rows, manual admin confirms, or a creation race), mint one here so the
+        // customer always has something to share with the partner on the day.
+        if (event.getStartJobOtp() == null || event.getStartJobOtp().isBlank()) {
+            event.setStartJobOtp(String.format("%04d", new java.security.SecureRandom().nextInt(10000)));
+        }
         EventBooking saved = eventRepo.save(event);
         log.info("Event booking advance paid: {}", eventId);
 
@@ -421,7 +427,8 @@ public class EventBookingService {
     }
 
     @Transactional
-    public EventBooking payBalance(UUID customerId, UUID eventId) {
+    public EventBooking payBalance(UUID customerId, UUID eventId,
+                                    String razorpayOrderId, String razorpayPaymentId) {
         EventBooking event = eventRepo.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Event booking not found"));
 
@@ -434,10 +441,21 @@ public class EventBookingService {
         if (event.getStatus() == EventBookingStatus.CANCELLED) {
             throw new IllegalArgumentException("Cannot pay a cancelled event");
         }
+        // Razorpay handles are mandatory — without them we'd be flipping
+        // balance_paid_at on the customer's say-so. Both are issued by
+        // Razorpay's checkout success callback, so a legit caller always
+        // has them; a direct-API caller skipping payment will not.
+        if (razorpayOrderId == null || razorpayOrderId.isBlank()
+                || razorpayPaymentId == null || razorpayPaymentId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "razorpayOrderId and razorpayPaymentId are required to record balance payment");
+        }
 
+        event.setBalanceRazorpayOrderId(razorpayOrderId);
+        event.setBalanceRazorpayPaymentId(razorpayPaymentId);
         event.setBalancePaidAt(OffsetDateTime.now());
         EventBooking saved = eventRepo.save(event);
-        log.info("Event booking balance paid: {}", eventId);
+        log.info("Event booking balance paid: {} razorpayPaymentId={}", eventId, razorpayPaymentId);
         return saved;
     }
 
@@ -518,27 +536,90 @@ public class EventBookingService {
         if (!event.getCustomerId().equals(customerId)) {
             throw new IllegalArgumentException("Not authorized to rate this event");
         }
-        if (event.getStatus() != EventBookingStatus.COMPLETED) {
-            throw new IllegalArgumentException("Can only rate completed events");
+        // Rating unlocks in two cases:
+        //   1. Partner has marked the job COMPLETED (the canonical path)
+        //   2. Status is ADVANCE_PAID/IN_PROGRESS AND the event date is in the
+        //      past — partners frequently forget to mark complete, and we want
+        //      the customer to be able to leave a review the day after the
+        //      event without chasing the partner.
+        // Pre-event states (INQUIRY/QUOTED/CONFIRMED/PENDING*) and CANCELLED
+        // are still rejected.
+        boolean isCompleted = event.getStatus() == EventBookingStatus.COMPLETED;
+        boolean eventHappened =
+                (event.getStatus() == EventBookingStatus.ADVANCE_PAID
+                        || event.getStatus() == EventBookingStatus.IN_PROGRESS)
+                && event.getEventDate() != null
+                && event.getEventDate().isBefore(java.time.LocalDate.now().plusDays(1)); // today or earlier
+        if (!isCompleted && !eventHappened) {
+            throw new IllegalArgumentException("Rating unlocks after the event has been delivered");
         }
         if (event.getRatingGiven() != null) {
             throw new IllegalArgumentException("Event already rated");
+        }
+        if (rating < 1 || rating > 5) {
+            throw new IllegalArgumentException("Rating must be between 1 and 5");
         }
 
         event.setRatingGiven(rating);
         event.setReviewComment(comment);
 
-        // Update chef's running average rating
-        ChefProfile chef = chefProfileRepo.findById(event.getChefId())
-                .orElseThrow(() -> new IllegalArgumentException("Chef not found"));
-        double currentTotal = chef.getRating() * chef.getReviewCount();
-        int newCount = chef.getReviewCount() + 1;
-        double newRating = (currentTotal + rating) / newCount;
-        chef.setRating(Math.round(newRating * 10.0) / 10.0);
-        chef.setReviewCount(newCount);
-        chefProfileRepo.save(chef);
+        // For chef-assigned bookings, update the chef's running average. Skip
+        // gracefully when the lookup fails so a missing/legacy chef row never
+        // blocks the customer from leaving a review.
+        if (event.getChefId() != null) {
+            chefProfileRepo.findById(event.getChefId()).ifPresent(chef -> {
+                double currentTotal = chef.getRating() * chef.getReviewCount();
+                int newCount = chef.getReviewCount() + 1;
+                double newRating = (currentTotal + rating) / newCount;
+                chef.setRating(Math.round(newRating * 10.0) / 10.0);
+                chef.setReviewCount(newCount);
+                chefProfileRepo.save(chef);
+            });
+        }
 
-        log.info("Event booking rated: {} rating={} chef={}", eventId, rating, event.getChefId());
+        // Self-service vendor bookings (pandit / cake / decor / singer / staff /
+        // appliance) have chef_id = NULL and route through EventBookingVendor.
+        // Update both the PartnerVendor's running rating and — when the vendor
+        // came in via the self-service onboarding wizard — the linked
+        // ServiceListing's avgRating, so the public storefront reflects it.
+        eventBookingVendorRepo.findFirstByEventBookingIdAndStatusNot(eventId, VendorAssignmentStatus.CANCELLED)
+                .ifPresent(assignment -> {
+                    partnerVendorRepo.findById(assignment.getVendorId()).ifPresent(vendor -> {
+                        java.math.BigDecimal currentAvg = vendor.getRatingAvg() != null
+                                ? vendor.getRatingAvg() : java.math.BigDecimal.ZERO;
+                        int currentCount = vendor.getRatingCount() != null ? vendor.getRatingCount() : 0;
+                        java.math.BigDecimal total = currentAvg.multiply(java.math.BigDecimal.valueOf(currentCount))
+                                .add(java.math.BigDecimal.valueOf(rating));
+                        int newCount = currentCount + 1;
+                        java.math.BigDecimal newAvg = total.divide(
+                                java.math.BigDecimal.valueOf(newCount),
+                                2, java.math.RoundingMode.HALF_UP);
+                        vendor.setRatingAvg(newAvg);
+                        vendor.setRatingCount(newCount);
+                        partnerVendorRepo.save(vendor);
+
+                        if (vendor.getServiceListingId() != null) {
+                            serviceListingRepo.findById(vendor.getServiceListingId()).ifPresent(listing -> {
+                                java.math.BigDecimal listingAvg = listing.getAvgRating() != null
+                                        ? listing.getAvgRating() : java.math.BigDecimal.ZERO;
+                                int listingCount = listing.getRatingCount() != null ? listing.getRatingCount() : 0;
+                                java.math.BigDecimal listingTotal = listingAvg.multiply(java.math.BigDecimal.valueOf(listingCount))
+                                        .add(java.math.BigDecimal.valueOf(rating));
+                                int newListingCount = listingCount + 1;
+                                java.math.BigDecimal newListingAvg = listingTotal.divide(
+                                        java.math.BigDecimal.valueOf(newListingCount),
+                                        2, java.math.RoundingMode.HALF_UP);
+                                listing.setAvgRating(newListingAvg);
+                                listing.setRatingCount(newListingCount);
+                                serviceListingRepo.save(listing);
+                            });
+                        }
+                    });
+                });
+
+        log.info("Event booking rated: {} rating={} chef={} hasVendor={}",
+                eventId, rating, event.getChefId(),
+                event.getChefId() == null);
         return eventRepo.save(event);
     }
 
@@ -896,7 +977,7 @@ public class EventBookingService {
                 + "\"chefName\":\"%s\",\"customerName\":\"%s\",\"eventType\":\"%s\",\"eventDate\":\"%s\","
                 + "\"eventTime\":\"%s\",\"guestCount\":%d,\"venueAddress\":\"%s\",\"city\":\"%s\","
                 + "\"totalAmountPaise\":%d,\"advanceAmountPaise\":%d,\"balanceAmountPaise\":%d,"
-                + "\"durationHours\":%d,\"status\":\"%s\"}",
+                + "\"durationHours\":%d,\"status\":\"%s\",\"serviceCategory\":\"%s\"}",
                 e.getId(),
                 e.getBookingRef() != null ? e.getBookingRef() : "",
                 e.getChefId() != null ? e.getChefId() : "",
@@ -913,6 +994,25 @@ public class EventBookingService {
                 e.getAdvanceAmountPaise() != null ? e.getAdvanceAmountPaise() : 0,
                 e.getBalanceAmountPaise() != null ? e.getBalanceAmountPaise() : 0,
                 e.getDurationHours() != null ? e.getDurationHours() : 0,
-                e.getStatus() != null ? e.getStatus() : "");
+                e.getStatus() != null ? e.getStatus() : "",
+                extractServiceCategory(e.getMenuDescription()));
+    }
+
+    /**
+     * Pulls the `type` discriminator out of menuDescription JSON so notifications
+     * can render copy specific to the service vertical (PANDIT_PUJA, CAKE_DESIGNER,
+     * EVENT_DECOR, LIVE_MUSIC, STAFF_HIRE, APPLIANCE_RENTAL, COOK, …). Defaults to
+     * empty string when the field is missing or the JSON is unparseable — the
+     * consumer treats that as a generic "event" booking.
+     */
+    private String extractServiceCategory(String menuDescription) {
+        if (menuDescription == null || menuDescription.isBlank()) return "";
+        try {
+            Map<String, Object> md = JSON.readValue(menuDescription, new TypeReference<Map<String, Object>>() {});
+            Object t = md.get("type");
+            return t == null ? "" : t.toString();
+        } catch (Exception ex) {
+            return "";
+        }
     }
 }

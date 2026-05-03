@@ -23,7 +23,7 @@ SERVICES=(
   "media-service"
   "notification-service"
   "messaging-service"
-  "chef-service"
+  "services-service"
 )
 
 # Build wt.exe arguments. The command passed to bash MUST NOT contain ';'
