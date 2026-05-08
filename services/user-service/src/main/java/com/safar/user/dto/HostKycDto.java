@@ -8,6 +8,10 @@ public record HostKycDto(
         UUID id,
         UUID userId,
         String status,
+        // Contact (from user profile, surfaced for admin)
+        String hostName,
+        String hostPhone,
+        String hostEmail,
         // Identity
         String fullLegalName,
         LocalDate dateOfBirth,

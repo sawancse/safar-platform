@@ -276,8 +276,15 @@ public class HostKycService {
                 ? "XXXX" + k.getBankAccountNumber().substring(k.getBankAccountNumber().length() - 4)
                 : k.getBankAccountNumber();
 
+        // Pull contact info from the user profile so admin can identify whose KYC this is.
+        var profile = profileRepository.findByUserId(k.getUserId()).orElse(null);
+        String hostName = profile != null ? profile.getName() : null;
+        String hostPhone = profile != null ? profile.getPhone() : null;
+        String hostEmail = profile != null ? profile.getEmail() : null;
+
         return new HostKycDto(
                 k.getId(), k.getUserId(), k.getStatus().name(),
+                hostName, hostPhone, hostEmail,
                 k.getFullLegalName(), k.getDateOfBirth(),
                 maskedAadhaar, k.getAadhaarVerified(),
                 k.getPanNumber(), k.getPanVerified(),

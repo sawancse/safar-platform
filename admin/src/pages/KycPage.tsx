@@ -15,6 +15,9 @@ const { Text } = Typography;
 interface KycRecord {
   id: string;
   userId: string;
+  hostName?: string;
+  hostPhone?: string;
+  hostEmail?: string;
   fullLegalName: string;
   dateOfBirth: string;
   aadhaarNumber: string;
@@ -146,8 +149,11 @@ export default function KycPage() {
         <Space>
           <UserOutlined />
           <div>
-            <div style={{ fontWeight: 600 }}>{name || 'N/A'}</div>
-            <div style={{ fontSize: 12, color: '#999' }}>{record.city}, {record.state}</div>
+            <div style={{ fontWeight: 600 }}>{name || record.hostName || 'N/A'}</div>
+            <div style={{ fontSize: 12, color: '#666' }}>
+              {record.hostPhone || '—'}{record.hostEmail ? ` · ${record.hostEmail}` : ''}
+            </div>
+            <div style={{ fontSize: 11, color: '#999' }}>{record.city}, {record.state}</div>
           </div>
         </Space>
       ),
@@ -332,6 +338,12 @@ export default function KycPage() {
                 ))}
               </Card>
             )}
+
+            <Descriptions title="Contact" bordered size="small" column={2} style={{ marginBottom: 16 }}>
+              <Descriptions.Item label="Account Name">{selectedKyc.hostName || '—'}</Descriptions.Item>
+              <Descriptions.Item label="Phone">{selectedKyc.hostPhone || '—'}</Descriptions.Item>
+              <Descriptions.Item label="Email" span={2}>{selectedKyc.hostEmail || '—'}</Descriptions.Item>
+            </Descriptions>
 
             <Descriptions title="Identity" bordered size="small" column={2} style={{ marginBottom: 16 }}>
               <Descriptions.Item label="Full Name">{selectedKyc.fullLegalName}</Descriptions.Item>
