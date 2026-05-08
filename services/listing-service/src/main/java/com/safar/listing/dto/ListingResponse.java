@@ -98,6 +98,9 @@ public record ListingResponse(
         Integer earlyBirdDaysBefore,
         Boolean zeroPaymentBooking,
         String locationHighlight,
+        // Partial-prepayment (PG): host enables + sets % collected upfront
+        Boolean payAtPropertyEnabled,
+        Integer partialPrepaidPercent,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {}

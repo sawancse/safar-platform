@@ -25,6 +25,8 @@ interface Listing {
   status: string;
   basePricePaise: number;
   createdAt: string;
+  payAtPropertyEnabled?: boolean;
+  partialPrepaidPercent?: number | null;
 }
 
 interface Host {
@@ -402,6 +404,9 @@ export default function ListingsPage() {
   const [suspendModal, setSuspendModal] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
   const [suspendReason, setSuspendReason] = useState('POLICY_VIOLATION');
   const [suspendNote, setSuspendNote] = useState('');
+  const [paymentOptionsModal, setPaymentOptionsModal] = useState<{ open: boolean; id: string }>({ open: false, id: '' });
+  const [poEnabled, setPoEnabled] = useState(false);
+  const [poPercent, setPoPercent] = useState<number>(18);
   const [actionLoading, setActionLoading] = useState(false);
   const [mediaCounts, setMediaCounts] = useState<Record<string, { photos: number; videos: number }>>({});
   const [hostsMap, setHostsMap] = useState<Record<string, Host>>({});
@@ -517,6 +522,34 @@ export default function ListingsPage() {
       reload();
     } catch (err: any) {
       message.error(`Suspend failed: ${err?.response?.data?.message || err?.message}`);
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  function openPaymentOptions(record: Listing) {
+    setPaymentOptionsModal({ open: true, id: record.id });
+    setPoEnabled(Boolean(record.payAtPropertyEnabled));
+    setPoPercent(record.partialPrepaidPercent ?? 18);
+  }
+
+  async function handleSavePaymentOptions() {
+    if (poEnabled && (poPercent < 10 || poPercent > 50)) {
+      message.error('Percentage must be between 10 and 50');
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await adminApi.setPaymentOptions(
+        paymentOptionsModal.id,
+        poEnabled,
+        poEnabled ? poPercent : null,
+        token);
+      message.success('Payment options updated');
+      setPaymentOptionsModal({ open: false, id: '' });
+      reload();
+    } catch (err: any) {
+      message.error(`Save failed: ${err?.response?.data?.message || err?.message}`);
     } finally {
       setActionLoading(false);
     }
@@ -676,6 +709,17 @@ export default function ListingsPage() {
                 Restore → Draft
               </Button>
             )}
+            {/* PG/COLIVING → Payment Options (partial-prepayment) */}
+            {(record.type === 'PG' || record.type === 'COLIVING') && (
+              <Tooltip title={record.payAtPropertyEnabled
+                ? `Pay-at-Property ON (${record.partialPrepaidPercent ?? 30}% upfront)`
+                : 'Pay-at-Property OFF'}>
+                <Button size="small" type={record.payAtPropertyEnabled ? 'primary' : 'default'}
+                  onClick={(e) => { e.stopPropagation(); openPaymentOptions(record); }}>
+                  Pay split
+                </Button>
+              </Tooltip>
+            )}
           </Space>
         );
       },
@@ -742,6 +786,41 @@ export default function ListingsPage() {
           onChange={(e) => setRejectNotes(e.target.value)}
           placeholder="e.g. Photos are unclear, listing description is incomplete..."
         />
+      </Modal>
+
+      <Modal
+        title="Payment Options (PG)"
+        open={paymentOptionsModal.open}
+        onOk={handleSavePaymentOptions}
+        onCancel={() => setPaymentOptionsModal({ open: false, id: '' })}
+        okText="Save"
+        okButtonProps={{ loading: actionLoading }}
+      >
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <input type="checkbox" checked={poEnabled} onChange={(e) => setPoEnabled(e.target.checked)} />
+            <Text strong>Allow guests to pay a partial amount upfront and the rest at check-in</Text>
+          </label>
+        </div>
+        {poEnabled && (
+          <div style={{ marginBottom: 12 }}>
+            <Text type="secondary">Percentage to collect upfront (10–50%):</Text>
+            <Input
+              type="number"
+              min={10}
+              max={50}
+              value={poPercent}
+              onChange={(e) => setPoPercent(Number(e.target.value))}
+              suffix="%"
+              style={{ marginTop: 4, width: 160 }}
+            />
+            <div style={{ marginTop: 8 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Guest pays {poPercent}% online now, balance ({100 - poPercent}%) collected at check-in.
+              </Text>
+            </div>
+          </div>
+        )}
       </Modal>
 
       <Modal

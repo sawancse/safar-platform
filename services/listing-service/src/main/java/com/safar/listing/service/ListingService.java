@@ -166,6 +166,11 @@ public class ListingService {
                 .frontDesk24h(req.frontDesk24h() != null ? req.frontDesk24h() : false)
                 .checkoutTime(parseTime(req.checkoutTime(), null))
                 .checkinTime(parseTime(req.checkinTime(), null))
+                // Partial-prepayment (PG only)
+                .payAtPropertyEnabled(
+                        isPgType(req.type()) && Boolean.TRUE.equals(req.payAtPropertyEnabled()))
+                .partialPrepaidPercent(
+                        isPgType(req.type()) ? req.partialPrepaidPercent() : null)
                 .status(ListingStatus.DRAFT)
                 .build();
 
@@ -284,8 +289,40 @@ public class ListingService {
         if (req.frontDesk24h() != null) listing.setFrontDesk24h(req.frontDesk24h());
         if (req.checkoutTime() != null) listing.setCheckoutTime(java.time.LocalTime.parse(req.checkoutTime()));
         if (req.checkinTime() != null) listing.setCheckinTime(java.time.LocalTime.parse(req.checkinTime()));
+        // Partial-prepayment (PG only)
+        if (req.payAtPropertyEnabled() != null || req.partialPrepaidPercent() != null) {
+            if (!isPgType(listing.getType())) {
+                throw new IllegalArgumentException("Partial-prepayment is only available for PG/Co-living listings");
+            }
+            if (req.payAtPropertyEnabled() != null) listing.setPayAtPropertyEnabled(req.payAtPropertyEnabled());
+            if (req.partialPrepaidPercent() != null) listing.setPartialPrepaidPercent(req.partialPrepaidPercent());
+        }
 
         return toResponse(listingRepository.save(listing));
+    }
+
+    /**
+     * Admin override: set partial-prepayment options on any listing status (host edit requires DRAFT).
+     * PG-only.
+     */
+    @CacheEvict(value = {"listings", "hostListings"}, allEntries = true)
+    @Transactional
+    public ListingResponse adminSetPaymentOptions(UUID listingId, Boolean payAtPropertyEnabled, Integer partialPrepaidPercent) {
+        Listing listing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new NoSuchElementException("Listing not found: " + listingId));
+        if (!isPgType(listing.getType())) {
+            throw new IllegalArgumentException("Partial-prepayment is only available for PG/Co-living listings");
+        }
+        if (partialPrepaidPercent != null && (partialPrepaidPercent < 10 || partialPrepaidPercent > 50)) {
+            throw new IllegalArgumentException("partialPrepaidPercent must be between 10 and 50");
+        }
+        if (payAtPropertyEnabled != null) listing.setPayAtPropertyEnabled(payAtPropertyEnabled);
+        if (partialPrepaidPercent != null) listing.setPartialPrepaidPercent(partialPrepaidPercent);
+        return toResponse(listingRepository.save(listing));
+    }
+
+    private boolean isPgType(ListingType type) {
+        return type == ListingType.PG || type == ListingType.COLIVING;
     }
 
     @Cacheable(value = "listings", key = "#id")
@@ -854,6 +891,9 @@ public class ListingService {
                 l.getEarlyBirdDaysBefore(),
                 l.getZeroPaymentBooking(),
                 l.getLocationHighlight(),
+                // Partial-prepayment (PG)
+                l.getPayAtPropertyEnabled(),
+                l.getPartialPrepaidPercent(),
                 l.getCreatedAt(), l.getUpdatedAt()
         );
     }

@@ -79,6 +79,9 @@ public record CreateListingRequest(
         Boolean frontDesk24h,
         String checkoutTime,
         String checkinTime,
+        // Partial-prepayment (PG only): host enables + sets % collected upfront, rest at check-in
+        Boolean payAtPropertyEnabled,
+        @Min(10) @jakarta.validation.constraints.Max(50) Integer partialPrepaidPercent,
         // Wizard-provided room types (PG/COLIVING) — skips default seed when non-empty
         List<RoomTypeRequest> roomTypes
 ) {}

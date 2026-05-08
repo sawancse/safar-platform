@@ -416,9 +416,11 @@ public class BookingService {
             prepaidAmountPaise = 0L;
             dueAtPropertyPaise = totalPaise;
         } else if ("PARTIAL_PREPAID".equals(paymentMode)) {
-            int prepaidPct = 30; // default 30% now
-            try { prepaidPct = listingClient.getPartialPrepaidPercent(req.listingId()); }
-            catch (Exception ignored) {}
+            if (!listingClient.isPartialPrepaidEnabled(req.listingId())) {
+                throw new IllegalStateException("Host has not enabled partial-prepayment for this listing");
+            }
+            int prepaidPct = listingClient.getPartialPrepaidPercent(req.listingId());
+            if (prepaidPct < 10 || prepaidPct > 50) prepaidPct = 30;
             prepaidAmountPaise = Math.round(totalPaise * prepaidPct / 100.0);
             dueAtPropertyPaise = totalPaise - prepaidAmountPaise;
         }

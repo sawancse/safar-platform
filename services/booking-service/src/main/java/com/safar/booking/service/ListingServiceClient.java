@@ -53,6 +53,7 @@ public interface ListingServiceClient {
     // Non-refundable & Pay-at-Property
     default int getNonRefundableDiscountPercent(UUID listingId) { return 10; }
     default int getPartialPrepaidPercent(UUID listingId) { return 30; }
+    default boolean isPartialPrepaidEnabled(UUID listingId) { return false; }
 
     // Room type inclusions
     List<Map<String, Object>> getRoomTypeInclusions(UUID roomTypeId);

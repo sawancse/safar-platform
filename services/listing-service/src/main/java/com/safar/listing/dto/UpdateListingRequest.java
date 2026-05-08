@@ -78,5 +78,8 @@ public record UpdateListingRequest(
         String hotelChain,
         Boolean frontDesk24h,
         String checkoutTime,
-        String checkinTime
+        String checkinTime,
+        // Partial-prepayment (PG only): host enables + sets % collected upfront, rest at check-in
+        Boolean payAtPropertyEnabled,
+        @Min(10) @jakarta.validation.constraints.Max(50) Integer partialPrepaidPercent
 ) {}

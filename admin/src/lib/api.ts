@@ -140,6 +140,12 @@ export const adminApi = {
     return axios.post(`${BASE}/admin/listings/${id}/restore`, {}, { headers: authHeaders(token) });
   },
 
+  setPaymentOptions(id: string, payAtPropertyEnabled: boolean, partialPrepaidPercent: number | null, token: string) {
+    return axios.put(`${BASE}/admin/listings/${id}/payment-options`,
+      { payAtPropertyEnabled, partialPrepaidPercent },
+      { headers: authHeaders(token) });
+  },
+
   getArchivedListings(token: string) {
     return axios.get<any[]>(`${BASE}/admin/listings/archived`, { headers: authHeaders(token) });
   },

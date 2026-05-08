@@ -345,6 +345,39 @@ public class ListingServiceClientImpl implements ListingServiceClient {
         log.warn("Could not decrement room type occupancy for {}: {}", roomTypeId, t.getMessage());
     }
 
+    // ── Partial-prepaid (Pay-at-Property split) ────────────────
+
+    @Override
+    @CircuitBreaker(name = "listingService", fallbackMethod = "getPartialPrepaidPercentFallback")
+    @Retry(name = "listingService")
+    public int getPartialPrepaidPercent(UUID listingId) {
+        Map<String, Object> listing = fetchListing(listingId);
+        if (listing == null) return 30;
+        Object val = listing.get("partialPrepaidPercent");
+        if (val instanceof Number) return ((Number) val).intValue();
+        return 30;
+    }
+
+    public int getPartialPrepaidPercentFallback(UUID listingId, Throwable t) {
+        log.warn("Could not get partial-prepaid % for {}: {}, defaulting to 30", listingId, t.getMessage());
+        return 30;
+    }
+
+    @Override
+    @CircuitBreaker(name = "listingService", fallbackMethod = "isPartialPrepaidEnabledFallback")
+    @Retry(name = "listingService")
+    public boolean isPartialPrepaidEnabled(UUID listingId) {
+        Map<String, Object> listing = fetchListing(listingId);
+        if (listing == null) return false;
+        Object val = listing.get("payAtPropertyEnabled");
+        return val instanceof Boolean && (Boolean) val;
+    }
+
+    public boolean isPartialPrepaidEnabledFallback(UUID listingId, Throwable t) {
+        log.warn("Could not check partial-prepaid flag for {}: {}", listingId, t.getMessage());
+        return false;
+    }
+
     // ── PG/Hotel listing type support ──────────────────────────
 
     @Override

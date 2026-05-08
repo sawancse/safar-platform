@@ -103,6 +103,19 @@ public class AdminListingController {
     }
 
     /**
+     * Admin override: enable/disable partial-prepayment + set % on a PG listing without DRAFT requirement.
+     */
+    @PutMapping("/{id}/payment-options")
+    public ResponseEntity<ListingResponse> setPaymentOptions(Authentication auth,
+                                                              @PathVariable UUID id,
+                                                              @RequestBody Map<String, Object> body) {
+        requireAdmin(auth);
+        Boolean enabled = body.get("payAtPropertyEnabled") instanceof Boolean b ? b : null;
+        Integer pct = body.get("partialPrepaidPercent") instanceof Number n ? n.intValue() : null;
+        return ResponseEntity.ok(listingService.adminSetPaymentOptions(id, enabled, pct));
+    }
+
+    /**
      * Admin restores a suspended or archived listing back to DRAFT.
      */
     @PostMapping("/{id}/restore")
