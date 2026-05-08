@@ -7,6 +7,8 @@ import com.safar.booking.entity.TenancyAgreement;
 import com.safar.booking.entity.enums.AgreementStatus;
 import com.safar.booking.kafka.KafkaJsonPublisher;
 import com.safar.booking.repository.TenancyAgreementRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,7 +28,15 @@ public class TenancyAgreementService {
     private final PgTenancyService tenancyService;
     private final KafkaJsonPublisher kafkaJsonPublisher;
 
-    private static long agreementCounter = 1000;
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    private String nextAgreementNumber() {
+        Number seq = (Number) entityManager
+                .createNativeQuery("SELECT nextval('bookings.agreement_ref_seq')")
+                .getSingleResult();
+        return "AGR-" + LocalDate.now().getYear() + "-" + String.format("%04d", seq.longValue());
+    }
 
     @Transactional
     public TenancyAgreement createAgreement(UUID tenancyId, CreateAgreementRequest req) {
@@ -40,7 +50,7 @@ public class TenancyAgreementService {
 
         TenancyAgreement agreement = TenancyAgreement.builder()
                 .tenancyId(tenancyId)
-                .agreementNumber("AGR-" + LocalDate.now().getYear() + "-" + String.format("%04d", ++agreementCounter))
+                .agreementNumber(nextAgreementNumber())
                 .tenantName(req.tenantName())
                 .tenantPhone(req.tenantPhone())
                 .tenantEmail(req.tenantEmail())
