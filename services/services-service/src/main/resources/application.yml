@@ -63,6 +63,8 @@ razorpay:
 services:
   auth-service:
     url: ${AUTH_SERVICE_URL:http://localhost:8888}
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8092}
 
 management:
   endpoint:

@@ -49,4 +49,16 @@ public interface PartnerVendorRepository extends JpaRepository<PartnerVendor, UU
         """, nativeQuery = true)
     List<PartnerVendor> findEligible(@Param("serviceType") String serviceType,
                                      @Param("city") String city);
+
+    /**
+     * Self-service vendor stubs created via ensurePartnerVendorStub before
+     * UserClient backfill landed have user_id set but blank phone/email.
+     * Used by the startup backfill to repair contact details from user-service.
+     */
+    @Query(value = """
+        SELECT * FROM chefs.partner_vendors
+        WHERE user_id IS NOT NULL
+          AND (phone IS NULL OR phone = '' OR email IS NULL OR email = '')
+        """, nativeQuery = true)
+    List<PartnerVendor> findMissingContactWithUser();
 }

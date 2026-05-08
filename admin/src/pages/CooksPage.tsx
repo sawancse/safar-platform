@@ -132,6 +132,11 @@ export default function CooksPage() {
   const [payoutModal, setPayoutModal] = useState<{ visible: boolean; bookingId: string; assignmentId: string; payoutPaise?: number } | null>(null);
   const [payoutRef, setPayoutRef] = useState('');
 
+  // ── Event category quick-filter (chip strip above Events table) ──
+  type EventCategory = 'ALL' | 'COOK' | 'PANDIT_PUJA' | 'DESIGNER_CAKE'
+    | 'EVENT_DECOR' | 'LIVE_MUSIC' | 'STAFF_HIRE' | 'APPLIANCE_RENTAL';
+  const [eventCategory, setEventCategory] = useState<EventCategory>('ALL');
+
   const loadData = () => {
     setLoading(true);
     Promise.all([
@@ -274,6 +279,31 @@ export default function CooksPage() {
       setVendorByBookingId(prev => ({ ...prev, [bookingId]: result }));
     } catch (e: any) {
       message.error(e?.response?.data?.message || 'Update failed');
+    }
+  };
+
+  /**
+   * Reassignment flow: backend assign() rejects if there's an active vendor
+   * already, so we have to cancel first. We do this transparently behind a
+   * single "Reassign" admin click — confirm + reason → cancel current → open
+   * picker → admin selects new vendor → assign creates the fresh row.
+   * Only safe when the current assignment is ASSIGNED or CONFIRMED — once it's
+   * DELIVERED or PAID the row is closed-out and reassignment isn't meaningful.
+   */
+  const handleReassignVendor = async (row: any, currentAssignmentId: string) => {
+    const reason = window.prompt(
+      'Reason for reassigning (recorded against the cancelled assignment):',
+      'Reassigned by admin'
+    );
+    if (reason === null) return; // user cancelled the prompt
+    try {
+      await adminApi.cancelBookingVendor(row.id, currentAssignmentId, reason || 'Reassigned by admin', token);
+      message.success('Previous vendor released — pick the replacement');
+      setVendorByBookingId(prev => ({ ...prev, [row.id]: null }));
+      // Open the existing vendor picker modal for the new selection.
+      await openVendorModal(row);
+    } catch (e: any) {
+      message.error(e?.response?.data?.message || 'Could not release the previous vendor');
     }
   };
 
@@ -626,6 +656,18 @@ export default function CooksPage() {
                   Mark paid
                 </Button>
               )}
+              {(v.status === 'ASSIGNED' || v.status === 'CONFIRMED') && (
+                <Popconfirm
+                  title="Reassign vendor?"
+                  description="Cancels the current assignment and lets you pick a replacement."
+                  okText="Continue"
+                  cancelText="Back"
+                  onConfirm={() => handleReassignVendor(r, v.id)}>
+                  <Button size="small" type="link" danger style={{ padding: 0, fontSize: 11 }}>
+                    Reassign
+                  </Button>
+                </Popconfirm>
+              )}
             </Space>
           </div>
         );
@@ -805,9 +847,98 @@ export default function CooksPage() {
         },
         {
           key: 'events', label: <Badge count={events.filter(e => e.status === 'INQUIRY').length} offset={[12, 0]}>Events ({events.length})</Badge>,
-          children: <Table columns={eventCols} dataSource={events} rowKey="id" scroll={{ x: 1350 }}
-            expandable={eventExpandable}
-            pagination={{ pageSize: 20, showTotal: t => `${t} events` }} locale={{ emptyText: 'No events yet' }} />,
+          children: (() => {
+            // Classify each row into one event category for the chip strip.
+            // bespokeServiceType already normalises CAKE_DESIGNER → DESIGNER_CAKE
+            // and only returns one of the bespoke enums; null = traditional cook.
+            const categoryOf = (e: any): EventCategory => {
+              const t = bespokeServiceType(e.menuDescription);
+              if (!t) return 'COOK';
+              if (t === 'CAKE_DESIGNER') return 'DESIGNER_CAKE';
+              return t as EventCategory;
+            };
+            const filteredEvents = eventCategory === 'ALL'
+              ? events
+              : events.filter(e => categoryOf(e) === eventCategory);
+
+            // Per-category running counts so the chip labels stay live as data
+            // refreshes. Inquiry-pending counts surface where work is queued
+            // (matches the Tab badge convention).
+            const counts: Record<EventCategory, number> = {
+              ALL: events.length,
+              COOK: 0, PANDIT_PUJA: 0, DESIGNER_CAKE: 0, EVENT_DECOR: 0,
+              LIVE_MUSIC: 0, STAFF_HIRE: 0, APPLIANCE_RENTAL: 0,
+            };
+            const pending: Record<EventCategory, number> = {
+              ALL: 0, COOK: 0, PANDIT_PUJA: 0, DESIGNER_CAKE: 0, EVENT_DECOR: 0,
+              LIVE_MUSIC: 0, STAFF_HIRE: 0, APPLIANCE_RENTAL: 0,
+            };
+            events.forEach(e => {
+              const c = categoryOf(e);
+              counts[c]++;
+              if (e.status === 'INQUIRY') pending[c]++;
+            });
+            pending.ALL = events.filter(e => e.status === 'INQUIRY').length;
+
+            const chips: { key: EventCategory; label: string; emoji: string; color: string }[] = [
+              { key: 'ALL',              label: 'All',         emoji: '📋', color: '#1f2937' },
+              { key: 'COOK',             label: 'Cook',        emoji: '🍳', color: '#ea580c' },
+              { key: 'PANDIT_PUJA',      label: 'Pandit',      emoji: '🪔', color: '#d97706' },
+              { key: 'DESIGNER_CAKE',    label: 'Cake',        emoji: '🎂', color: '#db2777' },
+              { key: 'EVENT_DECOR',      label: 'Decor',       emoji: '🎀', color: '#9333ea' },
+              { key: 'LIVE_MUSIC',       label: 'Singer',      emoji: '🎤', color: '#dc2626' },
+              { key: 'STAFF_HIRE',       label: 'Staff',       emoji: '🤝', color: '#2563eb' },
+              { key: 'APPLIANCE_RENTAL', label: 'Appliance',   emoji: '🍽️', color: '#0891b2' },
+            ];
+
+            return (
+              <div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                  {chips.map(c => {
+                    const active = eventCategory === c.key;
+                    const n = counts[c.key];
+                    const p = pending[c.key];
+                    return (
+                      <button
+                        key={c.key}
+                        onClick={() => setEventCategory(c.key)}
+                        disabled={n === 0 && c.key !== 'ALL'}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          padding: '8px 14px', borderRadius: 999, cursor: n === 0 && c.key !== 'ALL' ? 'not-allowed' : 'pointer',
+                          border: active ? `1.5px solid ${c.color}` : '1px solid #e5e7eb',
+                          background: active ? `${c.color}14` : '#fff',
+                          color: active ? c.color : (n === 0 && c.key !== 'ALL') ? '#9ca3af' : '#374151',
+                          fontWeight: active ? 600 : 500, fontSize: 13, transition: 'all 0.15s',
+                        }}
+                      >
+                        <span style={{ fontSize: 14 }}>{c.emoji}</span>
+                        <span>{c.label}</span>
+                        <span style={{
+                          minWidth: 22, textAlign: 'center',
+                          background: active ? c.color : '#f3f4f6',
+                          color: active ? '#fff' : '#6b7280',
+                          fontSize: 11, padding: '1px 7px', borderRadius: 999, fontWeight: 600,
+                        }}>{n}</span>
+                        {p > 0 && (
+                          <Tooltip title={`${p} awaiting quote`}>
+                            <span style={{
+                              minWidth: 18, textAlign: 'center', background: '#f59e0b',
+                              color: '#fff', fontSize: 10, padding: '1px 6px', borderRadius: 999, fontWeight: 700,
+                            }}>{p}</span>
+                          </Tooltip>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <Table columns={eventCols} dataSource={filteredEvents} rowKey="id" scroll={{ x: 1350 }}
+                  expandable={eventExpandable}
+                  pagination={{ pageSize: 20, showTotal: t => `${t} ${eventCategory === 'ALL' ? 'events' : chips.find(c => c.key === eventCategory)?.label.toLowerCase() + ' events'}` }}
+                  locale={{ emptyText: eventCategory === 'ALL' ? 'No events yet' : `No ${chips.find(c => c.key === eventCategory)?.label.toLowerCase()} bookings` }} />
+              </div>
+            );
+          })(),
         },
         {
           key: 'subscriptions', label: `Subscriptions (${subs.length})`,

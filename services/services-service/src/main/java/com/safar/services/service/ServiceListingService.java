@@ -43,6 +43,7 @@ public class ServiceListingService {
     private final ObjectMapper objectMapper;
     private final ResilientKafkaService kafka;
     private final PartnerVendorRepository partnerVendorRepo;
+    private final UserClient userClient;
 
     // ── Create / Update ─────────────────────────────────────
 
@@ -387,9 +388,31 @@ public class ServiceListingService {
         } else if (listing.getHomeCity() != null) {
             stub.setServiceCities(new String[]{ listing.getHomeCity().toLowerCase() });
         }
+
+        // Pull phone/email from the auth user-profile so admin /vendors view
+        // and the customer-side VendorChip have working contact details.
+        // Self-service vendors don't enter contact info in the wizard (they
+        // signed up via OTP, so it's already on their user record). Fail-soft
+        // — a flaky user-service must never block vendor approval.
+        if ((stub.getPhone() == null || stub.getPhone().isBlank()
+                || stub.getEmail() == null || stub.getEmail().isBlank())
+                && listing.getVendorUserId() != null) {
+            UserClient.UserInfo profile = userClient.getUser(listing.getVendorUserId());
+            if (profile != null) {
+                if ((stub.getPhone() == null || stub.getPhone().isBlank()) && profile.hasPhone()) {
+                    stub.setPhone(profile.phone());
+                }
+                if ((stub.getEmail() == null || stub.getEmail().isBlank()) && profile.hasEmail()) {
+                    stub.setEmail(profile.email());
+                }
+            }
+        }
+
         partnerVendorRepo.save(stub);
-        log.info("PartnerVendor stub {} for ServiceListing {} (user {}, type {})",
-                isNew ? "created" : "refreshed", listing.getId(), listing.getVendorUserId(), svcType);
+        log.info("PartnerVendor stub {} for ServiceListing {} (user {}, type {}, phone={}, email={})",
+                isNew ? "created" : "refreshed", listing.getId(), listing.getVendorUserId(), svcType,
+                stub.getPhone() != null && !stub.getPhone().isBlank(),
+                stub.getEmail() != null && !stub.getEmail().isBlank());
     }
 
     private static VendorServiceType mapToVendorType(String serviceListingType) {
