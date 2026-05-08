@@ -89,6 +89,8 @@ class ListingControllerTest {
                 null, null, null, null,
                 // Hotel enhancements
                 null, null, null, null, null, null,
+                // Partial-prepayment (PG)
+                null, null,
                 OffsetDateTime.now(), OffsetDateTime.now()
         );
     }
@@ -117,6 +119,8 @@ class ListingControllerTest {
                 null, null, null,
                 // Hotel fields
                 null, null, null, null,
+                // Partial-prepayment (PG)
+                null, null,
                 null
         );
 

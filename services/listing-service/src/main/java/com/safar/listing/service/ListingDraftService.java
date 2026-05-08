@@ -135,6 +135,8 @@ public class ListingDraftService {
                 null, null, null,
                 // Hotel fields
                 null, null, null, null,
+                // Partial-prepayment (PG)
+                null, null,
                 // Wizard room types
                 null
         );

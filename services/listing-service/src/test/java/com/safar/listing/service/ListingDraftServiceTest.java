@@ -94,6 +94,8 @@ class ListingDraftServiceTest {
                 null, null, null, null,
                 // Hotel enhancements
                 null, null, null, null, null, null,
+                // Partial-prepayment (PG)
+                null, null,
                 null, null
         );
 
