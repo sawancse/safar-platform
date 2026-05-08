@@ -6,6 +6,7 @@ import {
 import { PlusOutlined, CopyOutlined, WhatsAppOutlined, MessageOutlined, StopOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { adminApi } from '../lib/api';
+import PhoneInput from '../components/PhoneInput';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -66,6 +67,7 @@ export default function VendorInvitesPage() {
   const [created, setCreated] = useState<CreateResponse | null>(null);
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
+  const [phone, setPhone] = useState('');
 
   async function load() {
     setLoading(true);
@@ -97,9 +99,13 @@ export default function VendorInvitesPage() {
   async function submit() {
     try {
       const values = await form.validateFields();
+      if (phone.length !== 10 || !/^[6-9]/.test(phone)) {
+        message.error('Enter a valid 10-digit Indian mobile number');
+        return;
+      }
       setSubmitting(true);
       const res: CreateResponse = await adminApi.createVendorInvite({
-        phone: values.phone,
+        phone: `+91${phone}`,
         serviceType: values.serviceType,
         businessName: values.businessName,
         notes: values.notes,
@@ -108,6 +114,7 @@ export default function VendorInvitesPage() {
       setCreated(res);
       setCreateOpen(false);
       form.resetFields();
+      setPhone('');
       load();
     } catch (err: any) {
       if (err?.errorFields) return;
@@ -250,7 +257,7 @@ export default function VendorInvitesPage() {
       <Modal
         title="Send vendor invite"
         open={createOpen}
-        onCancel={() => { setCreateOpen(false); form.resetFields(); }}
+        onCancel={() => { setCreateOpen(false); form.resetFields(); setPhone(''); }}
         onOk={submit}
         confirmLoading={submitting}
         okText="Generate invite"
@@ -260,8 +267,8 @@ export default function VendorInvitesPage() {
           Once vendor taps the link, their phone pre-fills automatically — they don't need to enter OTP.
         </Paragraph>
         <Form form={form} layout="vertical" requiredMark="optional">
-          <Form.Item name="phone" label="Phone (E.164, e.g. +919876543210)" rules={[{ required: true, message: 'Required' }]}>
-            <Input placeholder="+919876543210" />
+          <Form.Item label="Phone" required>
+            <PhoneInput value={phone} onChange={setPhone} />
           </Form.Item>
           <Form.Item name="serviceType" label="Service type" rules={[{ required: true, message: 'Required' }]}>
             <Select placeholder="Select service type" options={SERVICE_TYPES} />

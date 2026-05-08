@@ -1,7 +1,11 @@
 package com.safar.services.dto;
 
+import jakarta.validation.constraints.Pattern;
+
 public record CreateChefProfileRequest(
         String name,
+        @Pattern(regexp = "^(\\+?91)?[6-9]\\d{9}$",
+                message = "Phone must be a 10-digit Indian mobile number")
         String phone,
         String email,
         String bio,

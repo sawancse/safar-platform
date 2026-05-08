@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { adminApi } from '../lib/api';
+import PhoneInput, { sanitizePhone, isValidPhone } from '../components/PhoneInput';
 
 const { Title, Text } = Typography;
 
@@ -74,6 +75,8 @@ export default function PartnerVendorsPage() {
   const [saving, setSaving] = useState(false);
   const [portfolioPhotos, setPortfolioPhotos] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerVendor, setDrawerVendor] = useState<VendorRow | null>(null);
@@ -103,6 +106,8 @@ export default function PartnerVendorsPage() {
     setPortfolioPhotos([]);
     form.resetFields();
     form.setFieldsValue({ serviceType: activeTab, active: true, kycStatus: 'PENDING', serviceRadiusKm: 25 });
+    setPhone('');
+    setWhatsapp('');
     setModalOpen(true);
   };
 
@@ -120,6 +125,8 @@ export default function PartnerVendorsPage() {
       ...row,
       serviceCities: row.serviceCities ?? [],
     });
+    setPhone(sanitizePhone(row.phone || ''));
+    setWhatsapp(sanitizePhone(row.whatsapp || ''));
     setModalOpen(true);
   };
 
@@ -132,10 +139,16 @@ export default function PartnerVendorsPage() {
   const onSave = async () => {
     try {
       const values = await form.validateFields();
+      if (!isValidPhone(phone)) {
+        message.error('Enter a valid 10-digit Indian mobile number');
+        return;
+      }
       setSaving(true);
       const portfolio = portfolioPhotos.length ? JSON.stringify({ photos: portfolioPhotos }) : null;
       const payload = {
         ...values,
+        phone: `+91${phone}`,
+        whatsapp: whatsapp ? `+91${whatsapp}` : null,
         portfolioJson: portfolio,
         // pricingOverrideJson left as raw string from form (advanced field)
       };
@@ -339,11 +352,11 @@ export default function PartnerVendorsPage() {
             <Form.Item label="Owner / contact name" name="ownerName">
               <Input placeholder="e.g. Priya Sharma" />
             </Form.Item>
-            <Form.Item label="Phone" name="phone" rules={[{ required: true }]}>
-              <Input placeholder="+91 9XXXXXXXXX" />
+            <Form.Item label="Phone" required>
+              <PhoneInput value={phone} onChange={setPhone} />
             </Form.Item>
-            <Form.Item label="WhatsApp (optional)" name="whatsapp">
-              <Input placeholder="defaults to phone" />
+            <Form.Item label="WhatsApp (optional)">
+              <PhoneInput value={whatsapp} onChange={setWhatsapp} required={false} />
             </Form.Item>
             <Form.Item label="Email" name="email">
               <Input placeholder="hello@vendor.com" />

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Table, Button, Modal, Form, Input, Select, Space, Tabs, Tag, message, Popconfirm, InputNumber } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import { adminApi as api } from '../lib/api';
+import PhoneInput, { sanitizePhone } from '../components/PhoneInput';
 
 const { TabPane } = Tabs;
 const { TextArea } = Input;
@@ -40,6 +41,7 @@ export default function ProfessionalsPage() {
   const [editingType, setEditingType] = useState<'advocate' | 'designer' | 'bank'>('advocate');
   const [editingItem, setEditingItem] = useState<any>(null);
   const [form] = Form.useForm();
+  const [phone, setPhone] = useState('');
 
   const token = localStorage.getItem('admin_token') || '';
 
@@ -68,6 +70,7 @@ export default function ProfessionalsPage() {
     setEditingType(type);
     setEditingItem(null);
     form.resetFields();
+    setPhone('');
     setModalOpen(true);
   }
 
@@ -75,6 +78,8 @@ export default function ProfessionalsPage() {
     setEditingType(type);
     setEditingItem(item);
     form.setFieldsValue(item);
+    const raw = type === 'bank' ? item.contactPhone : item.phone;
+    setPhone(sanitizePhone(raw || ''));
     setModalOpen(true);
   }
 
@@ -86,11 +91,15 @@ export default function ProfessionalsPage() {
         designer: '/api/v1/interiors/designers',
         bank: '/api/v1/homeloan/banks',
       };
+      const phoneE164 = phone ? `+91${phone}` : null;
+      const payload: any = { ...values };
+      if (editingType === 'bank') payload.contactPhone = phoneE164;
+      else payload.phone = phoneE164;
       if (editingItem) {
-        await api.put(`${endpoints[editingType]}/${editingItem.id}`, values);
+        await api.put(`${endpoints[editingType]}/${editingItem.id}`, payload);
         message.success('Updated successfully');
       } else {
-        await api.post(endpoints[editingType], values);
+        await api.post(endpoints[editingType], payload);
         message.success('Created successfully');
       }
       setModalOpen(false);
@@ -260,7 +269,9 @@ export default function ProfessionalsPage() {
               <Form.Item name="fullName" label="Full Name" rules={[{ required: true }]}><Input /></Form.Item>
               <Form.Item name="barCouncilId" label="Bar Council Number"><Input /></Form.Item>
               <Form.Item name="email" label="Email"><Input /></Form.Item>
-              <Form.Item name="phone" label="Phone"><Input /></Form.Item>
+              <Form.Item label="Phone">
+                <PhoneInput value={phone} onChange={setPhone} required={false} />
+              </Form.Item>
               <Form.Item name="city" label="City"><Input /></Form.Item>
               <Form.Item name="state" label="State"><Input /></Form.Item>
               <Form.Item name="experienceYears" label="Experience (years)"><InputNumber min={0} /></Form.Item>
@@ -276,7 +287,9 @@ export default function ProfessionalsPage() {
               <Form.Item name="fullName" label="Full Name" rules={[{ required: true }]}><Input /></Form.Item>
               <Form.Item name="companyName" label="Company Name"><Input /></Form.Item>
               <Form.Item name="email" label="Email"><Input /></Form.Item>
-              <Form.Item name="phone" label="Phone"><Input /></Form.Item>
+              <Form.Item label="Phone">
+                <PhoneInput value={phone} onChange={setPhone} required={false} />
+              </Form.Item>
               <Form.Item name="city" label="City"><Input /></Form.Item>
               <Form.Item name="state" label="State"><Input /></Form.Item>
               <Form.Item name="experienceYears" label="Experience (years)"><InputNumber min={0} /></Form.Item>
@@ -296,7 +309,9 @@ export default function ProfessionalsPage() {
               <Form.Item name="processingFeePercent" label="Processing Fee (%)"><InputNumber min={0} step={0.01} /></Form.Item>
               <Form.Item name="contactName" label="Contact Person"><Input /></Form.Item>
               <Form.Item name="contactEmail" label="Contact Email"><Input /></Form.Item>
-              <Form.Item name="contactPhone" label="Contact Phone"><Input /></Form.Item>
+              <Form.Item label="Contact Phone">
+                <PhoneInput value={phone} onChange={setPhone} required={false} />
+              </Form.Item>
               <Form.Item name="specialOffers" label="Special Offers"><TextArea rows={2} /></Form.Item>
             </>
           )}

@@ -13,6 +13,8 @@ public record UpdateProfileRequest(
         String bio,
         @Size(max = 200) String languages,
         @Pattern(regexp = "^(en|hi|ta|te|kn|mr|bn|gu)$", message = "Unsupported language code") String language,
+        @Pattern(regexp = "^(\\+?91)?[6-9]\\d{9}$",
+                message = "Phone must be a 10-digit Indian mobile number")
         String phone,
         LocalDate dateOfBirth,
         @Size(max = 30) String gender,

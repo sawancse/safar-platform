@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { adminApi } from '../lib/api';
+import PhoneInput, { sanitizePhone, isValidPhone } from '../components/PhoneInput';
 
 const { Title, Text } = Typography;
 
@@ -97,6 +98,8 @@ export default function SuppliersPage() {
   const [editing, setEditing] = useState<SupplierRow | null>(null);
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerSupplier, setDrawerSupplier] = useState<SupplierRow | null>(null);
@@ -130,11 +133,15 @@ export default function SuppliersPage() {
     setEditing(null);
     form.resetFields();
     form.setFieldsValue({ active: true, kycStatus: 'PENDING', leadTimeDays: 2, paymentTerms: 'NET_15', integrationType: 'MANUAL' });
+    setPhone('');
+    setWhatsapp('');
     setModalOpen(true);
   };
   const openEdit = (row: SupplierRow) => {
     setEditing(row);
     form.setFieldsValue({ ...row, categories: row.categories ?? [], serviceCities: row.serviceCities ?? [] });
+    setPhone(sanitizePhone(row.phone || ''));
+    setWhatsapp(sanitizePhone(row.whatsapp || ''));
     setModalOpen(true);
   };
 
@@ -156,12 +163,21 @@ export default function SuppliersPage() {
   const onSave = async () => {
     try {
       const values = await form.validateFields();
+      if (!isValidPhone(phone)) {
+        message.error('Enter a valid 10-digit Indian mobile number');
+        return;
+      }
+      const payload = {
+        ...values,
+        phone: `+91${phone}`,
+        whatsapp: whatsapp ? `+91${whatsapp}` : null,
+      };
       setSaving(true);
       if (editing) {
-        await adminApi.updateSupplier(editing.id, values, token);
+        await adminApi.updateSupplier(editing.id, payload, token);
         message.success('Supplier updated');
       } else {
-        await adminApi.createSupplier(values, token);
+        await adminApi.createSupplier(payload, token);
         message.success('Supplier created');
       }
       setModalOpen(false);
@@ -391,11 +407,11 @@ export default function SuppliersPage() {
             <Form.Item label="Owner / contact name" name="ownerName">
               <Input placeholder="e.g. Ramesh Kumar" />
             </Form.Item>
-            <Form.Item label="Phone" name="phone" rules={[{ required: true }]}>
-              <Input placeholder="+91 9XXXXXXXXX" />
+            <Form.Item label="Phone" required>
+              <PhoneInput value={phone} onChange={setPhone} />
             </Form.Item>
-            <Form.Item label="WhatsApp" name="whatsapp">
-              <Input placeholder="defaults to phone" />
+            <Form.Item label="WhatsApp">
+              <PhoneInput value={whatsapp} onChange={setWhatsapp} required={false} />
             </Form.Item>
             <Form.Item label="Email" name="email"><Input /></Form.Item>
             <Form.Item label="GST" name="gst"><Input /></Form.Item>

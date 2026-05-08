@@ -6,6 +6,7 @@ import {
 import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, UploadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { adminApi } from '../lib/api';
+import PhoneInput, { sanitizePhone } from '../components/PhoneInput';
 
 const { Title, Text } = Typography;
 
@@ -53,6 +54,7 @@ export default function StaffPoolPage() {
   const [saving, setSaving] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string>('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [phone, setPhone] = useState('');
 
   const load = () => {
     setLoading(true);
@@ -82,6 +84,7 @@ export default function StaffPoolPage() {
     form.resetFields();
     form.setFieldsValue({ role: 'waiter', active: true, languages: [] });
     setPhotoUrl('');
+    setPhone('');
     setModalOpen(true);
   }
 
@@ -90,7 +93,6 @@ export default function StaffPoolPage() {
     form.setFieldsValue({
       name: row.name,
       role: row.role,
-      phone: row.phone,
       languages: splitLanguages(row.languages),
       yearsExperience: row.yearsExperience ?? null,
       hourlyRate: row.hourlyRatePaise != null ? Math.round(row.hourlyRatePaise / 100) : null,
@@ -98,6 +100,7 @@ export default function StaffPoolPage() {
       active: row.active,
     });
     setPhotoUrl(row.photoUrl || '');
+    setPhone(sanitizePhone(row.phone || ''));
     setModalOpen(true);
   }
 
@@ -127,7 +130,7 @@ export default function StaffPoolPage() {
       const payload = {
         name: values.name.trim(),
         role: values.role,
-        phone: values.phone || null,
+        phone: phone ? `+91${phone}` : null,
         photoUrl: photoUrl || null,
         languages: langs.length ? langs.map((s: string) => s.trim()).filter(Boolean).join(', ') : null,
         yearsExperience: values.yearsExperience ?? null,
@@ -284,8 +287,8 @@ export default function StaffPoolPage() {
           <Form.Item label="Name" name="name" rules={[{ required: true, min: 2 }]}>
             <Input placeholder="Ramesh Kumar" />
           </Form.Item>
-          <Form.Item label="Phone" name="phone">
-            <Input placeholder="9876543210" maxLength={10} />
+          <Form.Item label="Phone">
+            <PhoneInput value={phone} onChange={setPhone} required={false} />
           </Form.Item>
           <Form.Item label="Photo">
             <Space align="start">

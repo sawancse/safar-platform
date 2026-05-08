@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Form, Input, Button, Card, Typography, Alert, Steps } from 'antd';
 import { adminApi } from '../lib/api';
+import PhoneInput, { isValidPhone } from '../components/PhoneInput';
 
 const { Title, Text } = Typography;
 
@@ -12,12 +13,15 @@ export default function LoginPage() {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
 
-  async function handlePhone(values: { phone: string }) {
+  async function handlePhone() {
+    if (!isValidPhone(phone)) {
+      setError('Enter a valid 10-digit Indian mobile number');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
-      await adminApi.sendOtp(`+91${values.phone}`);
-      setPhone(values.phone);
+      await adminApi.sendOtp(`+91${phone}`);
       setStep(1);
     } catch (e: any) {
       setError(e?.response?.data?.detail || 'Failed to send OTP');
@@ -67,8 +71,8 @@ export default function LoginPage() {
 
         {step === 0 ? (
           <Form layout="vertical" onFinish={handlePhone}>
-            <Form.Item label="Admin phone number" name="phone" rules={[{ required: true, len: 10, message: 'Enter 10-digit phone' }]}>
-              <Input addonBefore="+91" placeholder="9876543210" maxLength={10} />
+            <Form.Item label="Admin phone number" required>
+              <PhoneInput value={phone} onChange={setPhone} />
             </Form.Item>
             <Button type="primary" htmlType="submit" block loading={loading}>
               Send OTP
