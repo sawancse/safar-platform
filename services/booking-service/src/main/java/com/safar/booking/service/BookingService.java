@@ -813,6 +813,24 @@ public class BookingService {
             } catch (Exception ignored) {}
             pgTenancyService.assertBedsAvailable(booking.getRoomTypeId(), sharingType);
         }
+        // For PARTIAL_PREPAID bookings, auto-record the remaining balance as collected
+        // at check-in. Host clicking "Check In Guest" implies the cash/UPI balance has
+        // been received; we promote the booking to CASH_COLLECTED so settlement reports
+        // and host earnings reflect the full amount.
+        if ("PARTIAL_PREPAID".equals(booking.getPaymentMode())) {
+            long total = booking.getTotalAmountPaise() != null ? booking.getTotalAmountPaise() : 0L;
+            long alreadyCash = booking.getCashCollectedPaise() != null ? booking.getCashCollectedPaise() : 0L;
+            long prepaid = booking.getPrepaidAmountPaise() != null ? booking.getPrepaidAmountPaise() : 0L;
+            long due = Math.max(0L, total - prepaid - alreadyCash);
+            if (due > 0) {
+                booking.setCashCollectedPaise(alreadyCash + due);
+                booking.setCashCollectionNote("Balance " + due + " paise collected at check-in by host " + hostId);
+                booking.setDueAtPropertyPaise(0L);
+                booking.setPaymentMode("CASH_COLLECTED");
+                log.info("Booking {}: PARTIAL_PREPAID balance {} paise auto-collected at check-in",
+                        booking.getBookingRef(), due);
+            }
+        }
         booking.setStatus(BookingStatus.CHECKED_IN);
         booking.setCheckedInAt(OffsetDateTime.now());
         Booking saved = bookingRepo.save(booking);

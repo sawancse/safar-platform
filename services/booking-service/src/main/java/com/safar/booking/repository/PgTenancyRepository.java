@@ -35,4 +35,18 @@ public interface PgTenancyRepository extends JpaRepository<PgTenancy, UUID> {
 
     @Query("SELECT MAX(t.tenancyRef) FROM PgTenancy t WHERE t.tenancyRef LIKE :prefix")
     Optional<String> findMaxTenancyRefLike(@Param("prefix") String prefix);
+
+    /**
+     * Per-room-type count of distinct beds occupied by ACTIVE or NOTICE_PERIOD tenancies.
+     * Used by the nightly reconcile job to push the truth back to listing-service's
+     * room_types.occupied_beds column, healing accumulated drift from booking +
+     * tenancy double-counts.
+     */
+    @Query("SELECT t.roomTypeId, COUNT(DISTINCT t.bedNumber) "
+            + "FROM PgTenancy t "
+            + "WHERE t.status IN (com.safar.booking.entity.enums.TenancyStatus.ACTIVE, "
+            + "                   com.safar.booking.entity.enums.TenancyStatus.NOTICE_PERIOD) "
+            + "  AND t.bedNumber IS NOT NULL "
+            + "GROUP BY t.roomTypeId")
+    List<Object[]> countOccupiedBedsByRoomType();
 }
