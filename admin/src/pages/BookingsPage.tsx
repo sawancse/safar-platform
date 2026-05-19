@@ -323,7 +323,7 @@ export default function BookingsPage() {
       ]} />
 
       {/* Detail modal */}
-      <Modal open={!!detail} onCancel={() => setDetail(null)} width={640}
+      <Modal open={!!detail} onCancel={() => setDetail(null)} width={760}
         title={`Booking ${detail?.bookingRef || ''}`}
         footer={detail ? (
           <div style={{ display: 'flex', gap: 8 }}>
@@ -352,46 +352,153 @@ export default function BookingsPage() {
             <Button onClick={() => setDetail(null)}>Close</Button>
           </div>
         ) : null}>
-        {detail && (
-          <Descriptions column={2} bordered size="small">
-            <Descriptions.Item label="Status">
-              <Tag color={statusColor[detail.status]}>{detail.status}</Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="Booking Ref">{detail.bookingRef}</Descriptions.Item>
-            <Descriptions.Item label="Guest">{detail.guestFirstName} {detail.guestLastName}</Descriptions.Item>
-            <Descriptions.Item label="Email">{detail.guestEmail || '—'}</Descriptions.Item>
-            <Descriptions.Item label="Phone">{detail.guestPhone || '—'}</Descriptions.Item>
-            <Descriptions.Item label="Listing">{detail.listingTitle || '—'}</Descriptions.Item>
-            <Descriptions.Item label="Check-in">{detail.checkIn ? new Date(detail.checkIn).toLocaleDateString('en-IN') : '—'}</Descriptions.Item>
-            <Descriptions.Item label="Check-out">{detail.checkOut ? new Date(detail.checkOut).toLocaleDateString('en-IN') : '—'}</Descriptions.Item>
-            <Descriptions.Item label="Guests">{detail.numberOfGuests || '—'}</Descriptions.Item>
-            <Descriptions.Item label="Rooms">{detail.numberOfRooms || 1}</Descriptions.Item>
-            <Descriptions.Item label="Base Amount">{detail.basePricePaise ? INR(detail.basePricePaise) : '—'}</Descriptions.Item>
-            <Descriptions.Item label="Total Amount">{detail.totalAmountPaise ? INR(detail.totalAmountPaise) : '—'}</Descriptions.Item>
-            <Descriptions.Item label="Payment Mode">{detail.paymentMode || '—'}</Descriptions.Item>
-            <Descriptions.Item label="Payment ID">{detail.razorpayPaymentId || '—'}</Descriptions.Item>
-            {detail.securityDepositPaise > 0 && (
-              <>
-                <Descriptions.Item label="Security Deposit">{INR(detail.securityDepositPaise)}</Descriptions.Item>
-                <Descriptions.Item label="Deposit Status">
-                  <Tag color={depositStatusColor[detail.securityDepositStatus] ?? 'default'}>
-                    {detail.securityDepositStatus || 'N/A'}
-                  </Tag>
+        {detail && (() => {
+          const total = detail.totalAmountPaise || 0;
+          const prepaid = detail.prepaidAmountPaise;
+          const dueAtProperty = detail.dueAtPropertyPaise;
+          const mode = detail.paymentMode || 'PREPAID';
+          const isPartial = mode === 'PARTIAL_PREPAID' && total > 0 && prepaid != null;
+          const isPayAtProperty = mode === 'PAY_AT_PROPERTY';
+          const prepaidPct = isPartial ? Math.round((prepaid / total) * 100) : null;
+
+          const host = detail.hostEarningsPaise;
+          const platformFee = detail.platformFeePaise;
+          const commRate = detail.commissionRate;
+          const commPct = commRate != null ? Math.round(Number(commRate) * 100) : null;
+
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <Descriptions column={2} bordered size="small">
+                <Descriptions.Item label="Status">
+                  <Tag color={statusColor[detail.status]}>{detail.status}</Tag>
                 </Descriptions.Item>
-              </>
-            )}
-            <Descriptions.Item label="Has Review">{detail.hasReview ? <Tag color="green">Yes</Tag> : 'No'}</Descriptions.Item>
-            <Descriptions.Item label="Created">{detail.createdAt ? new Date(detail.createdAt).toLocaleString('en-IN') : '—'}</Descriptions.Item>
-            {detail.cancellationReason && (
-              <Descriptions.Item label="Cancel Reason" span={2}>
-                <span style={{ color: '#ff4d4f' }}>{detail.cancellationReason}</span>
-              </Descriptions.Item>
-            )}
-            {detail.specialRequests && (
-              <Descriptions.Item label="Special Requests" span={2}>{detail.specialRequests}</Descriptions.Item>
-            )}
-          </Descriptions>
-        )}
+                <Descriptions.Item label="Booking Ref">{detail.bookingRef}</Descriptions.Item>
+                <Descriptions.Item label="Guest">{detail.guestFirstName} {detail.guestLastName}</Descriptions.Item>
+                <Descriptions.Item label="Email">{detail.guestEmail || '—'}</Descriptions.Item>
+                <Descriptions.Item label="Phone">{detail.guestPhone || '—'}</Descriptions.Item>
+                <Descriptions.Item label="Listing">{detail.listingTitle || '—'}</Descriptions.Item>
+                <Descriptions.Item label="Check-in">{detail.checkIn ? new Date(detail.checkIn).toLocaleDateString('en-IN') : '—'}</Descriptions.Item>
+                <Descriptions.Item label="Check-out">{detail.checkOut ? new Date(detail.checkOut).toLocaleDateString('en-IN') : '—'}</Descriptions.Item>
+                <Descriptions.Item label="Guests">{detail.guestsCount || '—'}</Descriptions.Item>
+                <Descriptions.Item label="Rooms">{detail.roomsCount || 1}</Descriptions.Item>
+              </Descriptions>
+
+              {/* Customer Payment Breakdown */}
+              <Card size="small" title="Customer Payment Breakdown"
+                styles={{ header: { background: '#f0f5ff' } }}>
+                <Descriptions column={2} size="small" colon={false}>
+                  <Descriptions.Item label="Base amount">{detail.baseAmountPaise ? INR(detail.baseAmountPaise) : '—'}</Descriptions.Item>
+                  {detail.cleaningFeePaise > 0 && (
+                    <Descriptions.Item label="Cleaning fee">{INR(detail.cleaningFeePaise)}</Descriptions.Item>
+                  )}
+                  {detail.inclusionsTotalPaise > 0 && (
+                    <Descriptions.Item label="Inclusions / perks">{INR(detail.inclusionsTotalPaise)}</Descriptions.Item>
+                  )}
+                  {detail.insuranceAmountPaise > 0 && (
+                    <Descriptions.Item label="Insurance">{INR(detail.insuranceAmountPaise)}</Descriptions.Item>
+                  )}
+                  {detail.gstAmountPaise > 0 && (
+                    <Descriptions.Item label="GST">{INR(detail.gstAmountPaise)}</Descriptions.Item>
+                  )}
+                  {detail.securityDepositPaise > 0 && (
+                    <Descriptions.Item label="Security deposit">
+                      {INR(detail.securityDepositPaise)}{' '}
+                      <Tag color={depositStatusColor[detail.securityDepositStatus] ?? 'default'} style={{ marginLeft: 4 }}>
+                        {detail.securityDepositStatus || 'N/A'}
+                      </Tag>
+                    </Descriptions.Item>
+                  )}
+                </Descriptions>
+
+                <div style={{
+                  marginTop: 8, padding: '8px 12px', background: '#fafafa', borderRadius: 6,
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                }}>
+                  <strong>Total invoiced</strong>
+                  <strong style={{ fontSize: 16 }}>{INR(total)}</strong>
+                </div>
+
+                <div style={{ marginTop: 10, padding: 12, background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ color: '#666' }}>Payment mode</span>
+                    <Tag color={isPartial ? 'blue' : isPayAtProperty ? 'orange' : 'green'}>{mode}</Tag>
+                  </div>
+                  {isPartial ? (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span>✅ Paid upfront ({prepaidPct}%)</span>
+                        <strong style={{ color: '#52c41a' }}>{INR(prepaid)}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>⏳ Due at property ({100 - (prepaidPct ?? 0)}%)</span>
+                        <strong style={{ color: '#fa8c16' }}>{INR(dueAtProperty || 0)}</strong>
+                      </div>
+                    </>
+                  ) : isPayAtProperty ? (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>⏳ Customer pays at property</span>
+                      <strong style={{ color: '#fa8c16' }}>{INR(total)}</strong>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>✅ Paid in full upfront</span>
+                      <strong style={{ color: '#52c41a' }}>{INR(total)}</strong>
+                    </div>
+                  )}
+                  {detail.razorpayPaymentId && (
+                    <div style={{ marginTop: 6, fontSize: 12, color: '#888' }}>
+                      Razorpay payment ID: <code>{detail.razorpayPaymentId}</code>
+                    </div>
+                  )}
+                </div>
+              </Card>
+
+              {/* Host Earnings */}
+              <Card size="small" title="Host Earnings (what the host receives)"
+                styles={{ header: { background: '#f9f0ff' } }}>
+                <Descriptions column={2} size="small" colon={false}>
+                  <Descriptions.Item label="Base amount">{detail.baseAmountPaise ? INR(detail.baseAmountPaise) : '—'}</Descriptions.Item>
+                  <Descriptions.Item label="Commission rate">
+                    {commPct != null ? `${commPct}%` : '—'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Platform fee (deducted)">
+                    {platformFee != null ? <span style={{ color: '#ff4d4f' }}>− {INR(platformFee)}</span> : '—'}
+                  </Descriptions.Item>
+                  {detail.cleaningFeePaise > 0 && (
+                    <Descriptions.Item label="Cleaning fee (passed through)">+ {INR(detail.cleaningFeePaise)}</Descriptions.Item>
+                  )}
+                </Descriptions>
+
+                <div style={{
+                  marginTop: 8, padding: '10px 12px', background: '#f6ffed',
+                  border: '1px solid #b7eb8f', borderRadius: 6,
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                }}>
+                  <strong>Host net earnings</strong>
+                  <strong style={{ fontSize: 18, color: '#389e0d' }}>
+                    {host != null ? INR(host) : '—'}
+                  </strong>
+                </div>
+                <p style={{ marginTop: 6, marginBottom: 0, fontSize: 12, color: '#888' }}>
+                  GST is collected on behalf of the government and is not part of host earnings. Security deposit, when present, is held in trust and refunded to the guest at checkout.
+                </p>
+              </Card>
+
+              <Descriptions column={2} bordered size="small">
+                <Descriptions.Item label="Has Review">{detail.hasReview ? <Tag color="green">Yes</Tag> : 'No'}</Descriptions.Item>
+                <Descriptions.Item label="Created">{detail.createdAt ? new Date(detail.createdAt).toLocaleString('en-IN') : '—'}</Descriptions.Item>
+                {detail.cancellationReason && (
+                  <Descriptions.Item label="Cancel Reason" span={2}>
+                    <span style={{ color: '#ff4d4f' }}>{detail.cancellationReason}</span>
+                  </Descriptions.Item>
+                )}
+                {detail.specialRequests && (
+                  <Descriptions.Item label="Special Requests" span={2}>{detail.specialRequests}</Descriptions.Item>
+                )}
+              </Descriptions>
+            </div>
+          );
+        })()}
       </Modal>
 
       {/* Refund modal */}

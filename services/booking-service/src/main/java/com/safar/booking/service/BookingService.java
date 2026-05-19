@@ -872,6 +872,7 @@ public class BookingService {
                 PgTenancy createdTenancy = pgTenancyService.createTenancy(PgTenancy.builder()
                         .tenantId(booking.getGuestId())
                         .listingId(booking.getListingId())
+                        .sourceBookingId(booking.getId())
                         .roomTypeId(booking.getRoomTypeId())
                         .bedNumber(bedNumber)
                         .sharingType(sharingType)

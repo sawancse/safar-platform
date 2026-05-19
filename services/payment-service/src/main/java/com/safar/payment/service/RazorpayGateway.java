@@ -36,4 +36,20 @@ public interface RazorpayGateway {
      * Returns the payout ID.
      */
     String createPayout(String upiId, long amountPaise, String purpose, String referenceId) throws Exception;
+
+    /**
+     * Creates a Razorpay Payment Link that the customer can pay from any device.
+     * Pass bookingId in notes so the payment_link.paid webhook can route back.
+     * Returns the short URL the customer should be sent to.
+     */
+    PaymentLinkResult createPaymentLink(
+            long amountPaise,
+            String description,
+            String customerName,
+            String customerPhone,
+            String customerEmail,
+            String bookingId
+    ) throws Exception;
+
+    record PaymentLinkResult(String linkId, String shortUrl) {}
 }

@@ -29,6 +29,7 @@ interface Tenancy {
   id: string;
   tenancyRef: string;
   tenantId: string;
+  sourceBookingId?: string | null;
   roomTypeId: string;
   bedNumber: string;
   sharingType: string;
@@ -38,10 +39,21 @@ interface Tenancy {
   monthlyRentPaise: number;
 }
 
+interface BookingLite {
+  id: string;
+  bookingRef: string;
+  listingId: string;
+  guestId?: string;
+  status: string;
+  checkIn?: string;
+  checkOut?: string;
+}
+
 interface PropertyOccupancy {
   listing: Listing;
   roomTypes: RoomType[];
   tenancies: Tenancy[];
+  bookings: BookingLite[];
   totalBeds: number;
   occupiedBeds: number;
   occupancyPct: number;
@@ -84,9 +96,10 @@ export default function RoomOccupancyPage() {
 
       for (const listing of allListings) {
         try {
-          const [rtRes, tnRes] = await Promise.all([
+          const [rtRes, tnRes, bkRes] = await Promise.all([
             adminApi.getRoomTypes(listing.id, token),
             adminApi.getPgTenancies(`listingId=${listing.id}`, token),
+            adminApi.getBookings(token, { listingId: listing.id, size: 200 }).catch(() => ({ data: { content: [] } })),
           ]);
 
           const roomTypes: RoomType[] = rtRes?.data || [];
@@ -94,6 +107,10 @@ export default function RoomOccupancyPage() {
           const tenancies: Tenancy[] = Array.isArray(tenancyData)
             ? tenancyData
             : tenancyData?.content || [];
+          const bookingData = bkRes?.data;
+          const bookings: BookingLite[] = Array.isArray(bookingData)
+            ? bookingData
+            : bookingData?.content || [];
 
           const totalBeds = roomTypes.reduce((s, rt) => s + (rt.totalBeds || rt.count), 0);
           const occupiedBeds = roomTypes.reduce((s, rt) => s + (rt.occupiedBeds || 0), 0);
@@ -116,6 +133,7 @@ export default function RoomOccupancyPage() {
             listing,
             roomTypes,
             tenancies,
+            bookings,
             totalBeds,
             occupiedBeds,
             occupancyPct: totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0,
@@ -268,7 +286,18 @@ export default function RoomOccupancyPage() {
               rowKey="id"
               style={{ marginTop: 8 }}
               columns={[
-                { title: 'Ref', dataIndex: 'tenancyRef', key: 'ref', width: 130 },
+                { title: 'Tenancy Ref', dataIndex: 'tenancyRef', key: 'ref', width: 130 },
+                {
+                  title: 'Booking Ref', key: 'bookingRef', width: 140,
+                  render: (_: unknown, t: Tenancy) => {
+                    // Prefer canonical FK populated by checkInBooking; fall back to
+                    // guestId-on-same-listing for pre-V51 rows.
+                    const b = t.sourceBookingId
+                      ? record.bookings.find(bk => bk.id === t.sourceBookingId)
+                      : record.bookings.find(bk => bk.guestId && bk.guestId === t.tenantId);
+                    return b ? <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{b.bookingRef}</span> : <Text type="secondary">—</Text>;
+                  },
+                },
                 { title: 'Bed', dataIndex: 'bedNumber', key: 'bed', width: 70 },
                 {
                   title: 'Sharing', dataIndex: 'sharingType', key: 'sharing', width: 120,

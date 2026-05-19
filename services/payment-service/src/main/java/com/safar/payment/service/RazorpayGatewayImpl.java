@@ -1,6 +1,7 @@
 package com.safar.payment.service;
 
 import com.razorpay.Order;
+import com.razorpay.PaymentLink;
 import com.razorpay.Plan;
 import com.razorpay.RazorpayClient;
 import com.razorpay.Subscription;
@@ -113,6 +114,46 @@ public class RazorpayGatewayImpl implements RazorpayGateway {
         log.warn("Razorpay Payouts API (RazorpayX) requires separate activation. " +
                 "Payout recorded in DB — process manually or via RazorpayX dashboard until API is activated.");
         return "pout_pending_" + referenceId;
+    }
+
+    @Override
+    public PaymentLinkResult createPaymentLink(
+            long amountPaise,
+            String description,
+            String customerName,
+            String customerPhone,
+            String customerEmail,
+            String bookingId
+    ) throws Exception {
+        JSONObject req = new JSONObject();
+        req.put("amount", (Object) amountPaise);
+        req.put("currency", (Object) "INR");
+        req.put("accept_partial", (Object) false);
+        req.put("description", (Object) (description != null ? description : "Safar booking balance"));
+        // Razorpay auto-sends WhatsApp + SMS + email when these flags are true.
+        req.put("reference_id", (Object) ("bal-" + bookingId + "-" + System.currentTimeMillis()));
+
+        JSONObject customer = new JSONObject();
+        if (customerName != null && !customerName.isBlank()) customer.put("name", (Object) customerName);
+        if (customerPhone != null && !customerPhone.isBlank()) customer.put("contact", (Object) customerPhone);
+        if (customerEmail != null && !customerEmail.isBlank()) customer.put("email", (Object) customerEmail);
+        req.put("customer", (Object) customer);
+
+        JSONObject notify = new JSONObject();
+        notify.put("sms", (Object) (customerPhone != null && !customerPhone.isBlank()));
+        notify.put("email", (Object) (customerEmail != null && !customerEmail.isBlank()));
+        req.put("notify", (Object) notify);
+
+        JSONObject notes = new JSONObject();
+        notes.put("bookingId", (Object) bookingId);
+        notes.put("purpose", (Object) "BALANCE_PAYMENT");
+        req.put("notes", (Object) notes);
+
+        PaymentLink link = razorpay.paymentLink.create(req);
+        String linkId = link.get("id").toString();
+        String shortUrl = link.get("short_url").toString();
+        log.info("Razorpay PaymentLink created for booking {}: {} -> {}", bookingId, linkId, shortUrl);
+        return new PaymentLinkResult(linkId, shortUrl);
     }
 
     @Override

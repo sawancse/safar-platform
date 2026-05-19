@@ -34,7 +34,13 @@ public record TenantDashboardResponse(
             String invoiceNumber,
             long grandTotalPaise,
             LocalDate dueDate,
-            String status
+            String status,
+            long rentPaise,
+            long packagesPaise,
+            long electricityPaise,
+            long waterPaise,
+            long gstPaise,
+            long latePenaltyPaise
     ) {}
 
     public record SubscriptionSnapshot(

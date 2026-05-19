@@ -66,6 +66,28 @@ public class PaymentController {
         return ResponseEntity.ok(bookingPaymentService.createOrder(bookingId, amountPaise));
     }
 
+    /**
+     * Host generates a sharable payment link for a booking's remaining balance.
+     * Returns the Razorpay short URL — host shares it with the guest via WhatsApp/SMS.
+     * Webhook payment_link.paid will mark the booking balance paid automatically.
+     */
+    @PostMapping("/balance-payment-link")
+    public ResponseEntity<java.util.Map<String, Object>> createBalancePaymentLink(
+            @RequestParam UUID bookingId,
+            @RequestParam long amountPaise,
+            @RequestParam(required = false) String customerName,
+            @RequestParam(required = false) String customerPhone,
+            @RequestParam(required = false) String customerEmail) throws Exception {
+        var result = bookingPaymentService.createBalancePaymentLink(
+                bookingId, amountPaise, customerName, customerPhone, customerEmail);
+        return ResponseEntity.ok(java.util.Map.of(
+                "bookingId", bookingId,
+                "linkId", result.linkId(),
+                "shortUrl", result.shortUrl(),
+                "amountPaise", amountPaise
+        ));
+    }
+
     @PostMapping("/verify")
     public ResponseEntity<Void> verifyPayment(@RequestBody VerifyPaymentRequest req) {
         bookingPaymentService.verifyPayment(

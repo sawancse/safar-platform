@@ -54,6 +54,26 @@ public class BookingPaymentService {
         return new PaymentOrderResponse(orderId, amountPaise, "INR", razorpayKeyId);
     }
 
+    /**
+     * Creates a Razorpay Payment Link for a booking's remaining balance.
+     * The host can share the returned shortUrl with the guest (WhatsApp / SMS / email).
+     * When the guest pays, Razorpay fires `payment_link.paid` → kafka payment.captured
+     * → booking-service.markBalancePaid (zeroes dueAtPropertyPaise).
+     */
+    public RazorpayGateway.PaymentLinkResult createBalancePaymentLink(
+            UUID bookingId, long amountPaise,
+            String customerName, String customerPhone, String customerEmail) throws Exception {
+        if (amountPaise <= 0) {
+            throw new IllegalArgumentException("amountPaise must be positive");
+        }
+        return razorpayGateway.createPaymentLink(
+                amountPaise,
+                "Safar booking balance",
+                customerName, customerPhone, customerEmail,
+                bookingId.toString()
+        );
+    }
+
     @Transactional
     public void verifyPayment(String razorpayOrderId, String razorpayPaymentId, String razorpaySignature) {
         if (!razorpayGateway.verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature)) {
@@ -90,12 +110,38 @@ public class BookingPaymentService {
             return;
         }
 
+        // Balance payment link paid by guest from a sharable link
+        if ("payment_link.paid".equals(eventType)) {
+            handlePaymentLinkPaid(payload);
+            return;
+        }
+
         String orderId = extractField(payload, "order_id");
 
         if ("payment.captured".equals(eventType)) {
             handlePaymentCapture(orderId);
         } else if ("payment.failed".equals(eventType)) {
             handlePaymentFailed(orderId);
+        }
+    }
+
+    private void handlePaymentLinkPaid(String payload) {
+        try {
+            JSONObject entity = new JSONObject(payload)
+                    .getJSONObject("payload")
+                    .getJSONObject("payment_link")
+                    .getJSONObject("entity");
+            String bookingId = entity.optJSONObject("notes") != null
+                    ? entity.getJSONObject("notes").optString("bookingId", null)
+                    : null;
+            if (bookingId == null || bookingId.isBlank()) {
+                log.warn("payment_link.paid received without bookingId in notes — ignored");
+                return;
+            }
+            kafka.send("payment.captured", bookingId);
+            log.info("payment_link.paid → fired payment.captured for booking {}", bookingId);
+        } catch (Exception e) {
+            log.error("Failed to process payment_link.paid webhook: {}", e.getMessage(), e);
         }
     }
 

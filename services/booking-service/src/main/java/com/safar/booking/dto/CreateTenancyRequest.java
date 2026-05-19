@@ -21,5 +21,8 @@ public record CreateTenancyRequest(
         // Configurable penalty — null means inherit from listing, then fall back to defaults
         Integer gracePeriodDays,
         Integer latePenaltyBps,
-        Integer maxPenaltyPercent
+        Integer maxPenaltyPercent,
+        // Originating booking — set by callers that have a booking handy (e.g. host portal
+        // converting a confirmed booking into a tenancy). Optional.
+        UUID sourceBookingId
 ) {}

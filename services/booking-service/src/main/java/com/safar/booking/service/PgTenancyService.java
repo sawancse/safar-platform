@@ -119,6 +119,7 @@ public class PgTenancyService {
         PgTenancy tenancy = PgTenancy.builder()
                 .tenantId(req.tenantId())
                 .listingId(req.listingId())
+                .sourceBookingId(req.sourceBookingId())
                 .roomTypeId(req.roomTypeId())
                 .bedNumber(req.bedNumber())
                 .sharingType(req.sharingType() != null ? req.sharingType() : "PRIVATE")

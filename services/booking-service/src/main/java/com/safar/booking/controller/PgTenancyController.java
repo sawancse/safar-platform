@@ -128,7 +128,10 @@ public class PgTenancyController {
                 invoices.getContent().stream().findFirst()
                         .map(inv -> new InvoiceSnapshot(
                                 inv.getId(), inv.getInvoiceNumber(), inv.getGrandTotalPaise(),
-                                inv.getDueDate(), inv.getStatus().name()))
+                                inv.getDueDate(), inv.getStatus().name(),
+                                inv.getRentPaise(), inv.getPackagesPaise(),
+                                inv.getElectricityPaise(), inv.getWaterPaise(),
+                                inv.getGstPaise(), inv.getLatePenaltyPaise()))
                         .orElse(null);
 
         // Totals

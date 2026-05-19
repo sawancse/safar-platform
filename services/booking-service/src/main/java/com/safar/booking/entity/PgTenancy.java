@@ -34,6 +34,10 @@ public class PgTenancy {
     @Column(name = "listing_id", nullable = false)
     private UUID listingId;
 
+    /** Booking the tenancy was created from (null for tenancies created standalone). */
+    @Column(name = "source_booking_id")
+    private UUID sourceBookingId;
+
     @Column(name = "room_type_id")
     private UUID roomTypeId;
 
