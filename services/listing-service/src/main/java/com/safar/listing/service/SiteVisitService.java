@@ -46,7 +46,7 @@ public class SiteVisitService {
     @Transactional
     public SiteVisitResponse schedule(ScheduleVisitRequest req, UUID userId) {
         SaleProperty sp = salePropertyRepository.findById(req.salePropertyId())
-                .orElseThrow(() -> new RuntimeException("Sale property not found"));
+                .orElseThrow(() -> new java.util.NoSuchElementException("Sale property not found"));
 
         // Determine buyer/seller based on who's calling
         UUID sellerId;

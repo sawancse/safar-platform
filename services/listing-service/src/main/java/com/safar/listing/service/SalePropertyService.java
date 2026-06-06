@@ -135,7 +135,7 @@ public class SalePropertyService {
 
     public SalePropertyResponse getById(UUID id) {
         SaleProperty sp = salePropertyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Sale property not found: " + id));
+                .orElseThrow(() -> new java.util.NoSuchElementException("Sale property not found: " + id));
         // Increment view count
         sp.setViewsCount(sp.getViewsCount() + 1);
         salePropertyRepository.save(sp);
@@ -145,7 +145,7 @@ public class SalePropertyService {
     @Transactional
     public SalePropertyResponse update(UUID id, UpdateSalePropertyRequest req, UUID sellerId) {
         SaleProperty sp = salePropertyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Sale property not found: " + id));
+                .orElseThrow(() -> new java.util.NoSuchElementException("Sale property not found: " + id));
         if (!sp.getSellerId().equals(sellerId)) {
             throw new RuntimeException("Not authorized to update this property");
         }
@@ -242,7 +242,7 @@ public class SalePropertyService {
      */
     public SalePropertyResponse updateStatus(UUID id, SalePropertyStatus newStatus, UUID sellerId) {
         SaleProperty sp = salePropertyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Sale property not found: " + id));
+                .orElseThrow(() -> new java.util.NoSuchElementException("Sale property not found: " + id));
         if (!sp.getSellerId().equals(sellerId)) {
             throw new RuntimeException("Not authorized");
         }

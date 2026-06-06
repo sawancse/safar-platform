@@ -53,7 +53,7 @@ public class PropertyInquiryService {
         }
 
         SaleProperty sp = salePropertyRepository.findById(req.salePropertyId())
-                .orElseThrow(() -> new RuntimeException("Sale property not found: " + req.salePropertyId()));
+                .orElseThrow(() -> new java.util.NoSuchElementException("Sale property not found: " + req.salePropertyId()));
 
         if (inquiryRepository.existsByBuyerIdAndSalePropertyId(buyerId, req.salePropertyId())) {
             throw new RuntimeException("You have already sent an inquiry for this property");
