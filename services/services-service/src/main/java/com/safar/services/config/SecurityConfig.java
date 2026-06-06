@@ -82,6 +82,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/services/listings/*/kyc-documents", "/api/v1/services/listings/*/kyc-documents/**").authenticated()
                         // Service items: vendor-owned writes, public reads
                         .requestMatchers(HttpMethod.GET, "/api/v1/services/listings/*/items").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/services/listings/*/reviews").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/services/items/*").permitAll()
                         .requestMatchers("/api/v1/services/listings/*/items/all").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/services/listings/*/items").authenticated()

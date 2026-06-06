@@ -56,6 +56,12 @@ public class ServiceListingController {
         return ResponseEntity.ok(ServiceListingResponse.from(listingService.getBySlug(slug)));
     }
 
+    /** Public: customer reviews (rating + comment) for a vendor's storefront. */
+    @GetMapping("/{id}/reviews")
+    public ResponseEntity<List<StorefrontReviewResponse>> reviews(@PathVariable UUID id) {
+        return ResponseEntity.ok(listingService.listReviews(id));
+    }
+
     // ── Vendor-owned ────────────────────────────────────────
 
     @GetMapping("/me")

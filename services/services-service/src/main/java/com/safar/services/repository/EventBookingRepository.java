@@ -75,4 +75,19 @@ public interface EventBookingRepository extends JpaRepository<EventBooking, UUID
           AND status IN ('CONFIRMED', 'ADVANCE_PAID', 'IN_PROGRESS')
         """, nativeQuery = true)
     List<EventBooking> findMissingStartJobOtp();
+
+    /**
+     * Public storefront reviews for a service listing: rated bookings whose
+     * active (non-cancelled) vendor assignment belongs to a PartnerVendor
+     * linked to this listing. Newest first.
+     */
+    @Query(value = """
+        SELECT eb.* FROM chefs.event_bookings eb
+        JOIN chefs.event_booking_vendor v ON v.event_booking_id = eb.id AND v.status <> 'CANCELLED'
+        JOIN chefs.partner_vendors pv     ON pv.id = v.vendor_id
+        WHERE pv.service_listing_id = :listingId
+          AND eb.rating_given IS NOT NULL
+        ORDER BY eb.created_at DESC
+        """, nativeQuery = true)
+    List<EventBooking> findReviewsForListing(@Param("listingId") UUID listingId);
 }

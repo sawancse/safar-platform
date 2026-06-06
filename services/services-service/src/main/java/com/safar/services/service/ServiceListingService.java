@@ -2,11 +2,13 @@ package com.safar.services.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.safar.services.dto.CreateServiceListingRequest;
+import com.safar.services.dto.StorefrontReviewResponse;
 import com.safar.services.dto.UpdateServiceListingRequest;
 import com.safar.services.entity.*;
 import com.safar.services.entity.enums.ServiceListingStatus;
 import com.safar.services.entity.enums.ServiceListingType;
 import com.safar.services.entity.enums.VendorServiceType;
+import com.safar.services.repository.EventBookingRepository;
 import com.safar.services.repository.PartnerVendorRepository;
 import com.safar.services.repository.ServiceListingRepository;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +46,15 @@ public class ServiceListingService {
     private final ResilientKafkaService kafka;
     private final PartnerVendorRepository partnerVendorRepo;
     private final UserClient userClient;
+    private final EventBookingRepository eventBookingRepo;
+
+    // ── Public storefront reviews ───────────────────────────
+    @Transactional(readOnly = true)
+    public List<StorefrontReviewResponse> listReviews(UUID listingId) {
+        return eventBookingRepo.findReviewsForListing(listingId).stream()
+                .map(StorefrontReviewResponse::from)
+                .toList();
+    }
 
     // ── Create / Update ─────────────────────────────────────
 
