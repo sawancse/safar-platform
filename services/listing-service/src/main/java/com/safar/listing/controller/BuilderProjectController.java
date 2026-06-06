@@ -86,6 +86,14 @@ public class BuilderProjectController {
         return ResponseEntity.ok(projectService.getUnitTypes(projectId));
     }
 
+    @PutMapping("/unit-types/{unitTypeId}")
+    public ResponseEntity<UnitTypeResponse> updateUnitType(
+            @PathVariable UUID unitTypeId,
+            @Valid @RequestBody UnitTypeRequest request,
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(projectService.updateUnitType(unitTypeId, request, userId));
+    }
+
     @DeleteMapping("/unit-types/{unitTypeId}")
     public ResponseEntity<Void> deleteUnitType(
             @PathVariable UUID unitTypeId,

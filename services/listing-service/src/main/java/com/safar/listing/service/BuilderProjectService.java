@@ -162,6 +162,9 @@ public class BuilderProjectService {
         if (req.maxBhk() != null) p.setMaxBhk(req.maxBhk());
         if (req.minAreaSqft() != null) p.setMinAreaSqft(req.minAreaSqft());
         if (req.maxAreaSqft() != null) p.setMaxAreaSqft(req.maxAreaSqft());
+        // Location — was missing, so map/coordinate edits were silently dropped.
+        if (req.lat() != null) p.setLat(req.lat());
+        if (req.lng() != null) p.setLng(req.lng());
 
         p = projectRepository.save(p);
         if (p.getStatus() == BuilderListingStatus.ACTIVE) {
@@ -264,6 +267,64 @@ public class BuilderProjectService {
         if (!project.getBuilderId().equals(builderId)) throw new RuntimeException("Not authorized");
         unitTypeRepository.delete(unit);
         recomputeProjectPriceRange(unit.getProjectId());
+    }
+
+    /**
+     * Update an existing unit type. Needed because the builder edit flow could
+     * previously only add/delete units — editing the price (or any field) of an
+     * existing plot/unit was silently dropped. Recomputes the project's price
+     * range after the change so search facets stay in sync.
+     */
+    @Transactional
+    public UnitTypeResponse updateUnitType(UUID unitTypeId, UnitTypeRequest req, UUID builderId) {
+        ProjectUnitType unit = unitTypeRepository.findById(unitTypeId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Unit type not found: " + unitTypeId));
+        BuilderProject project = projectRepository.findById(unit.getProjectId())
+                .orElseThrow(() -> new java.util.NoSuchElementException("Project not found"));
+        if (!project.getBuilderId().equals(builderId)) throw new RuntimeException("Not authorized");
+
+        com.safar.listing.entity.enums.UnitKind kind = req.unitKind() != null ? req.unitKind() : unit.getUnitKind();
+
+        // Resolve base price, mirroring addUnitType's plot perSqft × area fallback.
+        Long basePrice = req.basePricePaise();
+        if (kind == com.safar.listing.entity.enums.UnitKind.PLOT) {
+            var area = req.plotAreaSqft() != null ? req.plotAreaSqft() : unit.getPlotAreaSqft();
+            if (area == null || area <= 0) {
+                throw new IllegalArgumentException("Plot configuration must include plotAreaSqft");
+            }
+            if (basePrice == null && req.pricePerSqftPaise() != null) {
+                basePrice = req.pricePerSqftPaise() * area;
+            }
+        }
+        if (basePrice == null) basePrice = unit.getBasePricePaise();
+
+        if (req.name() != null) unit.setName(req.name());
+        unit.setUnitKind(kind);
+        if (req.bhk() != null) unit.setBhk(req.bhk());
+        if (req.carpetAreaSqft() != null) unit.setCarpetAreaSqft(req.carpetAreaSqft());
+        if (req.builtUpAreaSqft() != null) unit.setBuiltUpAreaSqft(req.builtUpAreaSqft());
+        if (req.superBuiltUpAreaSqft() != null) unit.setSuperBuiltUpAreaSqft(req.superBuiltUpAreaSqft());
+        if (basePrice != null) unit.setBasePricePaise(basePrice);
+        if (req.pricePerSqftPaise() != null) unit.setPricePerSqftPaise(req.pricePerSqftPaise());
+        if (req.floorRisePaise() != null) unit.setFloorRisePaise(req.floorRisePaise());
+        if (req.facingPremiumPaise() != null) unit.setFacingPremiumPaise(req.facingPremiumPaise());
+        if (req.premiumFloorsFrom() != null) unit.setPremiumFloorsFrom(req.premiumFloorsFrom());
+        if (req.totalUnits() != null) unit.setTotalUnits(req.totalUnits());
+        if (req.bathrooms() != null) unit.setBathrooms(req.bathrooms());
+        if (req.balconies() != null) unit.setBalconies(req.balconies());
+        if (req.furnishing() != null) unit.setFurnishing(req.furnishing());
+        if (req.plotAreaSqft() != null) unit.setPlotAreaSqft(req.plotAreaSqft());
+        if (req.plotLengthFt() != null) unit.setPlotLengthFt(req.plotLengthFt());
+        if (req.plotBreadthFt() != null) unit.setPlotBreadthFt(req.plotBreadthFt());
+        if (req.cornerPlot() != null) unit.setCornerPlot(req.cornerPlot());
+        if (req.facing() != null) unit.setFacing(req.facing());
+        if (req.floorPlanUrl() != null) unit.setFloorPlanUrl(req.floorPlanUrl());
+        if (req.unitLayoutUrl() != null) unit.setUnitLayoutUrl(req.unitLayoutUrl());
+        if (req.photos() != null) unit.setPhotos(req.photos());
+
+        unit = unitTypeRepository.save(unit);
+        recomputeProjectPriceRange(unit.getProjectId());
+        return toUnitResponse(unit);
     }
 
     // ── Price Calculator ──────────────────────────────────────
