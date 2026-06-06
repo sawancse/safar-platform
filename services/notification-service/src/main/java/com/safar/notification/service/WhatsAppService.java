@@ -52,6 +52,10 @@ public class WhatsAppService {
     @Value("${msg91.wa.bot-help-template:}")
     private String botHelpTemplate;
 
+    // Service/event booking-request acknowledgement (guest leads — name + WhatsApp)
+    @Value("${msg91.wa.event-booking-received-template:}")
+    private String eventBookingReceivedTemplate;
+
     @Value("${msg91.base-url:https://control.msg91.com/api/v5}")
     private String baseUrl;
 
@@ -105,6 +109,21 @@ public class WhatsAppService {
         if (!isConfigured(botHelpTemplate)) return;
         sendTemplate(phone, botHelpTemplate, List.of());
         log.info("Sent bot-help WA to {}", maskPhone(phone));
+    }
+
+    /**
+     * Acknowledge a service/event booking request on WhatsApp — the primary
+     * channel for guest leads who give only a name + WhatsApp number. No-op
+     * until the Meta template is approved and the env var is set.
+     */
+    public void sendEventBookingReceived(String phone, String customerName, String serviceLabel, String bookingRef) {
+        if (phone == null || phone.isBlank()) return;
+        if (!isConfigured(eventBookingReceivedTemplate)) return;
+        sendTemplate(phone, eventBookingReceivedTemplate, List.of(
+                customerName != null && !customerName.isBlank() ? customerName : "there",
+                serviceLabel != null ? serviceLabel : "service",
+                bookingRef != null ? bookingRef : ""));
+        log.info("Sent event-booking-received WA to {} ({})", maskPhone(phone), bookingRef);
     }
 
     // ── Core WA sender ──────────────────────────────────────────

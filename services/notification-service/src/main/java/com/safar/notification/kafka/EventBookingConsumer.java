@@ -7,6 +7,7 @@ import com.safar.notification.service.EmailGateway;
 import com.safar.notification.service.EmailTemplateService;
 import com.safar.notification.service.InAppNotificationService;
 import com.safar.notification.service.UserClient;
+import com.safar.notification.service.WhatsAppService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -30,6 +31,7 @@ public class EventBookingConsumer {
     private final EmailTemplateService emailTemplateService;
     private final UserClient userClient;
     private final ObjectMapper objectMapper;
+    private final WhatsAppService whatsAppService;
 
     @KafkaListener(
             topics = {"event.booking.created", "event.booking.quoted",
@@ -72,6 +74,10 @@ public class EventBookingConsumer {
             String city = txt(node, "city", "");
             String status = txt(node, "status", "");
             String serviceCategory = txt(node, "serviceCategory", "");
+            String customerEmail = txt(node, "customerEmail", null);
+            String customerPhone = txt(node, "customerPhone", null);
+            if (customerEmail != null && customerEmail.isBlank()) customerEmail = null;
+            if (customerPhone != null && customerPhone.isBlank()) customerPhone = null;
             int guestCount = node.has("guestCount") ? node.get("guestCount").asInt() : 0;
             int durationHours = node.has("durationHours") ? node.get("durationHours").asInt() : 0;
             long totalPaise = node.has("totalAmountPaise") ? node.get("totalAmountPaise").asLong() : 0;
@@ -98,6 +104,8 @@ public class EventBookingConsumer {
             ctx.setBalanceAmount(formatINR(balancePaise));
             ctx.setDuration(durationHours + " hours");
             ctx.setServiceCategory(serviceCategory);
+            ctx.setCustomerEmail(customerEmail);
+            ctx.setCustomerPhone(customerPhone);
 
             switch (topic) {
                 case "event.booking.created" -> handleCreated(bookingId, customerId, chefId, chefName, customerName, bookingRef, eventType, eventDate, amount, ctx);
@@ -118,25 +126,32 @@ public class EventBookingConsumer {
     private void handleCreated(String bookingId, String customerId, String chefId,
                                 String chefName, String customerName, String bookingRef,
                                 String eventType, String eventDate, String amount, EmailContext ctx) {
-        if (customerId != null) {
-            String label = ctx.getServiceLabel();
-            String partner = ctx.getServiceProviderNoun();
-            String occasion = (eventType != null && !eventType.isBlank()) ? (eventType + " ") : "";
-            String title = capitalise(label) + " Inquiry Submitted";
-            String body = "Your " + occasion + label + " inquiry " + bookingRef + " for " + eventDate
-                    + " has been submitted. We'll match you with the right " + partner + ".";
+        String label = ctx.getServiceLabel();
+        String partner = ctx.getServiceProviderNoun();
+        String occasion = (eventType != null && !eventType.isBlank()) ? (eventType + " ") : "";
+        String title = capitalise(label) + " Inquiry Submitted";
+        String body = "Your " + occasion + label + " inquiry " + bookingRef + " for " + eventDate
+                + " has been submitted. We'll match you with the right " + partner + ".";
 
+        // In-app needs a real account UUID — account holders only.
+        if (customerId != null) {
             inAppNotificationService.create(
                     UUID.fromString(customerId),
                     title,
                     body,
                     "EVENT_BOOKING_CREATED", bookingId, "EVENT_BOOKING");
-
-            sendHtmlEmail(customerId, title + " — " + bookingRef,
-                    "event-booking-created", ctx);
         }
 
-        log.info("Event booking created notifications sent: {} customer={}", bookingRef, customerId);
+        // Email — to the account holder, or the guest's captured email (guest leads
+        // have no account, so this is their only confirmation channel besides WA).
+        sendHtmlEmail(customerId, title + " — " + bookingRef, "event-booking-created", ctx);
+
+        // WhatsApp acknowledgement to the guest's phone (best-effort; no-op until the
+        // MSG91 WA template is approved + configured).
+        whatsAppService.sendEventBookingReceived(ctx.getCustomerPhone(), customerName, label, bookingRef);
+
+        log.info("Event booking created notifications sent: {} customer={} guestEmail={} guestPhone={}",
+                bookingRef, customerId, ctx.getCustomerEmailAddr() != null, ctx.getCustomerPhone() != null);
     }
 
     private static String capitalise(String s) {
@@ -285,26 +300,40 @@ public class EventBookingConsumer {
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private void sendHtmlEmail(String userId, String subject, String templateName, EmailContext ctx) {
-        try {
-            UserClient.UserInfo user = userClient.getUser(userId);
-            if (user != null && user.email() != null && !user.email().isBlank()) {
-                emailTemplateService.sendHtmlEmail(user.email(), subject, templateName, ctx);
-            }
-        } catch (Exception e) {
-            log.warn("HTML email failed for template {}, user {}: {}", templateName, userId, e.getMessage());
+        // Resolve the recipient: the account email when there's a userId, otherwise
+        // the email the guest typed on the booking (carried on ctx). Guest leads have
+        // no account, so the userClient lookup is skipped entirely.
+        String email = null;
+        if (userId != null && !userId.isBlank()) {
             try {
                 UserClient.UserInfo user = userClient.getUser(userId);
-                if (user != null && user.email() != null && !user.email().isBlank()) {
-                    emailGateway.send(user.email(), subject,
-                            "Event " + ctx.getBookingRef() + " — " + subject
-                            + "\n\nEvent Type: " + ctx.getEventType()
-                            + "\nDate: " + ctx.getServiceDate()
-                            + "\nAmount: " + ctx.getTotalAmount()
-                            + "\n\nView details: https://ysafar.com/cooks/my-bookings"
-                            + "\n\nSafar Cooks Team");
-                }
+                if (user != null) email = user.email();
+            } catch (Exception e) {
+                log.warn("User lookup failed for {}: {}", userId, e.getMessage());
+            }
+        }
+        if ((email == null || email.isBlank())
+                && ctx.getCustomerEmailAddr() != null && !ctx.getCustomerEmailAddr().isBlank()) {
+            email = ctx.getCustomerEmailAddr();
+        }
+        if (email == null || email.isBlank()) {
+            log.info("No email for booking {} (template {}) — skipping email", ctx.getBookingRef(), templateName);
+            return;
+        }
+        try {
+            emailTemplateService.sendHtmlEmail(email, subject, templateName, ctx);
+        } catch (Exception e) {
+            log.warn("HTML email failed for template {} to {}: {}", templateName, email, e.getMessage());
+            try {
+                emailGateway.send(email, subject,
+                        "Event " + ctx.getBookingRef() + " — " + subject
+                        + "\n\nEvent Type: " + ctx.getEventType()
+                        + "\nDate: " + ctx.getServiceDate()
+                        + "\nAmount: " + ctx.getTotalAmount()
+                        + "\n\nView details: https://ysafar.com/cooks/my-bookings"
+                        + "\n\nSafar Cooks Team");
             } catch (Exception e2) {
-                log.error("Plain text email also failed for user {}: {}", userId, e2.getMessage());
+                log.error("Plain text email also failed for {}: {}", email, e2.getMessage());
             }
         }
     }

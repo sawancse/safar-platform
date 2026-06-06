@@ -991,7 +991,8 @@ public class EventBookingService {
                 + "\"chefName\":\"%s\",\"customerName\":\"%s\",\"eventType\":\"%s\",\"eventDate\":\"%s\","
                 + "\"eventTime\":\"%s\",\"guestCount\":%d,\"venueAddress\":\"%s\",\"city\":\"%s\","
                 + "\"totalAmountPaise\":%d,\"advanceAmountPaise\":%d,\"balanceAmountPaise\":%d,"
-                + "\"durationHours\":%d,\"status\":\"%s\",\"serviceCategory\":\"%s\"}",
+                + "\"durationHours\":%d,\"status\":\"%s\",\"serviceCategory\":\"%s\","
+                + "\"customerEmail\":\"%s\",\"customerPhone\":\"%s\"}",
                 e.getId(),
                 e.getBookingRef() != null ? e.getBookingRef() : "",
                 e.getChefId() != null ? e.getChefId() : "",
@@ -1009,7 +1010,9 @@ public class EventBookingService {
                 e.getBalanceAmountPaise() != null ? e.getBalanceAmountPaise() : 0,
                 e.getDurationHours() != null ? e.getDurationHours() : 0,
                 e.getStatus() != null ? e.getStatus() : "",
-                extractServiceCategory(e.getMenuDescription()));
+                extractServiceCategory(e.getMenuDescription()),
+                e.getCustomerEmail() != null ? e.getCustomerEmail() : "",
+                e.getCustomerPhone() != null ? e.getCustomerPhone() : "");
     }
 
     /**
