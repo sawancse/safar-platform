@@ -676,6 +676,31 @@ public class BookingService {
         return toResponse(confirmed);
     }
 
+    /**
+     * Mark the remaining balance as paid online for a PARTIAL_PREPAID booking.
+     * Keeps paymentMode = PARTIAL_PREPAID for audit; zeroes dueAtPropertyPaise.
+     */
+    @Transactional
+    public BookingResponse markBalancePaid(UUID bookingId) {
+        Booking booking = getBookingById(bookingId);
+        if (!"PARTIAL_PREPAID".equals(booking.getPaymentMode())) {
+            throw new IllegalStateException("Only PARTIAL_PREPAID bookings can have a balance payment recorded");
+        }
+        Long due = booking.getDueAtPropertyPaise();
+        if (due == null || due <= 0) {
+            return toResponse(booking);
+        }
+        booking.setDueAtPropertyPaise(0L);
+        Booking saved = bookingRepo.save(booking);
+        try {
+            kafka.send("booking.balance.paid", bookingId.toString());
+        } catch (Exception e) {
+            log.warn("Failed to send Kafka event for balance-paid booking {}: {}", booking.getBookingRef(), e.getMessage());
+        }
+        log.info("Balance paid for booking {}: {} paise marked collected", booking.getBookingRef(), due);
+        return toResponse(saved);
+    }
+
     @Transactional
     public BookingResponse cancelBooking(UUID bookingId, UUID userId, String reason) {
         Booking booking = getBookingById(bookingId);
@@ -1265,7 +1290,9 @@ public class BookingService {
                 // Pricing unit
                 b.getPricingUnit(),
                 // Payment mode
-                b.getPaymentMode()
+                b.getPaymentMode(),
+                b.getPrepaidAmountPaise(),
+                b.getDueAtPropertyPaise()
         );
     }
 

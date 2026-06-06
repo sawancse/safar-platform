@@ -88,5 +88,7 @@ public record BookingResponse(
         // Pricing unit
         String pricingUnit,
         // Payment mode: PREPAID / PAY_AT_PROPERTY / PARTIAL_PREPAID
-        String paymentMode
+        String paymentMode,
+        Long prepaidAmountPaise,
+        Long dueAtPropertyPaise
 ) {}

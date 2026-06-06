@@ -21,6 +21,7 @@ public class KafkaTopicConfig {
     @Bean public NewTopic paymentRefunded() { return new NewTopic("payment.refunded", 1, (short) 1); }
     @Bean public NewTopic paymentReminder() { return new NewTopic("payment.reminder", 1, (short) 1); }
     @Bean public NewTopic paymentReminderUrgent() { return new NewTopic("payment.reminder.urgent", 1, (short) 1); }
+    @Bean public NewTopic bookingBalanceReminder() { return new NewTopic("booking.balance.reminder", 1, (short) 1); }
 
     // Review events consumed
     @Bean public NewTopic reviewCreated() { return new NewTopic("review.created", 1, (short) 1); }

@@ -226,6 +226,12 @@ public class Booking {
     @Column(name = "cash_collection_note")
     private String cashCollectionNote;
 
+    @Column(name = "balance_reminder_t7_sent_at")
+    private OffsetDateTime balanceReminderT7SentAt;
+
+    @Column(name = "balance_reminder_t1_sent_at")
+    private OffsetDateTime balanceReminderT1SentAt;
+
     // Inclusions & Perks
     @Column(name = "inclusions_total_paise")
     @Builder.Default

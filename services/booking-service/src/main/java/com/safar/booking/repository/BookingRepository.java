@@ -4,6 +4,8 @@ import com.safar.booking.entity.Booking;
 import com.safar.booking.entity.enums.BookingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,4 +23,21 @@ public interface BookingRepository extends JpaRepository<Booking, UUID>, JpaSpec
     List<Booking> findByStatus(BookingStatus status);
     List<Booking> findByStatusInAndCheckOutBefore(List<BookingStatus> statuses, LocalDateTime checkOut);
     Page<Booking> findBySecurityDepositStatusIn(List<String> statuses, Pageable pageable);
+
+    // PARTIAL_PREPAID bookings with a remaining balance whose check-in falls in [from, to).
+    // tier = "T7" or "T1" picks which dedup timestamp column to require to be NULL.
+    @Query("""
+            SELECT b FROM Booking b
+            WHERE b.paymentMode = 'PARTIAL_PREPAID'
+              AND b.status = com.safar.booking.entity.enums.BookingStatus.CONFIRMED
+              AND b.dueAtPropertyPaise IS NOT NULL
+              AND b.dueAtPropertyPaise > 0
+              AND b.checkIn >= :from
+              AND b.checkIn < :to
+              AND ((:tier = 'T7' AND b.balanceReminderT7SentAt IS NULL)
+                OR (:tier = 'T1' AND b.balanceReminderT1SentAt IS NULL))
+            """)
+    List<Booking> findBalanceReminderCandidates(@Param("from") LocalDateTime from,
+                                                @Param("to") LocalDateTime to,
+                                                @Param("tier") String tier);
 }

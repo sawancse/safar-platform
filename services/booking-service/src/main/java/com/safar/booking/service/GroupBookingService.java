@@ -189,7 +189,9 @@ public class GroupBookingService {
                                 g.getRoomAssignment(), g.getIsPrimary()))
                         .toList(),
                 b.getPricingUnit(),
-                b.getPaymentMode()
+                b.getPaymentMode(),
+                b.getPrepaidAmountPaise(),
+                b.getDueAtPropertyPaise()
         );
     }
 }

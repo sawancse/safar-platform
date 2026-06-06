@@ -208,4 +208,16 @@ public class KafkaTopicConfig {
     public NewTopic tenancyRentCollectedTopic() {
         return new NewTopic("tenancy.rent.collected", 1, (short) 1);
     }
+
+    // --- PARTIAL_PREPAID balance topics ---
+
+    @Bean
+    public NewTopic bookingBalanceReminderTopic() {
+        return new NewTopic("booking.balance.reminder", 1, (short) 1);
+    }
+
+    @Bean
+    public NewTopic bookingBalancePaidTopic() {
+        return new NewTopic("booking.balance.paid", 1, (short) 1);
+    }
 }
