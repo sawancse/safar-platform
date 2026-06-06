@@ -45,6 +45,11 @@ public class EventBookingConsumer {
             String bookingRef = txt(node, "bookingRef", bookingId);
             String chefId = txt(node, "chefId", null);
             String customerId = txt(node, "customerId", null);
+            // The producer emits "" (not null) when a booking has no chef/customer
+            // account (guest leads). Normalise to null so the null-guards below hold
+            // and we never call UUID.fromString("") → "Invalid UUID string".
+            if (chefId != null && chefId.isBlank()) chefId = null;
+            if (customerId != null && customerId.isBlank()) customerId = null;
             String chefName = txt(node, "chefName", "Chef");
             String rawCustomerName = txt(node, "customerName", "Customer");
             // The event's `customerName` holds the *guest* name the booker typed
