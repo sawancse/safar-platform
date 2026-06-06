@@ -6,10 +6,12 @@ import com.safar.services.dto.VendorAssignmentResponse;
 import com.safar.services.entity.EventBooking;
 import com.safar.services.entity.EventBookingVendor;
 import com.safar.services.entity.PartnerVendor;
+import com.safar.services.entity.ServiceListing;
 import com.safar.services.entity.enums.VendorAssignmentStatus;
 import com.safar.services.repository.EventBookingRepository;
 import com.safar.services.repository.EventBookingVendorRepository;
 import com.safar.services.repository.PartnerVendorRepository;
+import com.safar.services.repository.ServiceListingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,7 @@ public class EventBookingVendorService {
     private final EventBookingRepository bookingRepo;
     private final PartnerVendorService vendorService;
     private final VendorAssignmentNotifier notifier;
+    private final ServiceListingRepository serviceListingRepo;
 
     @Transactional(readOnly = true)
     public List<VendorAssignmentResponse> listForBooking(UUID bookingId) {
@@ -44,7 +47,12 @@ public class EventBookingVendorService {
                 .orElse(null);
         if (a == null) return null;
         PartnerVendor v = vendorRepo.findById(a.getVendorId()).orElse(null);
-        return VendorAssignmentResponse.from(a, v);
+        String slug = null, city = null;
+        if (v != null && v.getServiceListingId() != null) {
+            ServiceListing sl = serviceListingRepo.findById(v.getServiceListingId()).orElse(null);
+            if (sl != null) { slug = sl.getVendorSlug(); city = sl.getHomeCity(); }
+        }
+        return VendorAssignmentResponse.from(a, v, slug, city);
     }
 
     @Transactional

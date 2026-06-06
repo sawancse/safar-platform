@@ -20,6 +20,9 @@ public record VendorAssignmentResponse(
         VendorServiceType vendorServiceType,
         BigDecimal vendorRatingAvg,
         Integer vendorJobsCompleted,
+        Integer vendorRatingCount,
+        String vendorSlug,
+        String vendorCity,
         VendorAssignmentStatus status,
         OffsetDateTime assignedAt,
         OffsetDateTime confirmedAt,
@@ -32,6 +35,13 @@ public record VendorAssignmentResponse(
         String adminNotes
 ) {
     public static VendorAssignmentResponse from(EventBookingVendor a, PartnerVendor v) {
+        return from(a, v, null, null);
+    }
+
+    /** Includes the vendor's public storefront slug + city (resolved from the
+     *  linked ServiceListing) so the customer can open the full profile. */
+    public static VendorAssignmentResponse from(EventBookingVendor a, PartnerVendor v,
+                                                String vendorSlug, String vendorCity) {
         return new VendorAssignmentResponse(
                 a.getId(),
                 a.getEventBookingId(),
@@ -43,6 +53,9 @@ public record VendorAssignmentResponse(
                 v != null ? v.getServiceType() : null,
                 v != null ? v.getRatingAvg() : null,
                 v != null ? v.getJobsCompleted() : null,
+                v != null ? v.getRatingCount() : null,
+                vendorSlug,
+                vendorCity,
                 a.getStatus(),
                 a.getAssignedAt(),
                 a.getConfirmedAt(),
