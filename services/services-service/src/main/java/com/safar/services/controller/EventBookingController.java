@@ -238,9 +238,12 @@ public class EventBookingController {
 
     @PostMapping("/{id}/advance-paid")
     public ResponseEntity<EventBooking> markAdvancePaid(Authentication auth,
-                                                         @PathVariable UUID id) {
+                                                         @PathVariable UUID id,
+                                                         @RequestParam String razorpayOrderId,
+                                                         @RequestParam String razorpayPaymentId) {
         UUID customerId = UUID.fromString(auth.getName());
-        return ResponseEntity.ok(eventBookingService.markAdvancePaid(customerId, id));
+        return ResponseEntity.ok(eventBookingService.markAdvancePaid(customerId, id,
+                razorpayOrderId, razorpayPaymentId));
     }
 
     @PostMapping("/{id}/complete")

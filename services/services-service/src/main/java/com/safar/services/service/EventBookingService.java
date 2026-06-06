@@ -362,7 +362,8 @@ public class EventBookingService {
     }
 
     @Transactional
-    public EventBooking markAdvancePaid(UUID customerId, UUID eventId) {
+    public EventBooking markAdvancePaid(UUID customerId, UUID eventId,
+                                        String razorpayOrderId, String razorpayPaymentId) {
         EventBooking event = eventRepo.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("Event booking not found"));
 
@@ -375,6 +376,19 @@ public class EventBookingService {
             throw new IllegalArgumentException("Event must be CONFIRMED before marking advance paid");
         }
 
+        // Razorpay handles are mandatory — without them we'd be flipping the booking
+        // to ADVANCE_PAID (and emailing "Payment Received") on the caller's say-so.
+        // Both are issued by Razorpay's checkout success callback, so a legit caller
+        // always has them; a direct-API / admin-impersonation caller skipping payment
+        // will not. Mirrors payBalance().
+        if (razorpayOrderId == null || razorpayOrderId.isBlank()
+                || razorpayPaymentId == null || razorpayPaymentId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "razorpayOrderId and razorpayPaymentId are required to record advance payment");
+        }
+        event.setAdvanceRazorpayOrderId(razorpayOrderId);
+        event.setAdvanceRazorpayPaymentId(razorpayPaymentId);
+
         event.setStatus(EventBookingStatus.ADVANCE_PAID);
         // Backstop: if a CONFIRMED booking somehow lacks the start-job OTP (legacy
         // rows, manual admin confirms, or a creation race), mint one here so the
@@ -383,7 +397,7 @@ public class EventBookingService {
             event.setStartJobOtp(String.format("%04d", new java.security.SecureRandom().nextInt(10000)));
         }
         EventBooking saved = eventRepo.save(event);
-        log.info("Event booking advance paid: {}", eventId);
+        log.info("Event booking advance paid: {} razorpayPaymentId={}", eventId, razorpayPaymentId);
 
         try {
             kafka.send("event.booking.advance.paid", saved.getId().toString(), buildEventJson(saved));
