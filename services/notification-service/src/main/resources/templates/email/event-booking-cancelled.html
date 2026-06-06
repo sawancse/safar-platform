@@ -30,7 +30,7 @@
                         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"><tr>
                             <td>
                                 <p style="margin:0; font-family:'Georgia','Times New Roman',serif; font-size:32px; font-weight:bold; color:#FF5A5F; letter-spacing:1px;"><span style="font-style:italic;">S</span>afar</p>
-                                <p style="margin:2px 0 0; font-size:11px; color:rgba(255,255,255,0.5); letter-spacing:3px; text-transform:uppercase; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Cooks &bull; Events</p>
+                                <p style="margin:2px 0 0; font-size:11px; color:rgba(255,255,255,0.5); letter-spacing:3px; text-transform:uppercase; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.eventBrandSubtitle}">Cooks &bull; Events</p>
                             </td>
                             <td align="right" valign="middle" style="font-size:13px; color:rgba(255,255,255,0.9); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
                                 <span th:if="${ctx.customerName}" th:text="'Hi, ' + ${ctx.customerName}">Hi, Customer</span>
@@ -129,7 +129,7 @@
                                 <span style="color:#DDD; padding:0 8px;">|</span>
                                 <a th:href="${ctx.unsubscribeUrl ?: '#'}" style="color:#FF5A5F; text-decoration:none;">Unsubscribe</a>
                             </p>
-                            <p style="margin:0 0 8px; font-size:14px; color:#484848; font-weight:500; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Safar Cooks &mdash; Home-cooked, Happiness Delivered</p>
+                            <p style="margin:0 0 8px; font-size:14px; color:#484848; font-weight:500; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;" th:text="${ctx.eventBrandFooter}">Safar Cooks &mdash; Home-cooked, Happiness Delivered</p>
                             <p style="margin:0; font-size:11px; color:#AAA; line-height:1.5; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
                                 This email was sent to <span th:text="${ctx.recipientEmail ?: 'you'}">you</span>.<br/>
                                 <span th:text="${ctx.companyAddress ?: 'Safar Technologies Pvt. Ltd., India'}">Safar Technologies Pvt. Ltd., India</span>
