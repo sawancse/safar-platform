@@ -31,6 +31,15 @@ public class AgreementService {
     private final StampDutyConfigRepository stampDutyConfigRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final org.springframework.core.env.Environment env;
+    private final AgreementPdfService agreementPdfService;
+
+    /** Generate the draft agreement PDF on the fly from the stored data. */
+    public byte[] generateDraftPdf(UUID id) {
+        AgreementRequest agreement = agreementRequestRepository.findById(id)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Agreement not found: " + id));
+        List<AgreementParty> parties = agreementPartyRepository.findByAgreementRequestId(id);
+        return agreementPdfService.generateDraftPdf(agreement, parties);
+    }
 
     // ── Create ───────��───────────────────────────────────────
 

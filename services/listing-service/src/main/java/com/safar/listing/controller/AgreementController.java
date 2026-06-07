@@ -6,7 +6,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -72,6 +74,18 @@ public class AgreementController {
     @PostMapping("/{id}/generate-draft")
     public ResponseEntity<AgreementResponse> generateDraft(@PathVariable UUID id) {
         return ResponseEntity.ok(agreementService.generateDraft(id));
+    }
+
+    /** Streams the draft agreement PDF (generated on the fly). The documentUrl
+     *  set by generate-draft points here. Served inline so it opens in-browser. */
+    @GetMapping(value = {"/{id}/document/draft.pdf", "/{id}/document/draft"})
+    public ResponseEntity<byte[]> draftPdf(@PathVariable UUID id) {
+        byte[] pdf = agreementService.generateDraftPdf(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"agreement-" + id + "-draft.pdf\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .contentLength(pdf.length)
+                .body(pdf);
     }
 
     // ── Process Payment ──────────────────────────────────────
