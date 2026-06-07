@@ -178,29 +178,47 @@ public class AgreementPdfService {
         return a.getAgreementType() != null ? formatEnum(a.getAgreementType().name()) : "Agreement";
     }
 
-    /** clausesJson may be a JSON array of strings, a JSON object, or plain text. Render best-effort. */
+    /**
+     * clausesJson is typically the create wizard's object form
+     * {"clauses":["indemnity",...],"customClause":"..."} — but may also be a bare
+     * JSON array or plain text. Render the clause keys human-readably.
+     */
     private String renderClauses(String clausesJson) {
         if (clausesJson == null || clausesJson.isBlank()) {
             return "<div class=\"clause\" style=\"color:#9ca3af;\">Standard clauses for this agreement type will be included on execution.</div>";
         }
-        String t = clausesJson.trim();
         StringBuilder sb = new StringBuilder();
-        if (t.startsWith("[")) {
-            // crude split of a JSON string array — avoids pulling a JSON parser here
-            String inner = t.substring(1, Math.max(1, t.length() - 1));
-            String[] items = inner.split("\",\\s*\"");
-            int n = 1;
-            for (String it : items) {
-                String clean = it.replaceAll("^\\s*\"|\"\\s*$", "").trim();
-                if (!clean.isEmpty()) {
-                    sb.append("<div class=\"clause\">").append(n++).append(". ").append(escapeHtml(clean)).append("</div>");
+        int[] n = { 1 };
+        try {
+            com.fasterxml.jackson.databind.JsonNode node = objectMapper.readTree(clausesJson);
+            com.fasterxml.jackson.databind.JsonNode arr = node.isArray() ? node : node.get("clauses");
+            if (arr != null && arr.isArray()) {
+                for (com.fasterxml.jackson.databind.JsonNode c : arr) {
+                    String key = c.asText("");
+                    if (!key.isBlank()) {
+                        sb.append("<div class=\"clause\">").append(n[0]++).append(". ").append(escapeHtml(humanizeClause(key))).append("</div>");
+                    }
                 }
             }
+            com.fasterxml.jackson.databind.JsonNode custom = node.isObject() ? node.get("customClause") : null;
+            if (custom != null && !custom.isNull() && !custom.asText("").isBlank()) {
+                sb.append("<div class=\"clause\">").append(n[0]++).append(". ").append(escapeHtml(custom.asText())).append("</div>");
+            }
+        } catch (Exception e) {
+            // Not JSON — render as plain text.
+            sb.append("<div class=\"clause\" style=\"white-space:pre-wrap;\">").append(escapeHtml(clausesJson.trim())).append("</div>");
         }
         if (sb.length() == 0) {
-            sb.append("<div class=\"clause\" style=\"white-space:pre-wrap;\">").append(escapeHtml(t)).append("</div>");
+            return "<div class=\"clause\" style=\"color:#9ca3af;\">Standard clauses for this agreement type will be included on execution.</div>";
         }
         return sb.toString();
+    }
+
+    /** camelCase / snake_case clause key → Title Case, e.g. "disputeResolution" → "Dispute Resolution". */
+    private String humanizeClause(String key) {
+        if (key == null || key.isBlank()) return "";
+        String spaced = key.replaceAll("([a-z])([A-Z])", "$1 $2").replace("_", " ").trim();
+        return spaced.substring(0, 1).toUpperCase(Locale.ENGLISH) + spaced.substring(1);
     }
 
     private void addTerm(StringBuilder sb, String label, String value) {
