@@ -653,6 +653,22 @@ public class EmailContext {
         };
     }
 
+    /** Sign-off team name for plain-text email fallbacks — "Safar Pandit Team",
+     *  etc. — so a puja/decor/cake enquiry never signs off as "Safar Cooks Team". */
+    public String getEventBrandTeam() {
+        if (serviceCategory == null || serviceCategory.isBlank()) return "Safar Team";
+        return switch (serviceCategory) {
+            case "PANDIT_PUJA"      -> "Safar Pandit Team";
+            case "CAKE_DESIGNER", "DESIGNER_CAKE" -> "Safar Cakes Team";
+            case "EVENT_DECOR"      -> "Safar Decor Team";
+            case "LIVE_MUSIC"       -> "Safar Music Team";
+            case "STAFF_HIRE"       -> "Safar Staffing Team";
+            case "APPLIANCE_RENTAL" -> "Safar Rentals Team";
+            case "COOK", "CHEF"     -> "Safar Cooks Team";
+            default                  -> "Safar Team";
+        };
+    }
+
     // ── Donation getters/setters ──
     public String getDonationRef() { return donationRef; }
     public void setDonationRef(String donationRef) { this.donationRef = donationRef; }

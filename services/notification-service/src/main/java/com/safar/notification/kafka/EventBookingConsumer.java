@@ -326,12 +326,11 @@ public class EventBookingConsumer {
             log.warn("HTML email failed for template {} to {}: {}", templateName, email, e.getMessage());
             try {
                 emailGateway.send(email, subject,
-                        "Event " + ctx.getBookingRef() + " — " + subject
-                        + "\n\nEvent Type: " + ctx.getEventType()
-                        + "\nDate: " + ctx.getServiceDate()
+                        capitalise(ctx.getServiceLabel()) + " " + ctx.getBookingRef() + " — " + subject
+                        + "\n\nDate: " + ctx.getServiceDate()
                         + "\nAmount: " + ctx.getTotalAmount()
                         + "\n\nView details: https://ysafar.com/cooks/my-bookings"
-                        + "\n\nSafar Cooks Team");
+                        + "\n\n" + ctx.getEventBrandTeam());
             } catch (Exception e2) {
                 log.error("Plain text email also failed for {}: {}", email, e2.getMessage());
             }
