@@ -228,8 +228,34 @@ public class AgreementService {
     // ── Calculate Stamp Duty ─────────────────────────────────
 
     public StampDutyCalculation calculateStampDuty(String state, String agreementType, Long propertyValuePaise) {
-        AgreementType type = AgreementType.valueOf(agreementType);
+        AgreementType type = parseAgreementType(agreementType);
         return calculateStampDutyInternal(state, type, propertyValuePaise != null ? propertyValuePaise : 0L);
+    }
+
+    /**
+     * Tolerant agreement-type parse — accepts the canonical enum names plus the
+     * short/alias forms older clients send (e.g. "RENTAL", "LEAVE_AND_LICENSE")
+     * so a label/value drift doesn't surface as an opaque 400. Throws a clear
+     * IllegalArgumentException (→ 400 with a helpful message) for unknown values.
+     */
+    private AgreementType parseAgreementType(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalArgumentException("agreementType is required");
+        }
+        String norm = raw.trim().toUpperCase().replace(' ', '_').replace('-', '_');
+        return switch (norm) {
+            case "RENTAL", "RENT"                          -> AgreementType.RENTAL_AGREEMENT;
+            case "LEAVE_AND_LICENSE", "LEAVE_LICENCE", "LEASE" -> AgreementType.LEAVE_LICENSE;
+            case "SALE"                                    -> AgreementType.SALE_AGREEMENT;
+            case "PG"                                      -> AgreementType.PG_AGREEMENT;
+            default -> {
+                try { yield AgreementType.valueOf(norm); }
+                catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException("Unknown agreementType '" + raw
+                            + "' (expected one of SALE_AGREEMENT, SALE_DEED, RENTAL_AGREEMENT, LEAVE_LICENSE, PG_AGREEMENT)");
+                }
+            }
+        };
     }
 
     // ── Admin: List All ────────────────────────────────────────
