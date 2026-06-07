@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   Table, Tag, Typography, Card, Row, Col, Statistic, Select, DatePicker, Input, Button,
-  Popconfirm, Modal, message, Descriptions,
+  Popconfirm, Modal, message, Descriptions, Form, InputNumber,
 } from 'antd';
+import dayjs from 'dayjs';
 import {
   FileTextOutlined, SearchOutlined, CheckCircleOutlined,
   DownloadOutlined, UserOutlined,
@@ -33,6 +34,9 @@ export default function AgreementsPage() {
   const [agreements, setAgreements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [detail, setDetail] = useState<any>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editForm] = Form.useForm();
 
   // Filters
   const [status, setStatus] = useState('');
@@ -71,6 +75,54 @@ export default function AgreementsPage() {
       if (detail?.id === id) setDetail(null);
     } catch (e: any) {
       message.error(e?.response?.data?.detail || 'Status update failed');
+    }
+  };
+
+  const openEdit = () => {
+    if (!detail) return;
+    editForm.setFieldsValue({
+      agreementType: detail.agreementType,
+      packageType: detail.packageType,
+      state: detail.state,
+      city: detail.city,
+      agreementDate: detail.agreementDate ? dayjs(detail.agreementDate) : null,
+      startDate: detail.startDate ? dayjs(detail.startDate) : null,
+      endDate: detail.endDate ? dayjs(detail.endDate) : null,
+      monthlyRentInr: detail.monthlyRentPaise != null ? detail.monthlyRentPaise / 100 : undefined,
+      securityDepositInr: detail.securityDepositPaise != null ? detail.securityDepositPaise / 100 : undefined,
+      saleValueInr: detail.saleConsiderationPaise != null ? detail.saleConsiderationPaise / 100 : undefined,
+      notes: detail.notes,
+    });
+    setEditOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      const v = await editForm.validateFields();
+      setSaving(true);
+      const body: any = {
+        agreementType: v.agreementType,
+        packageType: v.packageType,
+        state: v.state,
+        city: v.city,
+        agreementDate: v.agreementDate ? v.agreementDate.format('YYYY-MM-DD') : undefined,
+        startDate: v.startDate ? v.startDate.format('YYYY-MM-DD') : undefined,
+        endDate: v.endDate ? v.endDate.format('YYYY-MM-DD') : undefined,
+        monthlyRentPaise: v.monthlyRentInr != null ? Math.round(v.monthlyRentInr * 100) : undefined,
+        securityDepositPaise: v.securityDepositInr != null ? Math.round(v.securityDepositInr * 100) : undefined,
+        saleConsiderationPaise: v.saleValueInr != null ? Math.round(v.saleValueInr * 100) : undefined,
+        notes: v.notes,
+      };
+      const { data } = await adminApi.updateAgreement(detail.id, body, token);
+      message.success('Agreement updated');
+      setEditOpen(false);
+      setDetail(data);
+      load();
+    } catch (e: any) {
+      if (e?.errorFields) return; // form validation errors already shown
+      message.error(e?.response?.data?.detail || 'Update failed');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -244,6 +296,9 @@ export default function AgreementsPage() {
                   <Button>Mark Delivered</Button>
                 </Popconfirm>
               )}
+              {!['SIGNED', 'REGISTERED', 'DELIVERED'].includes(detail.status) && (
+                <Button onClick={openEdit}>Edit terms</Button>
+              )}
               <Button onClick={() => setDetail(null)}>Close</Button>
             </div>
           ) : null
@@ -358,18 +413,64 @@ export default function AgreementsPage() {
             {/* PDF links */}
             <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
               {detail.draftPdfUrl && (
-                <Button icon={<DownloadOutlined />} href={detail.draftPdfUrl} target="_blank">Draft PDF</Button>
+                <Button icon={<DownloadOutlined />}
+                  onClick={() => adminApi.openPdf(detail.draftPdfUrl).catch(() => message.error('Failed to open draft PDF'))}>
+                  Draft PDF
+                </Button>
               )}
               {detail.signedPdfUrl && (
-                <Button icon={<DownloadOutlined />} href={detail.signedPdfUrl} target="_blank" type="primary">Signed PDF</Button>
+                <Button icon={<DownloadOutlined />} type="primary"
+                  onClick={() => adminApi.openPdf(detail.signedPdfUrl).catch(() => message.error('Failed to open signed PDF'))}>
+                  Signed PDF
+                </Button>
               )}
               {detail.registeredPdfUrl && (
-                <Button icon={<DownloadOutlined />} href={detail.registeredPdfUrl} target="_blank"
-                  style={{ color: '#52c41a', borderColor: '#52c41a' }}>Registered PDF</Button>
+                <Button icon={<DownloadOutlined />} style={{ color: '#52c41a', borderColor: '#52c41a' }}
+                  onClick={() => adminApi.openPdf(detail.registeredPdfUrl).catch(() => message.error('Failed to open registered PDF'))}>
+                  Registered PDF
+                </Button>
               )}
             </div>
           </>
         )}
+      </Modal>
+
+      {/* Edit terms (NoBroker-style) */}
+      <Modal
+        open={editOpen}
+        title="Edit agreement terms"
+        onCancel={() => setEditOpen(false)}
+        onOk={handleSaveEdit}
+        okText="Save"
+        confirmLoading={saving}
+        width={660}
+      >
+        <Form form={editForm} layout="vertical">
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item name="agreementType" label="Agreement type">
+                <Select options={AGREEMENT_TYPES.map(t => ({ value: t, label: t.replace(/_/g, ' ') }))} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="packageType" label="Package">
+                <Select options={['BASIC', 'ESTAMP', 'REGISTERED', 'PREMIUM'].map(p => ({ value: p, label: p }))} />
+              </Form.Item>
+            </Col>
+            <Col span={12}><Form.Item name="state" label="State"><Input /></Form.Item></Col>
+            <Col span={12}><Form.Item name="city" label="City"><Input /></Form.Item></Col>
+            <Col span={8}><Form.Item name="agreementDate" label="Agreement date"><DatePicker style={{ width: '100%' }} format="DD MMM YYYY" /></Form.Item></Col>
+            <Col span={8}><Form.Item name="startDate" label="Start date"><DatePicker style={{ width: '100%' }} format="DD MMM YYYY" /></Form.Item></Col>
+            <Col span={8}><Form.Item name="endDate" label="End date"><DatePicker style={{ width: '100%' }} format="DD MMM YYYY" /></Form.Item></Col>
+            <Col span={8}><Form.Item name="monthlyRentInr" label="Monthly rent (₹)"><InputNumber style={{ width: '100%' }} min={0} /></Form.Item></Col>
+            <Col span={8}><Form.Item name="securityDepositInr" label="Security deposit (₹)"><InputNumber style={{ width: '100%' }} min={0} /></Form.Item></Col>
+            <Col span={8}><Form.Item name="saleValueInr" label="Sale / property value (₹)"><InputNumber style={{ width: '100%' }} min={0} /></Form.Item></Col>
+            <Col span={24}><Form.Item name="notes" label="Notes"><Input.TextArea rows={2} /></Form.Item></Col>
+          </Row>
+          <p style={{ fontSize: 12, color: '#888', margin: 0 }}>
+            Stamp duty &amp; registration recalculate on save — from the sale value (sale deeds) or 12&times; rent + deposit (rentals).
+          </p>
+        </Form>
       </Modal>
     </div>
   );

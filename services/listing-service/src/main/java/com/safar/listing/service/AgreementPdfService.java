@@ -18,8 +18,10 @@ import java.util.Locale;
  */
 @Service
 @Slf4j
+@lombok.RequiredArgsConstructor
 public class AgreementPdfService {
 
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.ENGLISH);
 
     public byte[] generateDraftPdf(AgreementRequest a, List<AgreementParty> parties) {
@@ -42,13 +44,27 @@ public class AgreementPdfService {
         StringBuilder partyRows = new StringBuilder();
         if (parties != null) {
             for (AgreementParty p : parties) {
-                partyRows.append("<tr>")
-                        .append(td(p.getPartyType() != null ? formatEnum(p.getPartyType().name()) : "-"))
-                        .append(td(p.getFullName()))
-                        .append(td(p.getPhone()))
-                        .append(td(p.getEmail()))
-                        .append(td(p.getPanNumber()))
-                        .append("</tr>");
+                partyRows.append(partyRow(
+                        p.getPartyType() != null ? formatEnum(p.getPartyType().name()) : "-",
+                        p.getFullName(), p.getPhone(), p.getEmail(), p.getPanNumber()));
+            }
+        }
+        // The create wizard stores party details on termsJson as a JSON array
+        // (name/role/phone/email/panNumber), not as separate AgreementParty rows —
+        // render those so the PDF isn't blank when no rows were explicitly added.
+        if (partyRows.length() == 0 && a.getTermsJson() != null && !a.getTermsJson().isBlank()) {
+            try {
+                com.fasterxml.jackson.databind.JsonNode arr = objectMapper.readTree(a.getTermsJson());
+                if (arr.isArray()) {
+                    for (com.fasterxml.jackson.databind.JsonNode n : arr) {
+                        String role = text(n, "role");
+                        partyRows.append(partyRow(
+                                role != null ? formatEnum(role) : "-",
+                                text(n, "name"), text(n, "phone"), text(n, "email"), text(n, "panNumber")));
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Could not parse termsJson parties for agreement {}: {}", a.getId(), e.getMessage());
             }
         }
         if (partyRows.length() == 0) {
@@ -195,6 +211,14 @@ public class AgreementPdfService {
 
     private String td(String v) {
         return "<td style=\"padding:8px 12px;border-bottom:1px solid #e5e7eb;\">" + escapeHtml(orDash(v)) + "</td>";
+    }
+
+    private String partyRow(String role, String name, String phone, String email, String pan) {
+        return "<tr>" + td(role) + td(name) + td(phone) + td(email) + td(pan) + "</tr>";
+    }
+
+    private String text(com.fasterxml.jackson.databind.JsonNode n, String field) {
+        return n.has(field) && !n.get(field).isNull() ? n.get(field).asText() : null;
     }
 
     private String money(Long paise) {

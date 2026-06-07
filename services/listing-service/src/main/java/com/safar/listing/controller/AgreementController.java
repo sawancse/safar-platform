@@ -129,6 +129,17 @@ public class AgreementController {
         return ResponseEntity.ok(agreementService.adminUpdateStatus(id, status));
     }
 
+    // ── Admin: Edit terms (dates, rent, deposit, parties) ────
+
+    @PatchMapping("/admin/{id}")
+    public ResponseEntity<AgreementResponse> adminUpdate(
+            @PathVariable UUID id,
+            @RequestBody AdminUpdateAgreementRequest request,
+            @RequestHeader(value = "X-User-Role", required = false) String role) {
+        if (!"ADMIN".equalsIgnoreCase(role)) throw new org.springframework.security.access.AccessDeniedException("Admin access required");
+        return ResponseEntity.ok(agreementService.adminUpdate(id, request));
+    }
+
     // ── Calculate Stamp Duty ─────────────────────────────────
 
     @GetMapping("/stamp-duty/calculate")

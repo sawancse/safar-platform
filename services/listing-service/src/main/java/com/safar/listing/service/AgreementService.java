@@ -142,6 +142,52 @@ public class AgreementService {
         return toResponse(agreement, parties);
     }
 
+    // ── Admin: Edit terms (NoBroker-style) ───────────────────
+    @Transactional
+    public AgreementResponse adminUpdate(UUID id, com.safar.listing.dto.AdminUpdateAgreementRequest req) {
+        AgreementRequest a = agreementRequestRepository.findById(id)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Agreement not found: " + id));
+
+        if (req.agreementType() != null)        a.setAgreementType(AgreementType.valueOf(req.agreementType()));
+        if (req.packageType() != null)          a.setAgreementPackage(AgreementPackage.valueOf(req.packageType()));
+        if (req.state() != null)                a.setState(req.state());
+        if (req.city() != null)                 a.setCity(req.city());
+        if (req.agreementDate() != null)        a.setAgreementDate(parseDate(req.agreementDate()));
+        if (req.startDate() != null)            a.setStartDate(parseDate(req.startDate()));
+        if (req.endDate() != null)              a.setEndDate(parseDate(req.endDate()));
+        if (req.monthlyRentPaise() != null)     a.setMonthlyRentPaise(req.monthlyRentPaise());
+        if (req.securityDepositPaise() != null) a.setSecurityDepositPaise(req.securityDepositPaise());
+        if (req.saleConsiderationPaise() != null) a.setSaleConsiderationPaise(req.saleConsiderationPaise());
+        if (req.clausesJson() != null)          a.setClausesJson(req.clausesJson());
+        if (req.partyDetailsJson() != null)     a.setTermsJson(req.partyDetailsJson());
+        if (req.notes() != null)                a.setNotes(req.notes());
+
+        // Recompute stamp duty from the best available basis: explicit value,
+        // else sale consideration, else annualised rent + deposit.
+        long basis = req.propertyValuePaise() != null ? req.propertyValuePaise()
+                : a.getSaleConsiderationPaise() != null ? a.getSaleConsiderationPaise()
+                : a.getMonthlyRentPaise() != null
+                    ? a.getMonthlyRentPaise() * 12 + (a.getSecurityDepositPaise() != null ? a.getSecurityDepositPaise() : 0L)
+                    : 0L;
+        StampDutyCalculation duty = calculateStampDutyInternal(a.getState(), a.getAgreementType(), basis);
+        long serviceFee = getServiceFee(a.getAgreementPackage());
+        a.setStampDutyPaise(duty.stampDutyPaise());
+        a.setRegistrationFeePaise(duty.registrationFeePaise());
+        a.setServiceFeePaise(serviceFee);
+        a.setTotalFeePaise(duty.stampDutyPaise() + duty.registrationFeePaise() + serviceFee);
+
+        a = agreementRequestRepository.save(a);
+        log.info("Agreement {} edited by admin (stamp basis {} paise)", id, basis);
+
+        return toResponse(a, agreementPartyRepository.findByAgreementRequestId(id));
+    }
+
+    private java.time.LocalDate parseDate(String s) {
+        if (s == null || s.isBlank()) return null;
+        try { return java.time.LocalDate.parse(s.length() > 10 ? s.substring(0, 10) : s); }
+        catch (Exception e) { return null; }
+    }
+
     // ── Add Party ──────────────���─────────────────────────────
 
     @Transactional

@@ -74,6 +74,19 @@ export const adminApi = {
     return axios.delete<T>(url(path), { headers: tokenHeaders() });
   },
 
+  // Open an authenticated PDF (or any binary) in a new tab. `relativeUrl` is a
+  // root-relative path like "/api/v1/agreements/{id}/document/draft.pdf" stored
+  // on the entity — a plain <a href> would skip the bearer token and 401.
+  async openPdf(relativeUrl: string) {
+    const res = await axios.get((import.meta.env.VITE_API_URL || '') + relativeUrl, {
+      headers: tokenHeaders(),
+      responseType: 'blob',
+    });
+    const blobUrl = URL.createObjectURL(res.data as Blob);
+    window.open(blobUrl, '_blank');
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+  },
+
   // Auth
   sendOtp(phone: string) {
     return axios.post(`${BASE}/auth/otp/send`, { phone });
@@ -456,6 +469,9 @@ export const adminApi = {
   },
   updateAgreementStatus(id: string, status: string, token: string) {
     return axios.patch(`${BASE}/agreements/${id}/status`, null, { params: { status }, headers: authHeaders(token) });
+  },
+  updateAgreement(id: string, body: any, token: string) {
+    return axios.patch(`${BASE}/agreements/admin/${id}`, body, { headers: authHeaders(token) });
   },
 
   // ══ VAS: Home Loan ══
