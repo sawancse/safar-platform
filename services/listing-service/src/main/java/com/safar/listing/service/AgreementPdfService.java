@@ -345,8 +345,8 @@ public class AgreementPdfService {
 
     private String sigItem(int i, String name, String addr) {
         return "<div style=\"margin:10px 0;\">(" + i + ") Signature ____________________________<br/>"
-                + "&nbsp;&nbsp;&nbsp;&nbsp;Name " + escapeHtml(blank(name)) + "<br/>"
-                + "&nbsp;&nbsp;&nbsp;&nbsp;Address " + escapeHtml(addr.isBlank() ? "____________________________" : addr) + "</div>";
+                + "&#160;&#160;&#160;&#160;Name " + escapeHtml(blank(name)) + "<br/>"
+                + "&#160;&#160;&#160;&#160;Address " + escapeHtml(addr.isBlank() ? "____________________________" : addr) + "</div>";
     }
 
     /** Standard RERA model Agreement for Sale. {{TOKENS}} are merged from the booking's data. */
@@ -369,21 +369,21 @@ public class AgreementPdfService {
             </style></head><body>
 
             <h1>AGREEMENT FOR SALE</h1>
-            <div class="draft">DRAFT &bull; UNSIGNED &bull; Ref {{REF}}</div>
+            <div class="draft">DRAFT &#8226; UNSIGNED &#8226; Ref {{REF}}</div>
 
-            <p>This Agreement for Sale (&ldquo;Agreement&rdquo;) is executed on this {{EXEC_DATE}}, at {{CITY}}, {{STATE}},</p>
+            <p>This Agreement for Sale (&#8220;Agreement&#8221;) is executed on this {{EXEC_DATE}}, at {{CITY}}, {{STATE}},</p>
             <p><b>By and Between</b></p>
-            <p>{{PROMOTER_BLOCK}}, hereinafter referred to as the &ldquo;Promoter&rdquo; (which expression shall, unless repugnant to the context, include its successors and permitted assigns);</p>
+            <p>{{PROMOTER_BLOCK}}, hereinafter referred to as the &#8220;Promoter&#8221; (which expression shall, unless repugnant to the context, include its successors and permitted assigns);</p>
             <p><b>AND</b></p>
-            <p>{{ALLOTTEE_BLOCK}}, hereinafter referred to as the &ldquo;Allottee&rdquo; (which expression shall, unless repugnant to the context, include his/her/their heirs, executors and permitted assigns).</p>
-            <p>The Promoter and the Allottee shall hereinafter collectively be referred to as the &ldquo;Parties&rdquo; and individually as a &ldquo;Party&rdquo;.</p>
+            <p>{{ALLOTTEE_BLOCK}}, hereinafter referred to as the &#8220;Allottee&#8221; (which expression shall, unless repugnant to the context, include his/her/their heirs, executors and permitted assigns).</p>
+            <p>The Promoter and the Allottee shall hereinafter collectively be referred to as the &#8220;Parties&#8221; and individually as a &#8220;Party&#8221;.</p>
 
             <h2>WHEREAS:</h2>
             <ol class="lower-alpha">
-              <li>The Promoter is the absolute and lawful owner of / is fully competent to deal with the land more particularly described in Schedule A (the &ldquo;Said Land&rdquo;), free from all reasonable doubts and encumbrances, save as disclosed herein.</li>
-              <li>The Said Land is earmarked for the purpose of developing a project (the &ldquo;Project&rdquo;), and the Promoter has obtained the requisite layout/sanctioned plans, specifications and approvals for the Project from the competent authority.</li>
+              <li>The Promoter is the absolute and lawful owner of / is fully competent to deal with the land more particularly described in Schedule A (the &#8220;Said Land&#8221;), free from all reasonable doubts and encumbrances, save as disclosed herein.</li>
+              <li>The Said Land is earmarked for the purpose of developing a project (the &#8220;Project&#8221;), and the Promoter has obtained the requisite layout/sanctioned plans, specifications and approvals for the Project from the competent authority.</li>
               <li>The Promoter has, where applicable, registered the Project under the Real Estate (Regulation and Development) Act, 2016 with the concerned Real Estate Regulatory Authority.</li>
-              <li>The Allottee has applied for, and the Promoter has agreed to sell, the apartment/plot/building unit more particularly described in Schedule A together with the proportionate undivided share in the common areas (the &ldquo;Apartment/Unit&rdquo;).</li>
+              <li>The Allottee has applied for, and the Promoter has agreed to sell, the apartment/plot/building unit more particularly described in Schedule A together with the proportionate undivided share in the common areas (the &#8220;Apartment/Unit&#8221;).</li>
               <li>The Parties have gone through all the terms and conditions set out in this Agreement and understood the mutual rights and obligations detailed herein, and are now willing to enter into this Agreement on the terms and conditions appearing hereinafter.</li>
             </ol>
 
@@ -391,14 +391,14 @@ public class AgreementPdfService {
 
             <ol class="clauses">
               <li><b>TERMS:</b> Subject to the terms of this Agreement, the Promoter agrees to sell to the Allottee and the Allottee agrees to purchase the Apartment/Unit described in Schedule A. The Total Price for the Apartment/Unit, based on the carpet area, is <b>{{TOTAL_PRICE}}</b> (Rupees ________________________________ only), excluding applicable GST, stamp duty and registration charges. A breakup of the price (cost of unit, exclusive/balcony/terrace areas, proportionate common areas, preferential location charges, taxes and maintenance, as applicable) is set out in the price schedule. The Total Price is escalation-free save and except increases on account of development charges payable to the competent authority and/or statutory increases. The Allottee shall make payment as per the Payment Plan in Schedule C.</li>
-              <li><b>MODE OF PAYMENT:</b> Subject to the terms of this Agreement and the Promoter abiding by the construction milestones, the Allottee shall make all payments, on written demand by the Promoter, within the stipulated time as per the Payment Plan [Schedule C], through A/c Payee cheque / demand draft / banker&rsquo;s cheque / online transfer in favour of the Promoter, payable at {{CITY}}.</li>
+              <li><b>MODE OF PAYMENT:</b> Subject to the terms of this Agreement and the Promoter abiding by the construction milestones, the Allottee shall make all payments, on written demand by the Promoter, within the stipulated time as per the Payment Plan [Schedule C], through A/c Payee cheque / demand draft / banker&#8217;s cheque / online transfer in favour of the Promoter, payable at {{CITY}}.</li>
               <li><b>COMPLIANCE OF LAWS RELATING TO REMITTANCES:</b> The Allottee, if a person resident outside India, shall be solely responsible for complying with the Foreign Exchange Management Act, 1999, the rules and regulations of the Reserve Bank of India and all other applicable laws, and shall keep the Promoter indemnified and harmless in this regard.</li>
               <li><b>ADJUSTMENT / APPROPRIATION OF PAYMENTS:</b> The Allottee authorises the Promoter to adjust/appropriate all payments made under any head(s) of dues against lawful outstandings of the Allottee in respect of the Apartment/Unit.</li>
               <li><b>TIME IS ESSENCE:</b> The Promoter shall abide by the time schedule for completing the Project and handing over the Apartment/Unit to the Allottee and the common areas to the association of allottees or the competent authority, as the case may be.</li>
               <li><b>CONSTRUCTION OF THE PROJECT / APARTMENT:</b> The Allottee has seen and accepted the proposed layout, floor plan, payment plan and the specifications, amenities and facilities approved by the competent authority. The Promoter shall develop the Project in accordance with such approved plans and shall not make any variation/alteration except in the manner provided under the Act; breach of this term shall constitute a material breach.</li>
-              <li><b>POSSESSION OF THE APARTMENT/UNIT:</b> The Promoter assures to hand over possession of the Apartment/Unit by ____________, subject to Force Majeure. Upon obtaining the occupancy/completion certificate, the Promoter shall offer possession in writing, to be taken by the Allottee within the time specified. On any delay not attributable to Force Majeure, the Promoter shall be liable to pay interest at the prescribed rate or, at the Allottee&rsquo;s option, refund the amounts received with interest, as provided under the Act.</li>
+              <li><b>POSSESSION OF THE APARTMENT/UNIT:</b> The Promoter assures to hand over possession of the Apartment/Unit by ____________, subject to Force Majeure. Upon obtaining the occupancy/completion certificate, the Promoter shall offer possession in writing, to be taken by the Allottee within the time specified. On any delay not attributable to Force Majeure, the Promoter shall be liable to pay interest at the prescribed rate or, at the Allottee&#8217;s option, refund the amounts received with interest, as provided under the Act.</li>
               <li><b>REPRESENTATIONS AND WARRANTIES OF THE PROMOTER:</b> The Promoter represents and warrants that it has absolute, clear and marketable title and the requisite rights and approvals to develop the Project; that there are no undisclosed encumbrances or litigation in respect of the Said Land/Project/Apartment; and that it has the right to enter into this Agreement and to sell the Apartment/Unit to the Allottee.</li>
-              <li><b>EVENTS OF DEFAULTS AND CONSEQUENCES:</b> The consequences of default by either Party, including the Allottee&rsquo;s remedies on the Promoter&rsquo;s default and the Promoter&rsquo;s remedies on the Allottee&rsquo;s default (including liability to pay interest at the prescribed rate and, after due notice, cancellation/refund after deducting the booking amount), shall be governed by the provisions of the Act and the Rules.</li>
+              <li><b>EVENTS OF DEFAULTS AND CONSEQUENCES:</b> The consequences of default by either Party, including the Allottee&#8217;s remedies on the Promoter&#8217;s default and the Promoter&#8217;s remedies on the Allottee&#8217;s default (including liability to pay interest at the prescribed rate and, after due notice, cancellation/refund after deducting the booking amount), shall be governed by the provisions of the Act and the Rules.</li>
               <li><b>CONVEYANCE OF THE SAID APARTMENT/UNIT:</b> The Promoter, on receipt of the Total Price, shall execute a registered conveyance deed conveying the title of the Apartment/Unit together with the proportionate undivided share in the common areas, within the period prescribed under the Act. The Allottee shall bear the stamp duty and registration charges.</li>
               <li><b>MAINTENANCE OF THE SAID BUILDING / APARTMENT / PROJECT:</b> The Promoter shall be responsible to provide and maintain essential services in the Project, on payment of maintenance charges, until the maintenance is taken over by the association of allottees.</li>
               <li><b>DEFECT LIABILITY:</b> Any structural defect or defect in workmanship, quality or provision of services brought to the notice of the Promoter within five (5) years from the date of handing over possession shall be rectified by the Promoter, without further charge, within thirty (30) days, failing which the Allottee shall be entitled to compensation as provided under the Act.</li>
@@ -435,8 +435,8 @@ public class AgreementPdfService {
               <div style="width:48%;">
                 <p><b>SIGNED AND DELIVERED by the Promoter:</b></p>
                 <div style="margin:10px 0;">(1) Signature (Authorised Signatory) ____________<br/>
-                &nbsp;&nbsp;&nbsp;&nbsp;Name ____________________________<br/>
-                &nbsp;&nbsp;&nbsp;&nbsp;Address ____________________________</div>
+                &#160;&#160;&#160;&#160;Name ____________________________<br/>
+                &#160;&#160;&#160;&#160;Address ____________________________</div>
               </div>
             </div>
 
@@ -444,17 +444,17 @@ public class AgreementPdfService {
             {{SIGN_WITNESS}}
 
             <div class="pagebreak"></div>
-            <h2 class="center">SCHEDULE A &mdash; DESCRIPTION OF THE PROPERTY</h2>
+            <h2 class="center">SCHEDULE A &#8212; DESCRIPTION OF THE PROPERTY</h2>
             <table>
               <tr><td style="width:35%;"><b>Address of the property</b></td><td>____________________________, {{CITY}}, {{STATE}}</td></tr>
               <tr><td><b>Survey / Khasra no.</b></td><td>____________________________</td></tr>
               <tr><td><b>Carpet area</b></td><td>__________ sq. ft. / sq. mtr.</td></tr>
-              <tr><td><b>Boundaries</b></td><td>North: __________ &nbsp; South: __________ &nbsp; East: __________ &nbsp; West: __________</td></tr>
+              <tr><td><b>Boundaries</b></td><td>North: __________ &#160; South: __________ &#160; East: __________ &#160; West: __________</td></tr>
             </table>
-            <h2>SCHEDULE B &mdash; FLOOR PLAN OF THE APARTMENT/UNIT</h2>
+            <h2>SCHEDULE B &#8212; FLOOR PLAN OF THE APARTMENT/UNIT</h2>
             <p>[Floor plan to be annexed.]</p>
 
-            <h2 class="center">SCHEDULE C &mdash; PAYMENT PLAN</h2>
+            <h2 class="center">SCHEDULE C &#8212; PAYMENT PLAN</h2>
             <table>
               <tr><th>Schedule for payment</th><th style="width:30%;">Payment percentage</th></tr>
               <tr><td>Booking amount</td><td>10%</td></tr>
@@ -469,13 +469,13 @@ public class AgreementPdfService {
               <tr><td>On possession</td><td>15%</td></tr>
             </table>
 
-            <h2>SCHEDULE D &mdash; SPECIFICATIONS (APARTMENT/UNIT)</h2>
+            <h2>SCHEDULE D &#8212; SPECIFICATIONS (APARTMENT/UNIT)</h2>
             <p>[Structure &amp; walls, openings, flooring, kitchen, toilets, electrification and painting specifications to be annexed.]</p>
-            <h2>SCHEDULE E &mdash; SPECIFICATIONS (PROJECT)</h2>
+            <h2>SCHEDULE E &#8212; SPECIFICATIONS (PROJECT)</h2>
             <p>[Project-level amenities and facilities to be annexed.]</p>
 
             <div class="footer center" style="margin-top:30px; font-size:9px; color:#888;">
-              Generated by Safar &bull; This is an unsigned draft Agreement for Sale based on the RERA model form, for review only; it does not constitute a legally executed agreement and should be finalised with legal advice before registration.
+              Generated by Safar &#8226; This is an unsigned draft Agreement for Sale based on the RERA model form, for review only; it does not constitute a legally executed agreement and should be finalised with legal advice before registration.
             </div>
             </body></html>
             """;
