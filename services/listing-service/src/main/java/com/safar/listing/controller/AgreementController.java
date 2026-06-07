@@ -59,6 +59,15 @@ public class AgreementController {
         return ResponseEntity.ok(agreementService.updateDraft(id, request, userId));
     }
 
+    /** Owner self-edit of a DRAFT agreement's terms (dates, rent, deposit, value, parties). */
+    @PatchMapping("/{id}/terms")
+    public ResponseEntity<AgreementResponse> updateTerms(
+            @PathVariable UUID id,
+            @RequestBody AdminUpdateAgreementRequest request,
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(agreementService.updateTerms(id, request, userId));
+    }
+
     // ── Add Party ────────────────────────────────────────────
 
     @PostMapping("/{id}/parties")

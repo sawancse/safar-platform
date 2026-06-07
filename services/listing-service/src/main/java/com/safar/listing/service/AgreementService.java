@@ -147,7 +147,31 @@ public class AgreementService {
     public AgreementResponse adminUpdate(UUID id, com.safar.listing.dto.AdminUpdateAgreementRequest req) {
         AgreementRequest a = agreementRequestRepository.findById(id)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Agreement not found: " + id));
+        long basis = applyTermsAndReprice(a, req);
+        a = agreementRequestRepository.save(a);
+        log.info("Agreement {} edited by admin (stamp basis {} paise)", id, basis);
+        return toResponse(a, agreementPartyRepository.findByAgreementRequestId(id));
+    }
 
+    /** Owner self-edit of a DRAFT agreement's terms (same fields as the admin edit). */
+    @Transactional
+    public AgreementResponse updateTerms(UUID id, com.safar.listing.dto.AdminUpdateAgreementRequest req, UUID userId) {
+        AgreementRequest a = agreementRequestRepository.findById(id)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Agreement not found: " + id));
+        if (!a.getUserId().equals(userId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Not authorized to edit this agreement");
+        }
+        if (a.getStatus() != AgreementStatus.DRAFT) {
+            throw new IllegalStateException("Only DRAFT agreements can be edited");
+        }
+        applyTermsAndReprice(a, req);
+        a = agreementRequestRepository.save(a);
+        log.info("Agreement {} terms edited by owner {}", id, userId);
+        return toResponse(a, agreementPartyRepository.findByAgreementRequestId(id));
+    }
+
+    /** Apply non-null term fields and recompute stamp duty/registration. Returns the stamp basis used. */
+    private long applyTermsAndReprice(AgreementRequest a, com.safar.listing.dto.AdminUpdateAgreementRequest req) {
         if (req.agreementType() != null)        a.setAgreementType(AgreementType.valueOf(req.agreementType()));
         if (req.packageType() != null)          a.setAgreementPackage(AgreementPackage.valueOf(req.packageType()));
         if (req.state() != null)                a.setState(req.state());
@@ -175,11 +199,7 @@ public class AgreementService {
         a.setRegistrationFeePaise(duty.registrationFeePaise());
         a.setServiceFeePaise(serviceFee);
         a.setTotalFeePaise(duty.stampDutyPaise() + duty.registrationFeePaise() + serviceFee);
-
-        a = agreementRequestRepository.save(a);
-        log.info("Agreement {} edited by admin (stamp basis {} paise)", id, basis);
-
-        return toResponse(a, agreementPartyRepository.findByAgreementRequestId(id));
+        return basis;
     }
 
     private java.time.LocalDate parseDate(String s) {
@@ -520,7 +540,15 @@ public class AgreementService {
                 a.getStatus() == AgreementStatus.REGISTERED ? a.getUpdatedAt() : null,
                 a.getCreatedAt(),
                 a.getUpdatedAt(),
-                partyResponses
+                partyResponses,
+                a.getState(),
+                a.getCity(),
+                a.getAgreementDate(),
+                a.getStartDate(),
+                a.getEndDate(),
+                a.getMonthlyRentPaise(),
+                a.getSecurityDepositPaise(),
+                a.getSaleConsiderationPaise()
         );
     }
 

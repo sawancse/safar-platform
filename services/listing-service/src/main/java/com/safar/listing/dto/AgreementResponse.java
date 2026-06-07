@@ -30,5 +30,13 @@ public record AgreementResponse(
         OffsetDateTime registeredAt,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt,
-        List<AgreementPartyResponse> parties
+        List<AgreementPartyResponse> parties,
+        String state,
+        String city,
+        java.time.LocalDate agreementDate,
+        java.time.LocalDate startDate,
+        java.time.LocalDate endDate,
+        Long monthlyRentPaise,
+        Long securityDepositPaise,
+        Long saleConsiderationPaise
 ) {}
