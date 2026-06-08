@@ -72,6 +72,7 @@ export default function RootLayout() {
             <Stack.Screen name="cook/[id]" options={{ title: 'Cook' }} />
             <Stack.Screen name="cook-book" options={{ title: 'Book a cook' }} />
             <Stack.Screen name="cook-bookings" options={{ title: 'My cook bookings' }} />
+            <Stack.Screen name="cook-cart" options={{ title: 'Cart' }} />
             <Stack.Screen name="cook-booking/[id]" options={{ title: 'Cook booking' }} />
             <Stack.Screen name="flights" options={{ title: 'Flights' }} />
             <Stack.Screen name="flight-results" options={{ title: 'Flight results' }} />

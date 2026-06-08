@@ -1477,6 +1477,12 @@ export const api = {
   getShoppingList(menuId: string, guests: number) {
     return apiFetch<any>(`/api/v1/chefs/menus/${menuId}/shopping-list?guests=${guests}`);
   },
+  getDishCatalog(category?: string) {
+    return apiFetch<any>(`/api/v1/dishes${category ? `?category=${category}` : ''}`).catch(() => null);
+  },
+  getEventPricing(chefId?: string) {
+    return apiFetch<any[]>(`/api/v1/chef-events/pricing${chefId ? `?chefId=${chefId}` : ''}`).catch(() => []);
+  },
 
   // ── Flights ──────────────────────────────────────────────────────────────
   searchFlights(params: Record<string, string>) {

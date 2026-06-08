@@ -152,10 +152,15 @@ export default function CooksScreen() {
               ))}
             </ScrollView>
 
-            {/* My bookings link */}
-            <TouchableOpacity style={styles.myBookingsBtn} onPress={() => router.push('/cook-bookings')}>
-              <Text style={styles.myBookingsText}>📋  My cook bookings</Text>
-            </TouchableOpacity>
+            {/* My bookings + cart links */}
+            <View style={styles.linkRow}>
+              <TouchableOpacity style={[styles.myBookingsBtn, { flex: 1 }]} onPress={() => router.push('/cook-bookings')}>
+                <Text style={styles.myBookingsText}>📋  My bookings</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.myBookingsBtn, { flex: 1 }]} onPress={() => router.push('/cook-cart')}>
+                <Text style={styles.myBookingsText}>🛒  Cart</Text>
+              </TouchableOpacity>
+            </View>
 
             {/* City filter */}
             <Text style={styles.sectionTitle}>City</Text>
@@ -220,7 +225,8 @@ const styles = StyleSheet.create({
   occasionChip:         { backgroundColor: '#fff', borderRadius: 100, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: '#e5e7eb' },
   occasionText:         { fontSize: 13, fontWeight: '600', color: '#374151' },
 
-  myBookingsBtn:        { backgroundColor: '#fff7ed', borderRadius: 12, padding: 14, marginTop: 12, borderWidth: 1, borderColor: '#fed7aa' },
+  linkRow:              { flexDirection: 'row', gap: 10, marginTop: 12 },
+  myBookingsBtn:        { backgroundColor: '#fff7ed', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#fed7aa' },
   myBookingsText:       { fontSize: 14, fontWeight: '700', color: '#c2410c' },
 
   filterChip:           { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 100, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#fff' },

@@ -7,8 +7,10 @@ import { api } from '@/lib/api';
 import { getAccessToken } from '@/lib/auth';
 import { formatPaise } from '@/lib/utils';
 import CookPaymentWebView from '@/components/CookPaymentWebView';
+import { addToCart } from '@/lib/cookCart';
 
 const MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'DINNER', 'ALL_DAY'];
+const EVENT_CUISINES = ['North Indian', 'South Indian', 'Chinese', 'Continental', 'Mughlai', 'Multi-cuisine', 'Rajasthani', 'Bengali', 'Street Food', 'Jain'];
 
 function pretty(s?: string) {
   if (!s) return '';
@@ -56,6 +58,9 @@ export default function CookBookScreen() {
   const [guestCount, setGuestCount] = useState('30');
   const [durationHours, setDurationHours] = useState('4');
   const [menuDescription, setMenuDescription] = useState('');
+  const [cuisinePref, setCuisinePref] = useState('');
+  const [eventPricing, setEventPricing] = useState<any[]>([]);
+  const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
 
   const [submitting, setSubmitting] = useState(false);
   const [payOrder, setPayOrder] = useState<any>(null);   // { order, bookingId }
@@ -64,6 +69,24 @@ export default function CookBookScreen() {
   useEffect(() => {
     if (chefId) api.getChef(chefId).then(setChef).catch(() => {});
   }, [chefId]);
+
+  useEffect(() => {
+    if (type === 'EVENT') api.getEventPricing(chefId).then((p) => setEventPricing(p ?? [])).catch(() => {});
+  }, [type, chefId]);
+
+  const addons = eventPricing.filter((p) => p.category === 'ADDON' || p.category === 'LIVE_COUNTER');
+  const addonPaise = (id: string) => {
+    const a = addons.find((x) => (x.id ?? x.code) === id);
+    return a ? (a.pricePaise ?? a.paise ?? 0) : 0;
+  };
+  const eventEstimatePaise = (() => {
+    const perPlate = chef?.eventMinPlatePaise ?? 0;
+    const food = perPlate * Number(guestCount || 0);
+    const addonTotal = Object.entries(selectedAddons)
+      .filter(([, on]) => on)
+      .reduce((s, [id]) => s + addonPaise(id), 0);
+    return food + addonTotal;
+  })();
 
   async function submitDaily() {
     const token = await getAccessToken();
@@ -127,7 +150,8 @@ export default function CookBookScreen() {
         chefId, eventType, eventDate, eventTime,
         durationHours: Number(durationHours), guestCount: Number(guestCount),
         venueAddress: address, city, pincode, customerName, customerPhone,
-        menuDescription, specialRequests,
+        menuDescription, specialRequests, cuisinePreferences: cuisinePref,
+        servicesJson: JSON.stringify(Object.keys(selectedAddons).filter((k) => selectedAddons[k])),
       }, token);
       setDone({ ...event, isEvent: true });
     } catch (e: any) {
@@ -135,6 +159,40 @@ export default function CookBookScreen() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function addCurrentToCart() {
+    if (!customerName || !customerPhone || !address) { Alert.alert('Missing details', 'Fill name, phone and address first.'); return; }
+    const chefName = chef?.name;
+    if (type === 'DAILY') {
+      if (!serviceDate) { Alert.alert('Pick a date', 'Choose a service date.'); return; }
+      await addToCart({
+        serviceType: 'DAILY', chefId, chefName,
+        summary: `${pretty(mealType)} · ${serviceDate} · ${guestsCount} pax`,
+        estTotalPaise: (chef?.dailyRatePaise ?? 0) * Number(numberOfMeals || 1),
+        payload: { chefId, serviceType: 'DAILY', mealType, serviceDate, serviceTime, guestsCount: Number(guestsCount), numberOfMeals: Number(numberOfMeals), specialRequests, address, city, locality, pincode, customerName, customerPhone },
+      });
+    } else if (type === 'MONTHLY') {
+      if (!startDate) { Alert.alert('Pick a date', 'Choose a start date.'); return; }
+      await addToCart({
+        serviceType: 'MONTHLY', chefId, chefName,
+        summary: `${plan} · ${mealsPerDay} meal(s)/day · from ${startDate}`,
+        estTotalPaise: chef?.monthlyRatePaise ?? 0,
+        payload: { chefId, serviceType: 'MONTHLY', plan, mealsPerDay: Number(mealsPerDay), schedule, startDate, dietaryPreferences, mealType, address, city, locality, pincode, customerName, customerPhone, specialRequests },
+      });
+    } else {
+      if (!eventDate) { Alert.alert('Pick a date', 'Choose an event date.'); return; }
+      await addToCart({
+        serviceType: 'EVENT', chefId, chefName,
+        summary: `${pretty(eventType)} · ${eventDate} · ${guestCount} guests`,
+        estTotalPaise: eventEstimatePaise,
+        payload: { chefId, eventType, eventDate, eventTime, durationHours: Number(durationHours), guestCount: Number(guestCount), venueAddress: address, city, pincode, customerName, customerPhone, menuDescription, specialRequests, cuisinePreferences: cuisinePref, servicesJson: JSON.stringify(Object.keys(selectedAddons).filter((k) => selectedAddons[k])) },
+      });
+    }
+    Alert.alert('Added to cart', 'Continue browsing or go to your cart.', [
+      { text: 'Keep browsing', onPress: () => router.replace('/cooks') },
+      { text: 'Go to cart', onPress: () => router.replace('/cook-cart') },
+    ]);
   }
 
   async function onPaymentSuccess(res: { paymentId: string; orderId: string }) {
@@ -269,7 +327,41 @@ export default function CookBookScreen() {
             <Field label="Guests" flex><TextInput style={styles.input} value={guestCount} onChangeText={setGuestCount} keyboardType="numeric" /></Field>
             <Field label="Duration (hrs)" flex><TextInput style={styles.input} value={durationHours} onChangeText={setDurationHours} keyboardType="numeric" /></Field>
           </View>
-          <Field label="Menu / cuisine preferences"><TextInput style={[styles.input, styles.textarea]} value={menuDescription} onChangeText={setMenuDescription} placeholder="e.g. North Indian veg, 5 starters, 3 mains…" placeholderTextColor="#9ca3af" multiline /></Field>
+          <Text style={styles.label}>Cuisine style</Text>
+          <View style={styles.pillRow}>
+            {EVENT_CUISINES.map((c) => (
+              <TouchableOpacity key={c} style={[styles.pill, cuisinePref === c && styles.pillActive]} onPress={() => setCuisinePref(cuisinePref === c ? '' : c)}>
+                <Text style={[styles.pillText, cuisinePref === c && styles.pillTextActive]}>{c}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {addons.length > 0 && (
+            <>
+              <Text style={styles.label}>Add-ons & live counters</Text>
+              <View style={styles.pillRow}>
+                {addons.map((a) => {
+                  const aid = a.id ?? a.code;
+                  const on = !!selectedAddons[aid];
+                  const price = a.pricePaise ?? a.paise ?? 0;
+                  return (
+                    <TouchableOpacity key={aid} style={[styles.pill, on && styles.pillActive]} onPress={() => setSelectedAddons((s) => ({ ...s, [aid]: !on }))}>
+                      <Text style={[styles.pillText, on && styles.pillTextActive]}>{a.label ?? a.name}{price ? ` +${formatPaise(price)}` : ''}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          )}
+
+          <Field label="Other menu notes"><TextInput style={[styles.input, styles.textarea]} value={menuDescription} onChangeText={setMenuDescription} placeholder="e.g. 5 starters, 3 mains, no onion/garlic…" placeholderTextColor="#9ca3af" multiline /></Field>
+
+          {eventEstimatePaise > 0 && (
+            <View style={styles.priceBox}>
+              <Text style={styles.priceRow}>Estimated total <Text style={styles.priceVal}>{formatPaise(eventEstimatePaise)}</Text></Text>
+              <Text style={styles.priceHint}>Indicative; the cook/caterer confirms a final quote.</Text>
+            </View>
+          )}
         </>
       )}
 
@@ -298,6 +390,10 @@ export default function CookBookScreen() {
             {type === 'EVENT' ? 'Send event request' : type === 'MONTHLY' ? 'Start subscription' : 'Continue to payment'}
           </Text>
         )}
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.cartBtn} disabled={submitting} onPress={addCurrentToCart}>
+        <Text style={styles.cartBtnText}>🛒  Add to cart</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -347,6 +443,8 @@ const styles = StyleSheet.create({
   primaryBtn:    { backgroundColor: '#f97316', borderRadius: 12, paddingVertical: 15, alignItems: 'center', marginTop: 4 },
   btnDisabled:   { opacity: 0.6 },
   primaryBtnText:{ color: '#fff', fontSize: 16, fontWeight: '700' },
+  cartBtn:       { borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginTop: 10, borderWidth: 1, borderColor: '#f97316' },
+  cartBtnText:   { color: '#f97316', fontSize: 15, fontWeight: '700' },
   linkText:      { color: '#f97316', fontSize: 14, fontWeight: '600', marginTop: 16 },
 
   successIcon:   { fontSize: 56 },
