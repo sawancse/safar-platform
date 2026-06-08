@@ -1,17 +1,17 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Modal,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { api } from '@/lib/api';
-import { formatPaise } from '@/lib/utils';
+import { formatPaise, toISODate } from '@/lib/utils';
 
 function pretty(s?: string) {
   if (!s) return '';
   return s.split('_').map((w) => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
 }
 
-type Tab = 'about' | 'menus' | 'reviews';
+type Tab = 'about' | 'menus' | 'reviews' | 'calendar';
 
 export default function CookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -21,6 +21,13 @@ export default function CookDetailScreen() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('about');
+  const [calendar, setCalendar] = useState<any>(null);
+  const [calLoading, setCalLoading] = useState(false);
+  // shopping list modal
+  const [slMenu, setSlMenu] = useState<any>(null);
+  const [slGuests, setSlGuests] = useState(4);
+  const [slData, setSlData] = useState<any>(null);
+  const [slLoading, setSlLoading] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -42,6 +49,32 @@ export default function CookDetailScreen() {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Lazily load 60-day availability when the calendar tab is first opened.
+  useEffect(() => {
+    if (tab !== 'calendar' || calendar || calLoading || !id) return;
+    setCalLoading(true);
+    const from = new Date();
+    const to = new Date();
+    to.setDate(to.getDate() + 60);
+    api.getChefCalendar(id, toISODate(from), toISODate(to))
+      .then((c) => setCalendar(c ?? { blockedDates: [], bookedDates: [] }))
+      .finally(() => setCalLoading(false));
+  }, [tab, id, calendar, calLoading]);
+
+  async function openShoppingList(menu: any, guests: number) {
+    setSlMenu(menu);
+    setSlGuests(guests);
+    setSlLoading(true);
+    setSlData(null);
+    try {
+      setSlData(await api.getShoppingList(menu.id, guests));
+    } catch {
+      setSlData(null);
+    } finally {
+      setSlLoading(false);
+    }
+  }
 
   if (loading) {
     return <View style={styles.center}><ActivityIndicator color="#f97316" size="large" /></View>;
@@ -88,6 +121,12 @@ export default function CookDetailScreen() {
               onPress={() => router.push(`/cook-book?chefId=${id}&type=DAILY`)}
             />
           ) : null}
+          {chef.monthlyRatePaise ? (
+            <PriceCard
+              title="Subscribe Monthly" price={`${formatPaise(chef.monthlyRatePaise)}/mo`}
+              onPress={() => router.push(`/cook-book?chefId=${id}&type=MONTHLY`)}
+            />
+          ) : null}
           {chef.eventMinPlatePaise ? (
             <PriceCard
               title="Event Quote" price={`${formatPaise(chef.eventMinPlatePaise)}/plate`}
@@ -98,10 +137,10 @@ export default function CookDetailScreen() {
 
         {/* Tabs */}
         <View style={styles.tabBar}>
-          {(['about', 'menus', 'reviews'] as Tab[]).map((t) => (
+          {(['about', 'menus', 'reviews', 'calendar'] as Tab[]).map((t) => (
             <TouchableOpacity key={t} style={[styles.tab, tab === t && styles.tabActive]} onPress={() => setTab(t)}>
               <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
-                {t === 'about' ? 'About' : t === 'menus' ? `Menus (${menus.length})` : `Reviews (${reviews.length})`}
+                {t === 'about' ? 'About' : t === 'menus' ? `Menus (${menus.length})` : t === 'reviews' ? `Reviews (${reviews.length})` : 'Calendar'}
               </Text>
             </TouchableOpacity>
           ))}
@@ -144,6 +183,9 @@ export default function CookDetailScreen() {
                   {m.isJain ? <View style={[styles.tagChip, styles.vegChip]}><Text style={styles.vegText}>Jain</Text></View> : null}
                 </View>
                 {(m.minGuests || m.maxGuests) ? <Text style={styles.menuMeta}>{m.minGuests ?? 1}–{m.maxGuests ?? '∞'} guests</Text> : null}
+                <TouchableOpacity style={styles.slBtn} onPress={() => openShoppingList(m, slGuests)}>
+                  <Text style={styles.slBtnText}>🛒 Shopping list</Text>
+                </TouchableOpacity>
               </View>
             ))
           )}
@@ -161,6 +203,11 @@ export default function CookDetailScreen() {
               </View>
             ))
           )}
+
+          {tab === 'calendar' && (
+            calLoading ? <ActivityIndicator color="#f97316" style={{ marginTop: 20 }} /> :
+            <CalendarGrid blocked={calendar?.blockedDates ?? []} booked={calendar?.bookedDates ?? []} />
+          )}
         </View>
       </ScrollView>
 
@@ -170,6 +217,87 @@ export default function CookDetailScreen() {
           <Text style={styles.bookBtnText}>Book this cook</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Shopping list modal */}
+      <Modal visible={slMenu !== null} animationType="slide" onRequestClose={() => setSlMenu(null)}>
+        <View style={styles.slModal}>
+          <View style={styles.slHeader}>
+            <Text style={styles.slTitle} numberOfLines={1}>🛒 {slMenu?.name}</Text>
+            <TouchableOpacity onPress={() => setSlMenu(null)}><Text style={styles.slClose}>✕</Text></TouchableOpacity>
+          </View>
+          <View style={styles.slGuestRow}>
+            <Text style={styles.slGuestLabel}>Guests</Text>
+            <View style={styles.slStepper}>
+              <TouchableOpacity style={styles.slStepBtn} onPress={() => slMenu && openShoppingList(slMenu, Math.max(1, slGuests - 1))}><Text style={styles.slStepText}>−</Text></TouchableOpacity>
+              <Text style={styles.slGuestVal}>{slGuests}</Text>
+              <TouchableOpacity style={styles.slStepBtn} onPress={() => slMenu && openShoppingList(slMenu, slGuests + 1)}><Text style={styles.slStepText}>+</Text></TouchableOpacity>
+            </View>
+          </View>
+          {slLoading ? <ActivityIndicator color="#f97316" style={{ marginTop: 24 }} /> : (
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+              {(slData?.categories ?? []).length === 0 ? (
+                <Text style={styles.muted}>No ingredient list available for this menu.</Text>
+              ) : (
+                (slData.categories).map((cat: any, ci: number) => (
+                  <View key={ci} style={{ marginBottom: 16 }}>
+                    <Text style={styles.slCat}>{pretty(cat.category ?? cat.name)}</Text>
+                    {(cat.items ?? []).map((it: any, ii: number) => (
+                      <View key={ii} style={styles.slItem}>
+                        <Text style={styles.slItemName}>{it.name}{it.isOptional ? ' (optional)' : ''}</Text>
+                        <Text style={styles.slItemQty}>{it.quantity}{it.unit ? ` ${it.unit}` : ''}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          )}
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+function CalendarGrid({ blocked, booked }: { blocked: string[]; booked: string[] }) {
+  const blockedSet = new Set(blocked);
+  const bookedSet = new Set(booked);
+  const days: { date: Date; iso: string }[] = [];
+  const start = new Date();
+  for (let i = 0; i < 60; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    days.push({ date: d, iso: toISODate(d) });
+  }
+  return (
+    <View>
+      <View style={styles.legendRow}>
+        <Legend color="#dcfce7" label="Available" />
+        <Legend color="#dbeafe" label="Booked" />
+        <Legend color="#fee2e2" label="Blocked" />
+      </View>
+      <View style={styles.calGrid}>
+        {days.map(({ date, iso }) => {
+          const isBlocked = blockedSet.has(iso);
+          const isBooked = bookedSet.has(iso);
+          const bg = isBlocked ? '#fee2e2' : isBooked ? '#dbeafe' : '#dcfce7';
+          const fg = isBlocked ? '#b91c1c' : isBooked ? '#1d4ed8' : '#15803d';
+          return (
+            <View key={iso} style={[styles.calCell, { backgroundColor: bg }]}>
+              <Text style={[styles.calDay, { color: fg }]}>{date.getDate()}</Text>
+              <Text style={[styles.calMon, { color: fg }]}>{date.toLocaleDateString('en-IN', { month: 'short' })}</Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function Legend({ color, label }: { color: string; label: string }) {
+  return (
+    <View style={styles.legend}>
+      <View style={[styles.legendDot, { backgroundColor: color }]} />
+      <Text style={styles.legendText}>{label}</Text>
     </View>
   );
 }
@@ -259,4 +387,33 @@ const styles = StyleSheet.create({
   bookBar:          { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', padding: 16, borderTopWidth: 1, borderTopColor: '#f3f4f6' },
   bookBtn:          { backgroundColor: '#f97316', borderRadius: 12, paddingVertical: 15, alignItems: 'center' },
   bookBtnText:      { color: '#fff', fontSize: 16, fontWeight: '700' },
+
+  slBtn:            { marginTop: 10, alignSelf: 'flex-start', backgroundColor: '#fff7ed', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: '#fed7aa' },
+  slBtnText:        { fontSize: 12, fontWeight: '700', color: '#c2410c' },
+
+  // calendar
+  legendRow:        { flexDirection: 'row', gap: 16, marginBottom: 14 },
+  legend:           { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot:        { width: 14, height: 14, borderRadius: 4 },
+  legendText:       { fontSize: 12, color: '#6b7280' },
+  calGrid:          { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  calCell:          { width: '13.5%', aspectRatio: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  calDay:           { fontSize: 14, fontWeight: '700' },
+  calMon:           { fontSize: 9, fontWeight: '600' },
+
+  // shopping list modal
+  slModal:          { flex: 1, backgroundColor: '#f9fafb', paddingTop: 50 },
+  slHeader:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  slTitle:          { fontSize: 16, fontWeight: '700', color: '#111827', flexShrink: 1 },
+  slClose:          { fontSize: 20, color: '#6b7280' },
+  slGuestRow:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  slGuestLabel:     { fontSize: 14, fontWeight: '600', color: '#374151' },
+  slStepper:        { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  slStepBtn:        { width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: '#f97316', alignItems: 'center', justifyContent: 'center' },
+  slStepText:       { fontSize: 18, color: '#f97316', fontWeight: '700' },
+  slGuestVal:       { fontSize: 16, fontWeight: '700', color: '#111827', minWidth: 20, textAlign: 'center' },
+  slCat:            { fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 8 },
+  slItem:           { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  slItemName:       { fontSize: 13, color: '#374151', flexShrink: 1 },
+  slItemQty:        { fontSize: 13, color: '#111827', fontWeight: '600', marginLeft: 12 },
 });

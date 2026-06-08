@@ -1465,6 +1465,19 @@ export const api = {
     });
   },
 
+  createChefSubscription(data: object, token: string) {
+    return apiFetch<any>('/api/v1/chef-subscriptions', {
+      method: 'POST', body: JSON.stringify(data),
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+  },
+  getMyChefSubscriptions(token: string) {
+    return apiFetch<any[]>('/api/v1/chef-subscriptions/my', { headers: { Authorization: `Bearer ${token}` } });
+  },
+  getShoppingList(menuId: string, guests: number) {
+    return apiFetch<any>(`/api/v1/chefs/menus/${menuId}/shopping-list?guests=${guests}`);
+  },
+
   // ── Flights ──────────────────────────────────────────────────────────────
   searchFlights(params: Record<string, string>) {
     const qs = new URLSearchParams(params).toString();

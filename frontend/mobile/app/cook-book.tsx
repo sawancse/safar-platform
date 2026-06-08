@@ -15,11 +15,14 @@ function pretty(s?: string) {
   return s.split('_').map((w) => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
 }
 
+type ServiceType = 'DAILY' | 'MONTHLY' | 'EVENT';
+
 export default function CookBookScreen() {
   const { chefId, type: paramType, eventType: paramEventType } =
     useLocalSearchParams<{ chefId?: string; type?: string; eventType?: string }>();
   const router = useRouter();
-  const type = (paramType === 'EVENT' ? 'EVENT' : 'DAILY') as 'DAILY' | 'EVENT';
+  const initialType: ServiceType = paramType === 'EVENT' ? 'EVENT' : paramType === 'MONTHLY' ? 'MONTHLY' : 'DAILY';
+  const [type, setType] = useState<ServiceType>(initialType);
 
   const [chef, setChef] = useState<any>(null);
 
@@ -38,6 +41,13 @@ export default function CookBookScreen() {
   const [serviceTime, setServiceTime] = useState('12:00');
   const [guestsCount, setGuestsCount] = useState('2');
   const [numberOfMeals, setNumberOfMeals] = useState('1');
+
+  // monthly
+  const [plan, setPlan] = useState('Standard');
+  const [mealsPerDay, setMealsPerDay] = useState('2');
+  const [schedule, setSchedule] = useState('Mon-Sat');
+  const [startDate, setStartDate] = useState('');
+  const [dietaryPreferences, setDietaryPreferences] = useState('');
 
   // event
   const [eventType, setEventType] = useState(paramEventType ?? 'BIRTHDAY');
@@ -78,6 +88,27 @@ export default function CookBookScreen() {
       }
     } catch (e: any) {
       Alert.alert('Booking failed', e.message ?? 'Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function submitMonthly() {
+    const token = await getAccessToken();
+    if (!token) { router.push('/auth'); return; }
+    if (!customerName || !customerPhone || !startDate || !address) {
+      Alert.alert('Missing details', 'Please fill name, phone, start date and address.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const sub = await api.createChefSubscription({
+        chefId, serviceType: 'MONTHLY', plan, mealsPerDay: Number(mealsPerDay), schedule, startDate,
+        dietaryPreferences, mealType, address, city, locality, pincode, customerName, customerPhone, specialRequests,
+      }, token);
+      setDone({ ...sub, isSubscription: true });
+    } catch (e: any) {
+      Alert.alert('Subscription failed', e.message ?? 'Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -140,11 +171,13 @@ export default function CookBookScreen() {
       <View style={styles.center}>
         <Stack.Screen options={{ title: 'Booked' }} />
         <Text style={styles.successIcon}>✅</Text>
-        <Text style={styles.successTitle}>{done.isEvent ? 'Event request sent!' : 'Booking confirmed!'}</Text>
+        <Text style={styles.successTitle}>{done.isEvent ? 'Event request sent!' : done.isSubscription ? 'Subscription created!' : 'Booking confirmed!'}</Text>
         {done.bookingRef ? <Text style={styles.successRef}>Ref: {done.bookingRef}</Text> : null}
         <Text style={styles.successMsg}>
           {done.isEvent
             ? 'The cook/caterer will review your event and send a quote. Track it in My Bookings.'
+            : done.isSubscription
+            ? 'Your monthly cook subscription is set up. Manage it under the Subscriptions tab.'
             : 'Your cook is booked. The balance is payable after the service.'}
         </Text>
         <TouchableOpacity style={styles.primaryBtn} onPress={() => router.replace('/cook-bookings')}>
@@ -168,10 +201,21 @@ export default function CookBookScreen() {
         </View>
       ) : null}
 
+      {/* Service type switch */}
+      <View style={styles.typeRow}>
+        {(['DAILY', 'MONTHLY', 'EVENT'] as ServiceType[]).map((t) => (
+          <TouchableOpacity key={t} style={[styles.typeTab, type === t && styles.typeTabActive]} onPress={() => setType(t)}>
+            <Text style={[styles.typeTabText, type === t && styles.typeTabTextActive]}>
+              {t === 'DAILY' ? 'One day' : t === 'MONTHLY' ? 'Monthly' : 'Event'}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <Field label="Your name *"><TextInput style={styles.input} value={customerName} onChangeText={setCustomerName} placeholder="Full name" placeholderTextColor="#9ca3af" /></Field>
       <Field label="Phone *"><TextInput style={styles.input} value={customerPhone} onChangeText={setCustomerPhone} placeholder="10-digit mobile" placeholderTextColor="#9ca3af" keyboardType="phone-pad" maxLength={10} /></Field>
 
-      {type === 'DAILY' ? (
+      {type === 'DAILY' && (
         <>
           <Text style={styles.label}>Meal</Text>
           <View style={styles.pillRow}>
@@ -190,7 +234,31 @@ export default function CookBookScreen() {
             <Field label="No. of meals" flex><TextInput style={styles.input} value={numberOfMeals} onChangeText={setNumberOfMeals} keyboardType="numeric" /></Field>
           </View>
         </>
-      ) : (
+      )}
+
+      {type === 'MONTHLY' && (
+        <>
+          <Text style={styles.label}>Meal</Text>
+          <View style={styles.pillRow}>
+            {MEAL_TYPES.map((m) => (
+              <TouchableOpacity key={m} style={[styles.pill, mealType === m && styles.pillActive]} onPress={() => setMealType(m)}>
+                <Text style={[styles.pillText, mealType === m && styles.pillTextActive]}>{pretty(m)}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={styles.row}>
+            <Field label="Plan" flex><TextInput style={styles.input} value={plan} onChangeText={setPlan} placeholder="Standard / Premium" placeholderTextColor="#9ca3af" /></Field>
+            <Field label="Meals / day" flex><TextInput style={styles.input} value={mealsPerDay} onChangeText={setMealsPerDay} keyboardType="numeric" /></Field>
+          </View>
+          <View style={styles.row}>
+            <Field label="Start date *" flex><TextInput style={styles.input} value={startDate} onChangeText={setStartDate} placeholder="YYYY-MM-DD" placeholderTextColor="#9ca3af" /></Field>
+            <Field label="Schedule" flex><TextInput style={styles.input} value={schedule} onChangeText={setSchedule} placeholder="Mon-Sat" placeholderTextColor="#9ca3af" /></Field>
+          </View>
+          <Field label="Dietary preferences"><TextInput style={styles.input} value={dietaryPreferences} onChangeText={setDietaryPreferences} placeholder="e.g. Veg, no onion/garlic" placeholderTextColor="#9ca3af" /></Field>
+        </>
+      )}
+
+      {type === 'EVENT' && (
         <>
           <Field label="Occasion"><TextInput style={styles.input} value={eventType} onChangeText={setEventType} placeholder="BIRTHDAY / WEDDING / …" placeholderTextColor="#9ca3af" autoCapitalize="characters" /></Field>
           <View style={styles.row}>
@@ -223,10 +291,12 @@ export default function CookBookScreen() {
       <TouchableOpacity
         style={[styles.primaryBtn, submitting && styles.btnDisabled]}
         disabled={submitting}
-        onPress={type === 'EVENT' ? submitEvent : submitDaily}
+        onPress={type === 'EVENT' ? submitEvent : type === 'MONTHLY' ? submitMonthly : submitDaily}
       >
         {submitting ? <ActivityIndicator color="#fff" /> : (
-          <Text style={styles.primaryBtnText}>{type === 'EVENT' ? 'Send event request' : 'Continue to payment'}</Text>
+          <Text style={styles.primaryBtnText}>
+            {type === 'EVENT' ? 'Send event request' : type === 'MONTHLY' ? 'Start subscription' : 'Continue to payment'}
+          </Text>
         )}
       </TouchableOpacity>
     </ScrollView>
@@ -245,6 +315,12 @@ function Field({ label, children, flex }: { label: string; children: React.React
 const styles = StyleSheet.create({
   container:     { flex: 1, backgroundColor: '#f9fafb' },
   center:        { flex: 1, backgroundColor: '#f9fafb', alignItems: 'center', justifyContent: 'center', padding: 24 },
+
+  typeRow:       { flexDirection: 'row', gap: 8, marginBottom: 16, backgroundColor: '#f3f4f6', borderRadius: 100, padding: 4 },
+  typeTab:       { flex: 1, paddingVertical: 9, borderRadius: 100, alignItems: 'center' },
+  typeTabActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  typeTabText:   { fontSize: 13, fontWeight: '600', color: '#6b7280' },
+  typeTabTextActive: { color: '#f97316' },
 
   chefBar:       { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff7ed', borderRadius: 12, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: '#fed7aa' },
   chefBarIcon:   { fontSize: 28 },

@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { getAccessToken } from '@/lib/auth';
 import { formatPaise } from '@/lib/utils';
 
-type Tab = 'bookings' | 'events';
+type Tab = 'bookings' | 'events' | 'subscriptions';
 
 const STATUS_COLORS: Record<string, { bg: string; fg: string }> = {
   PENDING_PAYMENT: { bg: '#fef3c7', fg: '#b45309' },
@@ -36,6 +36,7 @@ export default function CookBookingsScreen() {
   const [tab, setTab] = useState<Tab>('bookings');
   const [bookings, setBookings] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [subs, setSubs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [needsAuth, setNeedsAuth] = useState(false);
@@ -45,12 +46,14 @@ export default function CookBookingsScreen() {
     if (!token) { setNeedsAuth(true); setLoading(false); return; }
     setNeedsAuth(false);
     try {
-      const [b, e] = await Promise.all([
+      const [b, e, s] = await Promise.all([
         api.getMyChefBookings(token).catch(() => []),
         api.getMyEventBookings(token).catch(() => []),
+        api.getMyChefSubscriptions(token).catch(() => []),
       ]);
       setBookings(b ?? []);
       setEvents(e ?? []);
+      setSubs(s ?? []);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -69,7 +72,26 @@ export default function CookBookingsScreen() {
     );
   }
 
-  const data = tab === 'bookings' ? bookings : events;
+  const data = tab === 'bookings' ? bookings : tab === 'events' ? events : subs;
+
+  function renderSubscription({ item }: { item: any }) {
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardTop}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardTitle}>{item.chefName || 'Cook subscription'}</Text>
+            {item.bookingRef || item.subscriptionRef ? <Text style={styles.cardRef}>{item.bookingRef || item.subscriptionRef}</Text> : null}
+          </View>
+          <StatusBadge status={item.status} />
+        </View>
+        {item.plan ? <Text style={styles.cardLine}>📦 {item.plan}{item.mealsPerDay ? ` · ${item.mealsPerDay} meal(s)/day` : ''}</Text> : null}
+        {item.schedule ? <Text style={styles.cardLine}>🗓️ {item.schedule}{item.startDate ? ` · from ${item.startDate}` : ''}</Text> : null}
+        {item.mealType ? <Text style={styles.cardLine}>🍽️ {pretty(item.mealType)}</Text> : null}
+        {item.address ? <Text style={styles.cardLine} numberOfLines={1}>📍 {item.address}</Text> : null}
+        {item.monthlyRatePaise ? <Text style={[styles.cardAmount, { marginTop: 12 }]}>{formatPaise(item.monthlyRatePaise)}/mo</Text> : null}
+      </View>
+    );
+  }
 
   function renderBooking({ item }: { item: any }) {
     const isEvent = tab === 'events';
@@ -113,10 +135,10 @@ export default function CookBookingsScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: 'My cook bookings' }} />
       <View style={styles.tabBar}>
-        {(['bookings', 'events'] as Tab[]).map((t) => (
+        {(['bookings', 'events', 'subscriptions'] as Tab[]).map((t) => (
           <TouchableOpacity key={t} style={[styles.tab, tab === t && styles.tabActive]} onPress={() => setTab(t)}>
-            <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
-              {t === 'bookings' ? `Bookings (${bookings.length})` : `Events (${events.length})`}
+            <Text style={[styles.tabText, tab === t && styles.tabTextActive]} numberOfLines={1}>
+              {t === 'bookings' ? `Bookings (${bookings.length})` : t === 'events' ? `Events (${events.length})` : `Plans (${subs.length})`}
             </Text>
           </TouchableOpacity>
         ))}
@@ -128,7 +150,7 @@ export default function CookBookingsScreen() {
         <FlatList
           data={data}
           keyExtractor={(item) => item.id}
-          renderItem={renderBooking}
+          renderItem={tab === 'subscriptions' ? renderSubscription : renderBooking}
           contentContainerStyle={data.length === 0 ? styles.emptyBox : styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor="#f97316" />}
           ListEmptyComponent={
