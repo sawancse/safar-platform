@@ -311,6 +311,9 @@ export default function AashrayScreen() {
         <Text style={styles.heroDesc}>
           Safar's 0% commission program connecting NGOs with generous hosts who offer discounted or free accommodation for those making a difference.
         </Text>
+        <TouchableOpacity style={styles.donateCta} onPress={() => router.push('/aashray-donate')} activeOpacity={0.85}>
+          <Text style={styles.donateCtaText}>💛  Donate to give shelter</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Tab Switcher */}
@@ -349,6 +352,8 @@ const styles = StyleSheet.create({
   heroTitle:            { fontSize: 28, fontWeight: '800', color: '#92400e' },
   heroSubtitle:         { fontSize: 15, fontWeight: '600', color: '#b45309', marginTop: 2 },
   heroDesc:             { fontSize: 13, color: '#78350f', marginTop: 10, lineHeight: 20 },
+  donateCta:            { backgroundColor: '#f97316', borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginTop: 16 },
+  donateCtaText:        { color: '#fff', fontSize: 15, fontWeight: '700' },
 
   /* Tabs */
   tabRow:               { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },

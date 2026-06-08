@@ -31,6 +31,15 @@ const QUICK_ACTIONS: QuickAction[] = [
   { label: 'Miles',        icon: '✈',  route: '/miles' },
 ];
 
+const SERVICE_ACTIONS: QuickAction[] = [
+  { label: 'Agreements',   icon: '📄', route: '/agreements' },
+  { label: 'Legal Check',  icon: '⚖️', route: '/legal' },
+  { label: 'Interiors',    icon: '🛋️', route: '/interiors' },
+  { label: 'Aashray',      icon: '💛', route: '/aashray' },
+  { label: 'Broker',       icon: '🏢', route: '/broker' },
+  { label: 'Partner',      icon: '🤝', route: '/become-a-partner' },
+];
+
 function formatDate(dateStr: string): string {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -267,6 +276,24 @@ export default function DashboardScreen() {
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.actionsGrid}>
             {QUICK_ACTIONS.map((action) => (
+              <TouchableOpacity
+                key={action.label}
+                style={styles.actionCard}
+                activeOpacity={0.85}
+                onPress={() => router.push(action.route as any)}
+              >
+                <Text style={styles.actionIcon}>{action.icon}</Text>
+                <Text style={styles.actionLabel}>{action.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Services & More */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Services & More</Text>
+          <View style={styles.actionsGrid}>
+            {SERVICE_ACTIONS.map((action) => (
               <TouchableOpacity
                 key={action.label}
                 style={styles.actionCard}

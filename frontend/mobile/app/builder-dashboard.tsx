@@ -36,6 +36,18 @@ export default function BuilderDashboardScreen() {
   const [updateProgress, setUpdateProgress] = useState('');
   const [posting, setPosting] = useState(false);
 
+  // Create / edit project modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editTagline, setEditTagline] = useState('');
+  const [editType, setEditType] = useState('APARTMENT_TOWNSHIP');
+  const [editStatus, setEditStatus] = useState('UPCOMING');
+  const [editCity, setEditCity] = useState('');
+  const [editLocality, setEditLocality] = useState('');
+  const [editPossession, setEditPossession] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+
   const loadData = useCallback(async () => {
     try {
       const token = await getAccessToken();
@@ -113,6 +125,46 @@ export default function BuilderDashboardScreen() {
     }
   }, [updateProjectId, updateTitle, updateDesc, updateProgress, loadData]);
 
+  const openEditModal = useCallback((p?: any) => {
+    setEditId(p?.id ?? null);
+    setEditName(p?.projectName ?? p?.name ?? '');
+    setEditTagline(p?.tagline ?? '');
+    setEditType(p?.projectType ?? 'APARTMENT_TOWNSHIP');
+    setEditStatus(p?.projectStatus ?? p?.status ?? 'UPCOMING');
+    setEditCity(p?.city ?? '');
+    setEditLocality(p?.locality ?? '');
+    setEditPossession(p?.possessionDate ?? '');
+    setShowEditModal(true);
+  }, []);
+
+  const saveEdit = useCallback(async () => {
+    if (!editName.trim()) { Alert.alert('Error', 'Project name is required'); return; }
+    if (!editCity.trim()) { Alert.alert('Error', 'City is required'); return; }
+    setSavingEdit(true);
+    try {
+      const token = await getAccessToken();
+      if (!token) { router.push('/auth'); return; }
+      const body = {
+        projectName: editName.trim(),
+        tagline: editTagline.trim() || undefined,
+        projectType: editType,
+        projectStatus: editStatus,
+        city: editCity.trim(),
+        locality: editLocality.trim() || undefined,
+        possessionDate: editPossession.trim() || undefined,
+      };
+      if (editId) await api.updateBuilderProject(editId, body, token);
+      else await api.createBuilderProject(body, token);
+      setShowEditModal(false);
+      Alert.alert('Saved', editId ? 'Project updated.' : 'Project created.');
+      loadData();
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to save project');
+    } finally {
+      setSavingEdit(false);
+    }
+  }, [editId, editName, editTagline, editType, editStatus, editCity, editLocality, editPossession, loadData, router]);
+
   const renderProject = ({ item }: { item: any }) => {
     const statusColor = STATUS_COLORS[item.status] || STATUS_COLORS.DRAFT;
     const progressPct = item.constructionProgress ?? 0;
@@ -177,6 +229,12 @@ export default function BuilderDashboardScreen() {
           )}
           <TouchableOpacity
             style={[styles.actionBtn, styles.actionBtnOutline]}
+            onPress={() => openEditModal(item)}
+          >
+            <Text style={[styles.actionBtnText, styles.actionBtnOutlineText]}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.actionBtnOutline]}
             onPress={() => openUpdateModal(item.id)}
           >
             <Text style={[styles.actionBtnText, styles.actionBtnOutlineText]}>Post Update</Text>
@@ -238,7 +296,7 @@ export default function BuilderDashboardScreen() {
             {/* Add project button */}
             <TouchableOpacity
               style={styles.addProjectBtn}
-              onPress={() => router.push('/sell')}
+              onPress={() => openEditModal()}
             >
               <Text style={styles.addProjectBtnText}>+ Add Project</Text>
             </TouchableOpacity>
@@ -311,6 +369,57 @@ export default function BuilderDashboardScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Create / edit project modal */}
+      <Modal visible={showEditModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
+            <Text style={styles.modalTitle}>{editId ? 'Edit Project' : 'New Project'}</Text>
+
+            <Text style={styles.inputLabel}>Project name *</Text>
+            <TextInput style={styles.modalInput} placeholder="e.g. Prestige Lakeside" placeholderTextColor="#9ca3af" value={editName} onChangeText={setEditName} />
+
+            <Text style={styles.inputLabel}>Tagline</Text>
+            <TextInput style={styles.modalInput} placeholder="Short marketing line" placeholderTextColor="#9ca3af" value={editTagline} onChangeText={setEditTagline} />
+
+            <Text style={styles.inputLabel}>Project type</Text>
+            <View style={styles.chipRow}>
+              {[['APARTMENT_TOWNSHIP', 'Apartment'], ['PLOTTED_DEVELOPMENT', 'Plots'], ['VILLA_COMMUNITY', 'Villas']].map(([v, l]) => (
+                <TouchableOpacity key={v} style={[styles.chip, editType === v && styles.chipActive]} onPress={() => setEditType(v)}>
+                  <Text style={[styles.chipText, editType === v && styles.chipTextActive]}>{l}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.inputLabel}>Status</Text>
+            <View style={styles.chipRow}>
+              {[['UPCOMING', 'Upcoming'], ['UNDER_CONSTRUCTION', 'Under construction'], ['READY_TO_MOVE', 'Ready to move']].map(([v, l]) => (
+                <TouchableOpacity key={v} style={[styles.chip, editStatus === v && styles.chipActive]} onPress={() => setEditStatus(v)}>
+                  <Text style={[styles.chipText, editStatus === v && styles.chipTextActive]}>{l}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.inputLabel}>City *</Text>
+            <TextInput style={styles.modalInput} placeholder="e.g. Bangalore" placeholderTextColor="#9ca3af" value={editCity} onChangeText={setEditCity} />
+
+            <Text style={styles.inputLabel}>Locality</Text>
+            <TextInput style={styles.modalInput} placeholder="e.g. Whitefield" placeholderTextColor="#9ca3af" value={editLocality} onChangeText={setEditLocality} />
+
+            <Text style={styles.inputLabel}>Possession date</Text>
+            <TextInput style={styles.modalInput} placeholder="YYYY-MM-DD" placeholderTextColor="#9ca3af" value={editPossession} onChangeText={setEditPossession} />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowEditModal(false)}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalSubmitBtn} onPress={saveEdit} disabled={savingEdit}>
+                {savingEdit ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.modalSubmitText}>{editId ? 'Save' : 'Create'}</Text>}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -373,7 +482,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: 20, paddingBottom: 32,
   },
+  modalScroll: { maxHeight: '90%', backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   modalTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 16 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 100, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#fff' },
+  chipActive: { backgroundColor: ORANGE, borderColor: ORANGE },
+  chipText: { fontSize: 12, fontWeight: '600', color: '#374151' },
+  chipTextActive: { color: '#fff' },
   inputLabel: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6 },
   modalInput: {
     height: 44, borderRadius: 10, backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb',

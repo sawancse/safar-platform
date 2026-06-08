@@ -189,16 +189,17 @@ export default function TripsScreen() {
           const hasBalance = item.status === 'CONFIRMED' && item.paymentMode === 'PARTIAL_PREPAID' && (item.dueAtPropertyPaise ?? 0) > 0;
           return (
             <View style={styles.card}>
-              <View style={styles.cardRow}>
+              <TouchableOpacity style={styles.cardRow} activeOpacity={0.7} onPress={() => router.push(`/booking/${item.id}`)}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cardDate}>{item.checkInDate} → {item.checkOutDate}</Text>
                   <Text style={styles.cardGuests}>{item.guests} guest{item.guests > 1 ? 's' : ''}</Text>
+                  <Text style={styles.cardDetailsLink}>View details ›</Text>
                 </View>
                 <View>
                   <Text style={[styles.statusBadge, { backgroundColor: s.bg, color: s.text }]}>{s.label}</Text>
                   <Text style={styles.cardPrice}>{formatPaise(item.totalAmountPaise)}</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
               {isReviewed && (
                 <View style={styles.actionRow}>
                   <View style={styles.reviewedBadge}>
@@ -336,6 +337,7 @@ const styles = StyleSheet.create({
   cardRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   cardDate:     { fontSize: 14, fontWeight: '600', color: '#111827' },
   cardGuests:   { fontSize: 12, color: '#6b7280', marginTop: 2 },
+  cardDetailsLink: { fontSize: 12, color: '#f97316', fontWeight: '600', marginTop: 6 },
   statusBadge:  { fontSize: 11, fontWeight: '600', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 100, overflow: 'hidden', textAlign: 'right' },
   cardPrice:    { fontSize: 13, fontWeight: '700', color: '#111827', marginTop: 4, textAlign: 'right' },
 

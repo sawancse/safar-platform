@@ -1484,6 +1484,26 @@ export const api = {
     return apiFetch<any[]>(`/api/v1/chef-events/pricing${chefId ? `?chefId=${chefId}` : ''}`).catch(() => []);
   },
 
+  // ── Aashray donations ────────────────────────────────────────────────────
+  createDonation(data: object, token?: string) {
+    return apiFetch<any>('/api/v1/donations', {
+      method: 'POST', body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+  },
+  verifyDonation(data: { razorpayOrderId: string; razorpayPaymentId: string; razorpaySignature: string }, token?: string) {
+    return apiFetch<any>('/api/v1/donations/verify', {
+      method: 'POST', body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+  },
+  getDonationStats() {
+    return apiFetch<any>('/api/v1/donations/stats').catch(() => null);
+  },
+  getMyDonations(token: string, page = 0, size = 20) {
+    return apiFetch<any>(`/api/v1/donations/my?page=${page}&size=${size}`, { headers: { Authorization: `Bearer ${token}` } });
+  },
+
   // ── Flights ──────────────────────────────────────────────────────────────
   searchFlights(params: Record<string, string>) {
     const qs = new URLSearchParams(params).toString();
@@ -1514,6 +1534,132 @@ export const api = {
   getMyFlights(token: string, page = 0, size = 10) {
     return apiFetch<any>(`/api/v1/flights/my?page=${page}&size=${size}&sort=createdAt,desc`, {
       headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  // ── Agreements (Value-Added Services) ────────────────────────────────────
+  getMyAgreements(token: string) {
+    return apiFetch<any[]>('/api/v1/agreements/my', { headers: { Authorization: `Bearer ${token}` } });
+  },
+  calculateStampDuty(state: string, agreementType: string, propertyValuePaise: number) {
+    return apiFetch<any>(`/api/v1/agreements/stamp-duty/calculate?state=${encodeURIComponent(state)}&agreementType=${agreementType}&propertyValuePaise=${propertyValuePaise}`, {
+      method: 'POST',
+    });
+  },
+  createAgreement(data: object, token: string) {
+    return apiFetch<any>('/api/v1/agreements', {
+      method: 'POST', body: JSON.stringify(data),
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+  },
+  getAgreementDetail(id: string, token: string) {
+    return apiFetch<any>(`/api/v1/agreements/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+  },
+  generateAgreementDraft(id: string, token: string) {
+    return apiFetch<any>(`/api/v1/agreements/${id}/generate-draft`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+  updateAgreementTerms(id: string, data: object, token: string) {
+    return apiFetch<any>(`/api/v1/agreements/${id}/terms`, {
+      method: 'PATCH', body: JSON.stringify(data),
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+  },
+
+  // ── Legal verification (Value-Added Services) ────────────────────────────
+  getLegalPackages() {
+    return apiFetch<any[]>('/api/v1/legal/packages').catch(() => [] as any[]);
+  },
+  getMyLegalCases(token: string) {
+    return apiFetch<any[]>('/api/v1/legal/cases/my', { headers: { Authorization: `Bearer ${token}` } });
+  },
+  createLegalCase(data: object, token: string) {
+    return apiFetch<any>('/api/v1/legal/cases', {
+      method: 'POST', body: JSON.stringify(data),
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+  },
+  getLegalCase(id: string, token: string) {
+    return apiFetch<any>(`/api/v1/legal/cases/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+  },
+  getLegalCaseDocuments(id: string, token: string) {
+    return apiFetch<any[]>(`/api/v1/legal/cases/${id}/documents`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => [] as any[]);
+  },
+  scheduleLegalConsultation(id: string, scheduledAt: string, token: string) {
+    return apiFetch<any>(`/api/v1/legal/cases/${id}/consultation`, {
+      method: 'POST', body: JSON.stringify({ scheduledAt }),
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+  },
+
+  // ── Home Interiors (Value-Added Services) ────────────────────────────────
+  getInteriorDesigners(city?: string) {
+    return apiFetch<any[]>(`/api/v1/interiors/designers${city ? `?city=${encodeURIComponent(city)}` : ''}`).catch(() => [] as any[]);
+  },
+  getInteriorMaterials(category?: string) {
+    return apiFetch<any[]>(`/api/v1/interiors/materials/catalog${category ? `?category=${category}` : ''}`).catch(() => [] as any[]);
+  },
+  bookInteriorConsultation(data: object, token: string) {
+    return apiFetch<any>('/api/v1/interiors/consultation', {
+      method: 'POST', body: JSON.stringify(data),
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+  },
+  getMyInteriorProjects(token: string) {
+    return apiFetch<any[]>('/api/v1/interiors/projects/my', { headers: { Authorization: `Bearer ${token}` } }).catch(() => [] as any[]);
+  },
+  getInteriorProject(id: string, token: string) {
+    return apiFetch<any>(`/api/v1/interiors/projects/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+  },
+  getInteriorRooms(id: string, token: string) {
+    return apiFetch<any[]>(`/api/v1/interiors/projects/${id}/rooms`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => [] as any[]);
+  },
+  getInteriorMilestones(id: string, token: string) {
+    return apiFetch<any[]>(`/api/v1/interiors/projects/${id}/milestones`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => [] as any[]);
+  },
+  getInteriorQuote(id: string, token: string) {
+    return apiFetch<any>(`/api/v1/interiors/projects/${id}/quote`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+  },
+
+  // ── Broker ───────────────────────────────────────────────────────────────
+  getBrokerProfile(token: string) {
+    return apiFetch<any>('/api/v1/brokers/me', { headers: { Authorization: `Bearer ${token}` } });
+  },
+  registerBroker(data: object, token: string) {
+    return apiFetch<any>('/api/v1/brokers/register', {
+      method: 'POST', body: JSON.stringify(data),
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+  },
+
+  // ── Services storefront (public) ─────────────────────────────────────────
+  getStorefront(slug: string) {
+    return apiFetch<any>(`/api/v1/services/listings/by-slug/${encodeURIComponent(slug)}`);
+  },
+  getStorefrontItems(listingId: string) {
+    return apiFetch<any[]>(`/api/v1/services/listings/${listingId}/items`).catch(() => [] as any[]);
+  },
+  getStorefrontReviews(listingId: string) {
+    return apiFetch<any[]>(`/api/v1/services/listings/${listingId}/reviews`).catch(() => [] as any[]);
+  },
+
+  // ── Builder project edit ─────────────────────────────────────────────────
+  updateBuilderProject(id: string, data: object, token: string) {
+    return apiFetch<any>(`/api/v1/builder-projects/${id}`, {
+      method: 'PUT', body: JSON.stringify(data),
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+  },
+  updateUnitType(unitTypeId: string, data: object, token: string) {
+    return apiFetch<any>(`/api/v1/builder-projects/unit-types/${unitTypeId}`, {
+      method: 'PUT', body: JSON.stringify(data),
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+  },
+  deleteUnitType(unitTypeId: string, token: string) {
+    return apiFetch<void>(`/api/v1/builder-projects/unit-types/${unitTypeId}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
     });
   },
 };

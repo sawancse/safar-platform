@@ -79,6 +79,17 @@ export default function RootLayout() {
             <Stack.Screen name="flight-book" options={{ title: 'Passenger details' }} />
             <Stack.Screen name="flight/[id]" options={{ title: 'Flight booking' }} />
             <Stack.Screen name="my-flights" options={{ title: 'My flights' }} />
+            <Stack.Screen name="become-a-partner" options={{ title: 'Become a Partner' }} />
+            <Stack.Screen name="broker" options={{ title: 'Safar Broker' }} />
+            <Stack.Screen name="aashray-donate" options={{ title: 'Donate' }} />
+            <Stack.Screen name="agreements" options={{ title: 'Agreements' }} />
+            <Stack.Screen name="agreement/[id]" options={{ title: 'Agreement' }} />
+            <Stack.Screen name="legal" options={{ title: 'Legal Verification' }} />
+            <Stack.Screen name="legal-case/[id]" options={{ title: 'Case' }} />
+            <Stack.Screen name="interiors" options={{ title: 'Home Interiors' }} />
+            <Stack.Screen name="interior-project/[id]" options={{ title: 'Interior Project' }} />
+            <Stack.Screen name="storefront/[slug]" options={{ title: 'Storefront' }} />
+            <Stack.Screen name="booking/[id]" options={{ title: 'Booking' }} />
           </Stack>
         </I18nProvider>
       </SafeAreaProvider>

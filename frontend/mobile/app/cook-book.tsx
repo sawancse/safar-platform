@@ -62,6 +62,12 @@ export default function CookBookScreen() {
   const [eventPricing, setEventPricing] = useState<any[]>([]);
   const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
 
+  // dish catalog (per-dish selection with filters)
+  const [dishCatalog, setDishCatalog] = useState<any[]>([]);
+  const [dishModal, setDishModal] = useState(false);
+  const [dishFilter, setDishFilter] = useState<'all' | 'veg' | 'fried' | 'recommended' | 'nog'>('all');
+  const [selectedDishes, setSelectedDishes] = useState<Record<string, any>>({});
+
   const [submitting, setSubmitting] = useState(false);
   const [payOrder, setPayOrder] = useState<any>(null);   // { order, bookingId }
   const [done, setDone] = useState<any>(null);
@@ -73,6 +79,28 @@ export default function CookBookScreen() {
   useEffect(() => {
     if (type === 'EVENT') api.getEventPricing(chefId).then((p) => setEventPricing(p ?? [])).catch(() => {});
   }, [type, chefId]);
+
+  useEffect(() => {
+    if (type === 'EVENT' && dishCatalog.length === 0) {
+      api.getDishCatalog().then((d) => setDishCatalog(Array.isArray(d) ? d : (d?.items ?? d?.dishes ?? []))).catch(() => {});
+    }
+  }, [type, dishCatalog.length]);
+
+  const filteredDishes = dishCatalog.filter((d) => {
+    if (dishFilter === 'veg') return d.isVeg;
+    if (dishFilter === 'fried') return d.isFried;
+    if (dishFilter === 'recommended') return d.isRecommended;
+    if (dishFilter === 'nog') return d.noOnionGarlic;
+    return true;
+  });
+  const selectedDishList = Object.values(selectedDishes);
+  function toggleDish(d: any) {
+    setSelectedDishes((prev) => {
+      const next = { ...prev };
+      if (next[d.id]) delete next[d.id]; else next[d.id] = { id: d.id, name: d.name, pricePaise: d.pricePaise ?? 0 };
+      return next;
+    });
+  }
 
   const addons = eventPricing.filter((p) => p.category === 'ADDON' || p.category === 'LIVE_COUNTER');
   const addonPaise = (id: string) => {
@@ -146,12 +174,15 @@ export default function CookBookScreen() {
     }
     setSubmitting(true);
     try {
+      const dishNote = selectedDishList.length ? `Selected dishes: ${selectedDishList.map((d: any) => d.name).join(', ')}` : '';
       const event = await api.createEventBooking({
         chefId, eventType, eventDate, eventTime,
         durationHours: Number(durationHours), guestCount: Number(guestCount),
         venueAddress: address, city, pincode, customerName, customerPhone,
-        menuDescription, specialRequests, cuisinePreferences: cuisinePref,
+        menuDescription: [menuDescription, dishNote].filter(Boolean).join('\n'),
+        specialRequests, cuisinePreferences: cuisinePref,
         servicesJson: JSON.stringify(Object.keys(selectedAddons).filter((k) => selectedAddons[k])),
+        selectedDishesJson: JSON.stringify(selectedDishList),
       }, token);
       setDone({ ...event, isEvent: true });
     } catch (e: any) {
@@ -186,7 +217,7 @@ export default function CookBookScreen() {
         serviceType: 'EVENT', chefId, chefName,
         summary: `${pretty(eventType)} · ${eventDate} · ${guestCount} guests`,
         estTotalPaise: eventEstimatePaise,
-        payload: { chefId, eventType, eventDate, eventTime, durationHours: Number(durationHours), guestCount: Number(guestCount), venueAddress: address, city, pincode, customerName, customerPhone, menuDescription, specialRequests, cuisinePreferences: cuisinePref, servicesJson: JSON.stringify(Object.keys(selectedAddons).filter((k) => selectedAddons[k])) },
+        payload: { chefId, eventType, eventDate, eventTime, durationHours: Number(durationHours), guestCount: Number(guestCount), venueAddress: address, city, pincode, customerName, customerPhone, menuDescription, specialRequests, cuisinePreferences: cuisinePref, servicesJson: JSON.stringify(Object.keys(selectedAddons).filter((k) => selectedAddons[k])), selectedDishesJson: JSON.stringify(selectedDishList) },
       });
     }
     Alert.alert('Added to cart', 'Continue browsing or go to your cart.', [
@@ -354,6 +385,27 @@ export default function CookBookScreen() {
             </>
           )}
 
+          {dishCatalog.length > 0 && (
+            <>
+              <Text style={styles.label}>Choose dishes</Text>
+              <TouchableOpacity style={styles.dishPickBtn} onPress={() => setDishModal(true)}>
+                <Text style={styles.dishPickText}>
+                  {selectedDishList.length ? `${selectedDishList.length} dish${selectedDishList.length > 1 ? 'es' : ''} selected` : 'Browse dish catalog'}
+                </Text>
+                <Text style={styles.dishPickChevron}>›</Text>
+              </TouchableOpacity>
+              {selectedDishList.length > 0 && (
+                <View style={styles.selDishWrap}>
+                  {selectedDishList.map((d: any) => (
+                    <TouchableOpacity key={d.id} style={styles.selDishChip} onPress={() => toggleDish(d)}>
+                      <Text style={styles.selDishText}>{d.name}  ✕</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </>
+          )}
+
           <Field label="Other menu notes"><TextInput style={[styles.input, styles.textarea]} value={menuDescription} onChangeText={setMenuDescription} placeholder="e.g. 5 starters, 3 mains, no onion/garlic…" placeholderTextColor="#9ca3af" multiline /></Field>
 
           {eventEstimatePaise > 0 && (
@@ -395,6 +447,44 @@ export default function CookBookScreen() {
       <TouchableOpacity style={styles.cartBtn} disabled={submitting} onPress={addCurrentToCart}>
         <Text style={styles.cartBtnText}>🛒  Add to cart</Text>
       </TouchableOpacity>
+
+      {/* Dish catalog picker */}
+      <Modal visible={dishModal} animationType="slide" onRequestClose={() => setDishModal(false)}>
+        <View style={styles.dishModal}>
+          <View style={styles.dishModalHeader}>
+            <Text style={styles.dishModalTitle}>Choose dishes</Text>
+            <TouchableOpacity onPress={() => setDishModal(false)}><Text style={styles.dishModalClose}>Done</Text></TouchableOpacity>
+          </View>
+          <View style={styles.filterRow}>
+            {([['all', 'All'], ['veg', 'Veg'], ['fried', 'Fried'], ['recommended', 'Recommended'], ['nog', 'No onion/garlic']] as const).map(([k, lbl]) => (
+              <TouchableOpacity key={k} style={[styles.filterChip, dishFilter === k && styles.filterChipActive]} onPress={() => setDishFilter(k)}>
+                <Text style={[styles.filterChipText, dishFilter === k && styles.filterChipTextActive]}>{lbl}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+            {filteredDishes.length === 0 ? (
+              <Text style={styles.dishEmpty}>No dishes match this filter.</Text>
+            ) : filteredDishes.map((d) => {
+              const on = !!selectedDishes[d.id];
+              return (
+                <TouchableOpacity key={d.id} style={[styles.dishRow, on && styles.dishRowOn]} onPress={() => toggleDish(d)}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.dishName}>{d.isVeg ? '🟢 ' : '🔴 '}{d.name}{d.isRecommended ? '  ⭐' : ''}</Text>
+                    <View style={styles.dishTagRow}>
+                      {d.category ? <Text style={styles.dishTag}>{pretty(String(d.category))}</Text> : null}
+                      {d.isFried ? <Text style={styles.dishTag}>Fried</Text> : null}
+                      {d.noOnionGarlic ? <Text style={styles.dishTag}>No onion/garlic</Text> : null}
+                    </View>
+                  </View>
+                  {d.pricePaise ? <Text style={styles.dishPrice}>{formatPaise(d.pricePaise)}</Text> : null}
+                  <Text style={[styles.dishCheck, on && styles.dishCheckOn]}>{on ? '✓' : '+'}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -447,6 +537,30 @@ const styles = StyleSheet.create({
   cartBtnText:   { color: '#f97316', fontSize: 15, fontWeight: '700' },
   linkText:      { color: '#f97316', fontSize: 14, fontWeight: '600', marginTop: 16 },
 
+  dishPickBtn:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', borderWidth: 1, borderColor: '#f97316', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 10 },
+  dishPickText:  { fontSize: 14, fontWeight: '600', color: '#f97316' },
+  dishPickChevron: { fontSize: 20, color: '#f97316', fontWeight: '700' },
+  selDishWrap:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  selDishChip:   { backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fed7aa', borderRadius: 100, paddingHorizontal: 12, paddingVertical: 6 },
+  selDishText:   { fontSize: 12, fontWeight: '600', color: '#9a3412' },
+  dishModal:     { flex: 1, backgroundColor: '#f9fafb' },
+  dishModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 52, paddingBottom: 12, paddingHorizontal: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  dishModalTitle:{ fontSize: 18, fontWeight: '800', color: '#111827' },
+  dishModalClose:{ fontSize: 15, fontWeight: '700', color: '#f97316' },
+  filterRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16, paddingBottom: 4 },
+  filterChip:    { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 100, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#fff' },
+  filterChipActive: { backgroundColor: '#f97316', borderColor: '#f97316' },
+  filterChipText: { fontSize: 12, fontWeight: '600', color: '#374151' },
+  filterChipTextActive: { color: '#fff' },
+  dishEmpty:     { fontSize: 13, color: '#9ca3af', textAlign: 'center', marginTop: 24 },
+  dishRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: '#f3f4f6' },
+  dishRowOn:     { borderColor: '#f97316', backgroundColor: '#fff7ed' },
+  dishName:      { fontSize: 14, fontWeight: '600', color: '#111827' },
+  dishTagRow:    { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+  dishTag:       { fontSize: 10, color: '#6b7280', backgroundColor: '#f3f4f6', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 100, overflow: 'hidden' },
+  dishPrice:     { fontSize: 13, fontWeight: '700', color: '#f97316' },
+  dishCheck:     { fontSize: 18, fontWeight: '800', color: '#9ca3af', width: 24, textAlign: 'center' },
+  dishCheckOn:   { color: '#f97316' },
   successIcon:   { fontSize: 56 },
   successTitle:  { fontSize: 22, fontWeight: '800', color: '#111827', marginTop: 12 },
   successRef:    { fontSize: 14, color: '#6b7280', marginTop: 4, fontWeight: '600' },
