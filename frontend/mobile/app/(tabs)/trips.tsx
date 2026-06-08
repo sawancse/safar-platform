@@ -14,6 +14,8 @@ import { useRouter } from 'expo-router';
 import { api } from '@/lib/api';
 import { getAccessToken } from '@/lib/auth';
 import { formatPaise } from '@/lib/utils';
+import RazorpayCheckout from '@/components/RazorpayCheckout';
+import { PaymentResult } from '@/lib/payment';
 
 const STATUS_STYLE: Record<string, { label: string; bg: string; text: string }> = {
   PENDING_PAYMENT: { label: 'Pending Payment', bg: '#fef9c3', text: '#854d0e' },
@@ -42,6 +44,31 @@ export default function TripsScreen() {
   const [reviewComment, setReviewComment] = useState('');
   const [reviewedBookings, setReviewedBookings] = useState<Set<string>>(new Set());
   const [submittingReview, setSubmittingReview] = useState(false);
+
+  // Balance payment (PARTIAL_PREPAID) state
+  const [balancePay, setBalancePay] = useState<{ order: any; ref: string } | null>(null);
+  const [startingBalance, setStartingBalance] = useState(false);
+
+  async function payBalance(item: any) {
+    const token = await getAccessToken();
+    if (!token) return;
+    setStartingBalance(true);
+    try {
+      const order = await api.createCookPaymentOrder(item.id, item.dueAtPropertyPaise, token);
+      setBalancePay({ order, ref: item.bookingRef ?? item.id });
+    } catch (e: any) {
+      Alert.alert('Could not start payment', e.message ?? 'Please try again.');
+    } finally {
+      setStartingBalance(false);
+    }
+  }
+
+  function onBalanceSuccess(_res: PaymentResult) {
+    setBalancePay(null);
+    Alert.alert('Payment received', 'Your remaining balance has been paid.');
+    // brief delay so payment.captured → booking-service markBalancePaid can flow
+    setTimeout(() => loadBookings(), 1500);
+  }
 
   const loadBookings = useCallback(async () => {
     const token = await getAccessToken();
@@ -159,6 +186,7 @@ export default function TripsScreen() {
           const daysSinceCheckout = checkOutDate ? Math.floor((Date.now() - checkOutDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
           const reviewWindowExpired = daysSinceCheckout > 30;
           const canReview = isReviewable && !isReviewed && !reviewWindowExpired;
+          const hasBalance = item.status === 'CONFIRMED' && item.paymentMode === 'PARTIAL_PREPAID' && (item.dueAtPropertyPaise ?? 0) > 0;
           return (
             <View style={styles.card}>
               <View style={styles.cardRow}>
@@ -187,6 +215,17 @@ export default function TripsScreen() {
                     <Text style={styles.expiredBadgeText}>Review window expired</Text>
                   </View>
                 </View>
+              )}
+              {hasBalance && (
+                <TouchableOpacity
+                  style={styles.balanceBtn}
+                  disabled={startingBalance}
+                  onPress={() => payBalance(item)}
+                >
+                  <Text style={styles.balanceBtnText}>
+                    {startingBalance ? 'Starting…' : `Pay balance ${formatPaise(item.dueAtPropertyPaise)}`}
+                  </Text>
+                </TouchableOpacity>
               )}
               {(canCancel || canReview) && (
                 <View style={styles.actionRow}>
@@ -268,6 +307,19 @@ export default function TripsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Balance payment (Razorpay) */}
+      <Modal visible={balancePay !== null} animationType="slide" onRequestClose={() => setBalancePay(null)}>
+        {balancePay && (
+          <RazorpayCheckout
+            order={balancePay.order}
+            prefill={{ name: '', email: '', phone: '' }}
+            onSuccess={onBalanceSuccess}
+            onFailure={(err) => { Alert.alert('Payment failed', err); setBalancePay(null); }}
+            onDismiss={() => setBalancePay(null)}
+          />
+        )}
+      </Modal>
     </View>
   );
 }
@@ -288,6 +340,8 @@ const styles = StyleSheet.create({
   cardPrice:    { fontSize: 13, fontWeight: '700', color: '#111827', marginTop: 4, textAlign: 'right' },
 
   // Action buttons row
+  balanceBtn:     { marginTop: 10, backgroundColor: '#f97316', borderRadius: 10, paddingVertical: 11, alignItems: 'center' },
+  balanceBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   actionRow:      { flexDirection: 'row', marginTop: 10, gap: 8 },
   cancelBtn:      { borderWidth: 1, borderColor: '#fca5a5', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 7, backgroundColor: '#fef2f2' },
   cancelBtnText:  { fontSize: 12, fontWeight: '600', color: '#dc2626' },
