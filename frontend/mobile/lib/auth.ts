@@ -29,6 +29,10 @@ export async function getUserRole(): Promise<string | null> {
   return SecureStore.getItemAsync(KEYS.USER_ROLE);
 }
 
+export async function getUserId(): Promise<string | null> {
+  return SecureStore.getItemAsync(KEYS.USER_ID);
+}
+
 export async function clearTokens() {
   await Promise.all(Object.values(KEYS).map((k) => SecureStore.deleteItemAsync(k)));
 }

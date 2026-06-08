@@ -1,0 +1,280 @@
+import { useEffect, useState } from 'react';
+import {
+  View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal,
+} from 'react-native';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { api } from '@/lib/api';
+import { getAccessToken } from '@/lib/auth';
+import { formatPaise } from '@/lib/utils';
+import CookPaymentWebView from '@/components/CookPaymentWebView';
+
+const MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'DINNER', 'ALL_DAY'];
+
+function pretty(s?: string) {
+  if (!s) return '';
+  return s.split('_').map((w) => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+}
+
+export default function CookBookScreen() {
+  const { chefId, type: paramType, eventType: paramEventType } =
+    useLocalSearchParams<{ chefId?: string; type?: string; eventType?: string }>();
+  const router = useRouter();
+  const type = (paramType === 'EVENT' ? 'EVENT' : 'DAILY') as 'DAILY' | 'EVENT';
+
+  const [chef, setChef] = useState<any>(null);
+
+  // common
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [locality, setLocality] = useState('');
+  const [pincode, setPincode] = useState('');
+  const [specialRequests, setSpecialRequests] = useState('');
+
+  // daily
+  const [mealType, setMealType] = useState('LUNCH');
+  const [serviceDate, setServiceDate] = useState('');
+  const [serviceTime, setServiceTime] = useState('12:00');
+  const [guestsCount, setGuestsCount] = useState('2');
+  const [numberOfMeals, setNumberOfMeals] = useState('1');
+
+  // event
+  const [eventType, setEventType] = useState(paramEventType ?? 'BIRTHDAY');
+  const [eventDate, setEventDate] = useState('');
+  const [eventTime, setEventTime] = useState('19:00');
+  const [guestCount, setGuestCount] = useState('30');
+  const [durationHours, setDurationHours] = useState('4');
+  const [menuDescription, setMenuDescription] = useState('');
+
+  const [submitting, setSubmitting] = useState(false);
+  const [payOrder, setPayOrder] = useState<any>(null);   // { order, bookingId }
+  const [done, setDone] = useState<any>(null);
+
+  useEffect(() => {
+    if (chefId) api.getChef(chefId).then(setChef).catch(() => {});
+  }, [chefId]);
+
+  async function submitDaily() {
+    const token = await getAccessToken();
+    if (!token) { router.push('/auth'); return; }
+    if (!customerName || !customerPhone || !serviceDate || !address) {
+      Alert.alert('Missing details', 'Please fill name, phone, service date and address.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const booking = await api.bookChef({
+        chefId, serviceType: 'DAILY', mealType, serviceDate, serviceTime,
+        guestsCount: Number(guestsCount), numberOfMeals: Number(numberOfMeals),
+        specialRequests, address, city, locality, pincode, customerName, customerPhone,
+      }, token);
+      const advance = booking.advanceAmountPaise ?? booking.totalAmountPaise ?? 0;
+      if (advance > 0) {
+        const order = await api.createCookPaymentOrder(booking.id, advance, token);
+        setPayOrder({ order, booking });
+      } else {
+        setDone(booking);
+      }
+    } catch (e: any) {
+      Alert.alert('Booking failed', e.message ?? 'Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function submitEvent() {
+    const token = await getAccessToken();
+    if (!token) { router.push('/auth'); return; }
+    if (!customerName || !customerPhone || !eventDate || !address) {
+      Alert.alert('Missing details', 'Please fill name, phone, event date and venue.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const event = await api.createEventBooking({
+        chefId, eventType, eventDate, eventTime,
+        durationHours: Number(durationHours), guestCount: Number(guestCount),
+        venueAddress: address, city, pincode, customerName, customerPhone,
+        menuDescription, specialRequests,
+      }, token);
+      setDone({ ...event, isEvent: true });
+    } catch (e: any) {
+      Alert.alert('Request failed', e.message ?? 'Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function onPaymentSuccess(res: { paymentId: string; orderId: string }) {
+    const token = await getAccessToken();
+    const booking = payOrder.booking;
+    try {
+      if (token) await api.confirmChefBookingPayment(booking.id, res.orderId, res.paymentId, token);
+      setPayOrder(null);
+      setDone(booking);
+    } catch (e: any) {
+      Alert.alert('Payment confirmation failed', e.message ?? 'Contact support with your payment id.');
+      setPayOrder(null);
+    }
+  }
+
+  // ── Payment WebView ──
+  if (payOrder) {
+    return (
+      <Modal visible animationType="slide">
+        <CookPaymentWebView
+          order={payOrder.order}
+          prefill={{ name: customerName, email: '', phone: customerPhone }}
+          onSuccess={onPaymentSuccess}
+          onFailure={(err) => { Alert.alert('Payment failed', err); setPayOrder(null); }}
+          onDismiss={() => setPayOrder(null)}
+        />
+      </Modal>
+    );
+  }
+
+  // ── Success ──
+  if (done) {
+    return (
+      <View style={styles.center}>
+        <Stack.Screen options={{ title: 'Booked' }} />
+        <Text style={styles.successIcon}>✅</Text>
+        <Text style={styles.successTitle}>{done.isEvent ? 'Event request sent!' : 'Booking confirmed!'}</Text>
+        {done.bookingRef ? <Text style={styles.successRef}>Ref: {done.bookingRef}</Text> : null}
+        <Text style={styles.successMsg}>
+          {done.isEvent
+            ? 'The cook/caterer will review your event and send a quote. Track it in My Bookings.'
+            : 'Your cook is booked. The balance is payable after the service.'}
+        </Text>
+        <TouchableOpacity style={styles.primaryBtn} onPress={() => router.replace('/cook-bookings')}>
+          <Text style={styles.primaryBtnText}>View my bookings</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.replace('/cooks')}><Text style={styles.linkText}>Back to cooks</Text></TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <Stack.Screen options={{ title: type === 'EVENT' ? 'Event request' : 'Book a cook' }} />
+      {chef ? (
+        <View style={styles.chefBar}>
+          <Text style={styles.chefBarIcon}>👨‍🍳</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.chefBarName}>{chef.name}</Text>
+            <Text style={styles.chefBarSub}>{chef.city}{chef.cuisines ? ` · ${pretty((chef.cuisines as string).split(',')[0])}` : ''}</Text>
+          </View>
+        </View>
+      ) : null}
+
+      <Field label="Your name *"><TextInput style={styles.input} value={customerName} onChangeText={setCustomerName} placeholder="Full name" placeholderTextColor="#9ca3af" /></Field>
+      <Field label="Phone *"><TextInput style={styles.input} value={customerPhone} onChangeText={setCustomerPhone} placeholder="10-digit mobile" placeholderTextColor="#9ca3af" keyboardType="phone-pad" maxLength={10} /></Field>
+
+      {type === 'DAILY' ? (
+        <>
+          <Text style={styles.label}>Meal</Text>
+          <View style={styles.pillRow}>
+            {MEAL_TYPES.map((m) => (
+              <TouchableOpacity key={m} style={[styles.pill, mealType === m && styles.pillActive]} onPress={() => setMealType(m)}>
+                <Text style={[styles.pillText, mealType === m && styles.pillTextActive]}>{pretty(m)}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={styles.row}>
+            <Field label="Service date *" flex><TextInput style={styles.input} value={serviceDate} onChangeText={setServiceDate} placeholder="YYYY-MM-DD" placeholderTextColor="#9ca3af" /></Field>
+            <Field label="Time" flex><TextInput style={styles.input} value={serviceTime} onChangeText={setServiceTime} placeholder="HH:MM" placeholderTextColor="#9ca3af" /></Field>
+          </View>
+          <View style={styles.row}>
+            <Field label="Household size" flex><TextInput style={styles.input} value={guestsCount} onChangeText={setGuestsCount} keyboardType="numeric" /></Field>
+            <Field label="No. of meals" flex><TextInput style={styles.input} value={numberOfMeals} onChangeText={setNumberOfMeals} keyboardType="numeric" /></Field>
+          </View>
+        </>
+      ) : (
+        <>
+          <Field label="Occasion"><TextInput style={styles.input} value={eventType} onChangeText={setEventType} placeholder="BIRTHDAY / WEDDING / …" placeholderTextColor="#9ca3af" autoCapitalize="characters" /></Field>
+          <View style={styles.row}>
+            <Field label="Event date *" flex><TextInput style={styles.input} value={eventDate} onChangeText={setEventDate} placeholder="YYYY-MM-DD" placeholderTextColor="#9ca3af" /></Field>
+            <Field label="Time" flex><TextInput style={styles.input} value={eventTime} onChangeText={setEventTime} placeholder="HH:MM" placeholderTextColor="#9ca3af" /></Field>
+          </View>
+          <View style={styles.row}>
+            <Field label="Guests" flex><TextInput style={styles.input} value={guestCount} onChangeText={setGuestCount} keyboardType="numeric" /></Field>
+            <Field label="Duration (hrs)" flex><TextInput style={styles.input} value={durationHours} onChangeText={setDurationHours} keyboardType="numeric" /></Field>
+          </View>
+          <Field label="Menu / cuisine preferences"><TextInput style={[styles.input, styles.textarea]} value={menuDescription} onChangeText={setMenuDescription} placeholder="e.g. North Indian veg, 5 starters, 3 mains…" placeholderTextColor="#9ca3af" multiline /></Field>
+        </>
+      )}
+
+      <Field label={type === 'EVENT' ? 'Venue address *' : 'Delivery address *'}><TextInput style={[styles.input, styles.textarea]} value={address} onChangeText={setAddress} placeholder="House / flat, street, landmark" placeholderTextColor="#9ca3af" multiline /></Field>
+      <View style={styles.row}>
+        <Field label="City" flex><TextInput style={styles.input} value={city} onChangeText={setCity} placeholder="City" placeholderTextColor="#9ca3af" /></Field>
+        <Field label="Pincode" flex><TextInput style={styles.input} value={pincode} onChangeText={setPincode} placeholder="6-digit" placeholderTextColor="#9ca3af" keyboardType="numeric" maxLength={6} /></Field>
+      </View>
+      {type === 'DAILY' ? <Field label="Locality"><TextInput style={styles.input} value={locality} onChangeText={setLocality} placeholder="e.g. Gachibowli" placeholderTextColor="#9ca3af" /></Field> : null}
+      <Field label="Special requests"><TextInput style={[styles.input, styles.textarea]} value={specialRequests} onChangeText={setSpecialRequests} placeholder="Allergies, preferences…" placeholderTextColor="#9ca3af" multiline /></Field>
+
+      {type === 'DAILY' && chef?.dailyRatePaise ? (
+        <View style={styles.priceBox}>
+          <Text style={styles.priceRow}>Estimated total <Text style={styles.priceVal}>{formatPaise(chef.dailyRatePaise * Number(numberOfMeals || 1))}</Text></Text>
+          <Text style={styles.priceHint}>Pay 10% advance now, balance after service.</Text>
+        </View>
+      ) : null}
+
+      <TouchableOpacity
+        style={[styles.primaryBtn, submitting && styles.btnDisabled]}
+        disabled={submitting}
+        onPress={type === 'EVENT' ? submitEvent : submitDaily}
+      >
+        {submitting ? <ActivityIndicator color="#fff" /> : (
+          <Text style={styles.primaryBtnText}>{type === 'EVENT' ? 'Send event request' : 'Continue to payment'}</Text>
+        )}
+      </TouchableOpacity>
+    </ScrollView>
+  );
+}
+
+function Field({ label, children, flex }: { label: string; children: React.ReactNode; flex?: boolean }) {
+  return (
+    <View style={[styles.field, flex && { flex: 1 }]}>
+      <Text style={styles.label}>{label}</Text>
+      {children}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container:     { flex: 1, backgroundColor: '#f9fafb' },
+  center:        { flex: 1, backgroundColor: '#f9fafb', alignItems: 'center', justifyContent: 'center', padding: 24 },
+
+  chefBar:       { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff7ed', borderRadius: 12, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: '#fed7aa' },
+  chefBarIcon:   { fontSize: 28 },
+  chefBarName:   { fontSize: 15, fontWeight: '700', color: '#111827' },
+  chefBarSub:    { fontSize: 12, color: '#6b7280', marginTop: 2 },
+
+  field:         { marginBottom: 14 },
+  label:         { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6 },
+  input:         { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, color: '#111827' },
+  textarea:      { height: 84, textAlignVertical: 'top' },
+  row:           { flexDirection: 'row', gap: 12 },
+
+  pillRow:       { flexDirection: 'row', gap: 8, marginBottom: 14, flexWrap: 'wrap' },
+  pill:          { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 100, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#fff' },
+  pillActive:    { backgroundColor: '#f97316', borderColor: '#f97316' },
+  pillText:      { fontSize: 12, fontWeight: '600', color: '#374151' },
+  pillTextActive:{ color: '#fff' },
+
+  priceBox:      { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6' },
+  priceRow:      { fontSize: 14, color: '#374151', fontWeight: '600' },
+  priceVal:      { color: '#f97316', fontWeight: '800' },
+  priceHint:     { fontSize: 12, color: '#6b7280', marginTop: 6 },
+
+  primaryBtn:    { backgroundColor: '#f97316', borderRadius: 12, paddingVertical: 15, alignItems: 'center', marginTop: 4 },
+  btnDisabled:   { opacity: 0.6 },
+  primaryBtnText:{ color: '#fff', fontSize: 16, fontWeight: '700' },
+  linkText:      { color: '#f97316', fontSize: 14, fontWeight: '600', marginTop: 16 },
+
+  successIcon:   { fontSize: 56 },
+  successTitle:  { fontSize: 22, fontWeight: '800', color: '#111827', marginTop: 12 },
+  successRef:    { fontSize: 14, color: '#6b7280', marginTop: 4, fontWeight: '600' },
+  successMsg:    { fontSize: 14, color: '#6b7280', textAlign: 'center', marginTop: 12, lineHeight: 20 },
+});

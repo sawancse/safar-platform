@@ -1371,4 +1371,130 @@ export const api = {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     });
   },
+
+  // ── Safar Cooks / Services marketplace ───────────────────────────────────
+  searchChefs(params: Record<string, string>) {
+    const qs = new URLSearchParams(params).toString();
+    return apiFetch<any>(`/api/v1/chefs/search?${qs}`);
+  },
+  getChef(chefId: string) {
+    return apiFetch<any>(`/api/v1/chefs/${chefId}`);
+  },
+  getChefMenus(chefId: string) {
+    return apiFetch<any[]>(`/api/v1/chefs/${chefId}/menus`);
+  },
+  getMenuItems(menuId: string) {
+    return apiFetch<any[]>(`/api/v1/chefs/menus/${menuId}/items`);
+  },
+  getChefReviews(chefId: string) {
+    return apiFetch<any[]>(`/api/v1/chefs/${chefId}/reviews`);
+  },
+  getChefPhotos(chefId: string) {
+    return apiFetch<any[]>(`/api/v1/chefs/${chefId}/photos`).catch(() => [] as any[]);
+  },
+  getChefCalendar(chefId: string, from: string, to: string) {
+    return apiFetch<any>(`/api/v1/chefs/${chefId}/calendar?from=${from}&to=${to}`).catch(() => null);
+  },
+  // Create a generic Razorpay order for a cook booking / balance (payment-service).
+  createCookPaymentOrder(bookingId: string, amountPaise: number, token: string) {
+    return apiFetch<any>(`/api/v1/payments/order?bookingId=${bookingId}&amountPaise=${amountPaise}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+  bookChef(data: object, token: string) {
+    return apiFetch<any>('/api/v1/chef-bookings', {
+      method: 'POST', body: JSON.stringify(data),
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+  },
+  createEventBooking(data: object, token?: string) {
+    return apiFetch<any>('/api/v1/chef-events', {
+      method: 'POST', body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+  },
+  getMyChefBookings(token: string) {
+    return apiFetch<any[]>('/api/v1/chef-bookings/my', { headers: { Authorization: `Bearer ${token}` } });
+  },
+  getMyEventBookings(token: string) {
+    return apiFetch<any[]>('/api/v1/chef-events/my', { headers: { Authorization: `Bearer ${token}` } });
+  },
+  getChefBookingById(id: string) {
+    return apiFetch<any>(`/api/v1/chef-bookings/${id}`);
+  },
+  getEventBookingById(id: string) {
+    return apiFetch<any>(`/api/v1/chef-events/${id}`);
+  },
+  getEventActiveVendor(eventId: string, token?: string) {
+    return apiFetch<any>(`/api/v1/chef-events/${eventId}/vendor`,
+      token ? { headers: { Authorization: `Bearer ${token}` } } : undefined).catch(() => null);
+  },
+  cancelChefBooking(id: string, reason: string, token: string) {
+    return apiFetch<any>(`/api/v1/chef-bookings/${id}/cancel?reason=${encodeURIComponent(reason)}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+  cancelEvent(id: string, reason: string, token: string) {
+    return apiFetch<any>(`/api/v1/chef-events/${id}/cancel?reason=${encodeURIComponent(reason)}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+  rateChefBooking(id: string, rating: number, comment: string, token: string) {
+    return apiFetch<any>(`/api/v1/chef-bookings/${id}/rate?rating=${rating}&comment=${encodeURIComponent(comment)}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+  rateEventBooking(id: string, rating: number, comment: string, token: string) {
+    return apiFetch<any>(`/api/v1/chef-events/${id}/rate?rating=${rating}&comment=${encodeURIComponent(comment)}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+  confirmChefBookingPayment(id: string, razorpayOrderId: string, razorpayPaymentId: string, token: string) {
+    return apiFetch<any>(`/api/v1/chef-bookings/${id}/confirm-payment?razorpayOrderId=${encodeURIComponent(razorpayOrderId)}&razorpayPaymentId=${encodeURIComponent(razorpayPaymentId)}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+  payChefBookingBalance(id: string, razorpayOrderId: string, razorpayPaymentId: string, token: string) {
+    return apiFetch<any>(`/api/v1/chef-bookings/${id}/pay-balance?razorpayOrderId=${encodeURIComponent(razorpayOrderId)}&razorpayPaymentId=${encodeURIComponent(razorpayPaymentId)}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+  payEventBookingBalance(id: string, razorpayOrderId: string, razorpayPaymentId: string, token: string) {
+    return apiFetch<any>(`/api/v1/chef-events/${id}/pay-balance?razorpayOrderId=${encodeURIComponent(razorpayOrderId)}&razorpayPaymentId=${encodeURIComponent(razorpayPaymentId)}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  // ── Flights ──────────────────────────────────────────────────────────────
+  searchFlights(params: Record<string, string>) {
+    const qs = new URLSearchParams(params).toString();
+    return apiFetch<any>(`/api/v1/flights/search?${qs}`);
+  },
+  createFlightBooking(body: object, token: string) {
+    return apiFetch<any>('/api/v1/flights/book', {
+      method: 'POST', body: JSON.stringify(body),
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+  },
+  confirmFlightPayment(bookingId: string, razorpayOrderId: string, razorpayPaymentId: string, token: string) {
+    return apiFetch<any>(`/api/v1/flights/${bookingId}/confirm-payment`, {
+      method: 'POST', body: JSON.stringify({ razorpayOrderId, razorpayPaymentId }),
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+  },
+  cancelFlightBooking(bookingId: string, token: string) {
+    return apiFetch<any>(`/api/v1/flights/${bookingId}/cancel`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+  getFlightBooking(bookingId: string, token: string) {
+    return apiFetch<any>(`/api/v1/flights/${bookingId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+  getMyFlights(token: string, page = 0, size = 10) {
+    return apiFetch<any>(`/api/v1/flights/my?page=${page}&size=${size}&sort=createdAt,desc`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
 };
