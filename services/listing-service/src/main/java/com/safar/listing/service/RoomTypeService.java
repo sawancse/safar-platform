@@ -151,10 +151,13 @@ public class RoomTypeService {
 
         for (RoomType rt : roomTypes) {
             int minAvailable = computeMinAvailable(rt.getId(), checkIn, checkOut, rt.getCount());
-            // Cap by current room-level occupancy (tenancies never write to
-            // RoomTypeAvailability, so the date table can overstate PG availability).
-            int occupancyCap = roomsAvailableNow(rt);
-            int effective = Math.min(minAvailable, occupancyCap);
+            // Cap by current room-level occupancy ONLY for monthly/PG stays. `occupiedBeds`
+            // is a tenancy aggregate and must NOT gate nightly/hourly date-availability —
+            // otherwise a fully-"occupied" room reads as 0 available on every date. For
+            // NIGHTLY/HOURLY the date table (RoomTypeAvailability) is the source of truth.
+            int effective = rt.getStayMode() == StayMode.MONTHLY
+                    ? Math.min(minAvailable, roomsAvailableNow(rt))
+                    : minAvailable;
             result.add(toResponse(rt, effective));
         }
 
