@@ -346,11 +346,14 @@ public class BookingService {
             }
             securityDepositStatus = securityDepositPaise != null && securityDepositPaise > 0 ? "PENDING" : null;
         }
-        // Insurance is a stay-protection fee for short-term bookings; skip for
-        // residential monthly rentals (PG/co-living) — same as GST and cleaning fee.
-        long insurancePaise = "MONTH".equals(pricingUnit)
-                ? 0L
-                : Math.min(INSURANCE_PER_NIGHT_PAISE * nights, INSURANCE_CAP_PAISE);
+        // Micro-insurance: only when the host has enabled it on the listing, and never
+        // for residential monthly rentals (PG/co-living). Use the listing's configured
+        // amount so it matches the booking page estimate (which gates on insuranceEnabled).
+        long insurancePaise = 0L;
+        if (!"MONTH".equals(pricingUnit) && listingClient.isInsuranceEnabled(req.listingId())) {
+            Long configured = listingClient.getInsuranceAmountPaise(req.listingId());
+            insurancePaise = configured != null && configured > 0 ? configured : 0L;
+        }
 
         // Feature 1: Non-refundable discount
         boolean isNonRefundable = Boolean.TRUE.equals(req.nonRefundable());

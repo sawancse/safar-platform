@@ -413,6 +413,37 @@ public class ListingServiceClientImpl implements ListingServiceClient {
     }
 
     @Override
+    @CircuitBreaker(name = "listingService", fallbackMethod = "isInsuranceEnabledFallback")
+    @Retry(name = "listingService")
+    public boolean isInsuranceEnabled(UUID listingId) {
+        Map<String, Object> listing = fetchListing(listingId);
+        if (listing == null) return false;
+        Object val = listing.get("insuranceEnabled");
+        return val instanceof Boolean && (Boolean) val;
+    }
+
+    public boolean isInsuranceEnabledFallback(UUID listingId, Throwable t) {
+        log.warn("Could not check insurance flag for {}: {} — defaulting to disabled", listingId, t.getMessage());
+        return false;
+    }
+
+    @Override
+    @CircuitBreaker(name = "listingService", fallbackMethod = "getInsuranceAmountPaiseFallback")
+    @Retry(name = "listingService")
+    public Long getInsuranceAmountPaise(UUID listingId) {
+        Map<String, Object> listing = fetchListing(listingId);
+        if (listing == null) return null;
+        Object val = listing.get("insuranceAmountPaise");
+        if (val instanceof Number) return ((Number) val).longValue();
+        return null;
+    }
+
+    public Long getInsuranceAmountPaiseFallback(UUID listingId, Throwable t) {
+        log.warn("Could not get insurance amount for {}: {}", listingId, t.getMessage());
+        return null;
+    }
+
+    @Override
     @CircuitBreaker(name = "listingService", fallbackMethod = "getSecurityDepositPaiseFallback")
     @Retry(name = "listingService")
     public Long getSecurityDepositPaise(UUID listingId) {

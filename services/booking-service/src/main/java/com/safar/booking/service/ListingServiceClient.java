@@ -63,4 +63,8 @@ public interface ListingServiceClient {
 
     // Room type security deposit (PG/Co-living per-bed deposit from room type)
     default Long getRoomTypeSecurityDepositPaise(UUID roomTypeId) { return null; }
+
+    // Micro-insurance / stay protection — host-configurable per listing
+    default boolean isInsuranceEnabled(UUID listingId) { return false; }
+    default Long getInsuranceAmountPaise(UUID listingId) { return null; }
 }
