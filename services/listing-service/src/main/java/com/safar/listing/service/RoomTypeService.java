@@ -140,8 +140,14 @@ public class RoomTypeService {
     }
 
     public List<RoomTypeResponse> getRoomTypes(UUID listingId) {
+        // No date context here. The occupiedBeds-based occupancy cap only makes sense for
+        // monthly/PG stays; for NIGHTLY/HOURLY show the room count (real per-date
+        // availability is resolved on the booking page via getAvailableRoomTypes), so a
+        // nightly room never reads as "0 available" on the listing page.
         return roomTypeRepo.findByListingIdOrderBySortOrder(listingId).stream()
-                .map(rt -> toResponse(rt, roomsAvailableNow(rt)))
+                .map(rt -> toResponse(rt, rt.getStayMode() == StayMode.MONTHLY
+                        ? roomsAvailableNow(rt)
+                        : rt.getCount()))
                 .toList();
     }
 
