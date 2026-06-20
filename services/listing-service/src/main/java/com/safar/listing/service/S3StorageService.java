@@ -24,6 +24,7 @@ public class S3StorageService {
     private final String bucket;
     private final String cdnDomain;
     private final boolean localMode;
+    private final String localBaseUrl;
 
     public S3StorageService(
             @Value("${aws.s3.bucket}") String bucket,
@@ -31,10 +32,12 @@ public class S3StorageService {
             @Value("${aws.s3.access-key:}") String accessKey,
             @Value("${aws.s3.secret-key:}") String secretKey,
             @Value("${aws.cloudfront.domain}") String cdnDomain,
-            @Value("${storage.local-mode:false}") boolean localMode) {
+            @Value("${storage.local-mode:false}") boolean localMode,
+            @Value("${storage.local-base-url:https://api.bhramankaro.com}") String localBaseUrl) {
         this.bucket = bucket;
         this.cdnDomain = cdnDomain;
         this.localMode = localMode;
+        this.localBaseUrl = localBaseUrl;
 
         if (localMode || accessKey == null || accessKey.isBlank() || secretKey == null || secretKey.isBlank()) {
             this.s3Client = null;
@@ -68,7 +71,7 @@ public class S3StorageService {
             try (var in = file.getInputStream(); var out = java.nio.file.Files.newOutputStream(target)) {
                 in.transferTo(out);
             }
-            String localUrl = "http://localhost:8083/uploads/" + s3Key;
+            String localUrl = localBaseUrl + "/uploads/" + s3Key;
             log.info("Local upload: {} → {}", originalFilename, target);
             return localUrl;
         }

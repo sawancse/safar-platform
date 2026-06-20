@@ -87,6 +87,8 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 
     private boolean isPublic(String path, HttpMethod method) {
         if (PUBLIC_PATHS.contains(path)) return true;
+        // Uploaded media (listing photos served from listing-service local disk) — public static
+        if (path.startsWith("/uploads/")) return true;
         if (path.startsWith("/api/v1/auth/")
                 && !path.equals("/api/v1/auth/password/set")
                 && !path.equals("/api/v1/auth/password/change")
