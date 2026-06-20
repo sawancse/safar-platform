@@ -45,9 +45,9 @@ spring:
     cache: false
 
   mail:
-    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
+    host: ${SPRING_MAIL_HOST:mail.privateemail.com}
     port: ${SPRING_MAIL_PORT:587}
-    username: ${SPRING_MAIL_USERNAME:${MAIL_USERNAME:sawank.sit@gmail.com}}
+    username: ${SPRING_MAIL_USERNAME:${MAIL_USERNAME:noreply@bhramankaro.com}}
     password: ${SPRING_MAIL_PASSWORD:${MAIL_PASSWORD:tkmzezdqrcwxngdu}}
     properties:
       mail:
@@ -56,7 +56,7 @@ spring:
           starttls.enable: true
 
 notification:
-  from-email: ${NOTIFICATION_FROM_EMAIL:sawank.sit@gmail.com}
+  from-email: ${NOTIFICATION_FROM_EMAIL:noreply@bhramankaro.com}
   from-name: BhramanKaro
   # Laptop-as-server runs the default profile and serves real customers, so the
   # base-url must be the public domain (override via NOTIFICATION_BASE_URL for true local dev).

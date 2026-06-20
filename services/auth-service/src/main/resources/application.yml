@@ -35,9 +35,9 @@ spring:
     locations: classpath:db/migration
 
   mail:
-    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
+    host: ${SPRING_MAIL_HOST:mail.privateemail.com}
     port: ${SPRING_MAIL_PORT:587}
-    username: ${SPRING_MAIL_USERNAME:${MAIL_USERNAME:sawank.sit@gmail.com}}
+    username: ${SPRING_MAIL_USERNAME:${MAIL_USERNAME:noreply@bhramankaro.com}}
     password: ${SPRING_MAIL_PASSWORD:${MAIL_PASSWORD:tkmzezdqrcwxngdu}}
     properties:
       mail:
