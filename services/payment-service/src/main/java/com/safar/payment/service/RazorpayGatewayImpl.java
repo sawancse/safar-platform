@@ -28,7 +28,7 @@ public class RazorpayGatewayImpl implements RazorpayGateway {
     @Override
     public String createSubscription(String tierName, long totalAmountPaise) throws Exception {
         JSONObject item = new JSONObject();
-        item.put("name", (Object) ("Safar " + tierName + " Plan"));
+        item.put("name", (Object) ("BhramanKaro " + tierName + " Plan"));
         item.put("amount", (Object) totalAmountPaise);
         item.put("currency", (Object) "INR");
 
@@ -129,7 +129,7 @@ public class RazorpayGatewayImpl implements RazorpayGateway {
         req.put("amount", (Object) amountPaise);
         req.put("currency", (Object) "INR");
         req.put("accept_partial", (Object) false);
-        req.put("description", (Object) (description != null ? description : "Safar booking balance"));
+        req.put("description", (Object) (description != null ? description : "BhramanKaro booking balance"));
         // Razorpay auto-sends WhatsApp + SMS + email when these flags are true.
         req.put("reference_id", (Object) ("bal-" + bookingId + "-" + System.currentTimeMillis()));
 

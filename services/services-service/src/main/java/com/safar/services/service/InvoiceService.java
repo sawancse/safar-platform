@@ -68,7 +68,7 @@ public class InvoiceService {
 
         invoice.put("status", b.getStatus().name());
         invoice.put("createdAt", b.getCreatedAt() != null ? b.getCreatedAt().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME) : "");
-        invoice.put("company", "Safar India Pvt. Ltd.");
+        invoice.put("company", "BhramanKaro India Pvt. Ltd.");
         invoice.put("gstin", "36AADCS1234P1ZL");
 
         return invoice;
@@ -115,7 +115,7 @@ public class InvoiceService {
 
         invoice.put("status", e.getStatus().name());
         invoice.put("createdAt", e.getCreatedAt() != null ? e.getCreatedAt().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME) : "");
-        invoice.put("company", "Safar India Pvt. Ltd.");
+        invoice.put("company", "BhramanKaro India Pvt. Ltd.");
         invoice.put("gstin", "36AADCS1234P1ZL");
 
         return invoice;

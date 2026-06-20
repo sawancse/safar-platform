@@ -820,7 +820,7 @@ export default function CooksPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Title level={4} style={{ margin: 0 }}>Safar Cooks</Title>
+        <Title level={4} style={{ margin: 0 }}>BhramanKaro Cooks</Title>
         <Input prefix={<SearchOutlined />} placeholder="Search chefs by name, city, phone..."
           value={search} onChange={e => setSearch(e.target.value)} style={{ width: 300 }} allowClear />
       </div>
@@ -1159,7 +1159,7 @@ table{width:100%;border-collapse:collapse}td{padding:6px 12px;border-bottom:1px 
 .total{font-size:18px;font-weight:700;color:#f97316}
 @media print{button{display:none}}</style></head><body>
 <div style="display:flex;justify-content:space-between;align-items:center">
-<div><h1>Safar Cooks</h1><p style="margin:4px 0;color:#888">Cook Booking Details</p></div>
+<div><h1>BhramanKaro Cooks</h1><p style="margin:4px 0;color:#888">Cook Booking Details</p></div>
 <div style="text-align:right"><p style="font-family:monospace;font-size:16px;font-weight:700">${b.bookingRef}</p>
 <span style="background:${b.status === 'CONFIRMED' ? '#1890ff' : b.status === 'COMPLETED' ? '#52c41a' : '#faad14'};color:#fff;padding:2px 10px;border-radius:12px;font-size:12px">${b.status}</span></div></div>
 <h2>Cook Details</h2><div class="section"><table>
@@ -1188,7 +1188,7 @@ table{width:100%;border-collapse:collapse}td{padding:6px 12px;border-bottom:1px 
 <tr><td class="label">Payment Status</td><td class="val">${b.paymentStatus || 'UNPAID'}</td></tr>
 ${b.razorpayPaymentId ? `<tr><td class="label">Razorpay ID</td><td class="val" style="font-family:monospace">${b.razorpayPaymentId}</td></tr>` : ''}
 </table></div>
-<p style="text-align:center;color:#aaa;margin-top:30px;font-size:11px">Printed from Safar Admin — ${new Date().toLocaleString()}</p>
+<p style="text-align:center;color:#aaa;margin-top:30px;font-size:11px">Printed from BhramanKaro Admin — ${new Date().toLocaleString()}</p>
 <button onclick="window.print()" style="margin:20px auto;display:block;padding:8px 24px;background:#f97316;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">Print</button>
 </body></html>`;
   const w = window.open('', '_blank');
@@ -1208,7 +1208,7 @@ table{width:100%;border-collapse:collapse}td{padding:6px 12px;border-bottom:1px 
 .tag{display:inline-block;background:#fff7ed;color:#f97316;padding:2px 8px;border-radius:12px;font-size:11px;margin:2px}
 @media print{button{display:none}}</style></head><body>
 <div style="display:flex;justify-content:space-between;align-items:center">
-<div><h1>Safar Cooks</h1><p style="margin:4px 0;color:#888">Event Booking Details</p></div>
+<div><h1>BhramanKaro Cooks</h1><p style="margin:4px 0;color:#888">Event Booking Details</p></div>
 <div style="text-align:right"><p style="font-family:monospace;font-size:16px;font-weight:700">${e.bookingRef}</p>
 <span style="background:${e.status === 'CONFIRMED' ? '#1890ff' : e.status === 'COMPLETED' ? '#52c41a' : '#faad14'};color:#fff;padding:2px 10px;border-radius:12px;font-size:12px">${e.status}</span></div></div>
 <h2>Cook Details</h2><div class="section"><table>
@@ -1242,7 +1242,7 @@ ${e.staffPaise > 0 ? `<tr><td class="label">Staff</td><td class="val">₹${(e.st
 <tr><td class="label">Platform Fee</td><td class="val">${e.platformFeePaise ? '₹' + (e.platformFeePaise / 100).toLocaleString('en-IN') : '—'}</td></tr>
 <tr><td class="label">Chef Earnings</td><td class="val">${e.chefEarningsPaise ? '₹' + (e.chefEarningsPaise / 100).toLocaleString('en-IN') : '—'}</td></tr>
 </table></div>
-<p style="text-align:center;color:#aaa;margin-top:30px;font-size:11px">Printed from Safar Admin — ${new Date().toLocaleString()}</p>
+<p style="text-align:center;color:#aaa;margin-top:30px;font-size:11px">Printed from BhramanKaro Admin — ${new Date().toLocaleString()}</p>
 <button onclick="window.print()" style="margin:20px auto;display:block;padding:8px 24px;background:#f97316;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px">Print</button>
 </body></html>`;
   const w = window.open('', '_blank');

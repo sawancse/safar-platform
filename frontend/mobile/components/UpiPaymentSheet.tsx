@@ -37,7 +37,7 @@ export default function UpiPaymentSheet({
   amountPaise,
   bookingId,
   merchantVpa = 'safar@ybl',
-  merchantName = 'Safar',
+  merchantName = 'BhramanKaro',
   onPaymentLaunched,
   onPaymentFailed,
 }: UpiPaymentSheetProps) {
@@ -78,7 +78,7 @@ export default function UpiPaymentSheet({
         name: merchantName,
         amount: amountRupees,
         txnRef,
-        note: `Safar Booking ${bookingId}`,
+        note: `BhramanKaro Booking ${bookingId}`,
       });
 
       if (result.status === 'success') {

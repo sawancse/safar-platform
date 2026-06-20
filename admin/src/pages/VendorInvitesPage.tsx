@@ -197,7 +197,7 @@ export default function VendorInvitesPage() {
         const canCancel = !i.openedAt && !i.cancelledAt;
         const isActive = s.label !== 'Cancelled' && s.label !== 'Expired';
         const deepLink = `${window.location.origin.replace('admin.', '')}/vendor/onboard/${i.serviceType.toLowerCase().replace('_designer','').replace('_hire','-hire').replace('decorator','decor')}?invite=${i.inviteToken}`;
-        const msg = `Hi ${i.businessName || 'there'} — start selling on Safar in 10 minutes: ${deepLink}\n\nYour phone is pre-filled. You'll need ID + (for food) FSSAI to publish.`;
+        const msg = `Hi ${i.businessName || 'there'} — start selling on BhramanKaro in 10 minutes: ${deepLink}\n\nYour phone is pre-filled. You'll need ID + (for food) FSSAI to publish.`;
         return (
           <Space size={4}>
             {isActive && (

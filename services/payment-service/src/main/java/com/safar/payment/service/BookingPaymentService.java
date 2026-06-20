@@ -68,7 +68,7 @@ public class BookingPaymentService {
         }
         return razorpayGateway.createPaymentLink(
                 amountPaise,
-                "Safar booking balance",
+                "BhramanKaro booking balance",
                 customerName, customerPhone, customerEmail,
                 bookingId.toString()
         );

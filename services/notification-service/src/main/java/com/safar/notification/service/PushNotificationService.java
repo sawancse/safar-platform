@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Expo Push Notifications for the Safar mobile app (React Native + Expo SDK 51).
+ * Expo Push Notifications for the BhramanKaro mobile app (React Native + Expo SDK 51).
  *
  * Mobile-side dependency (NOT YET WIRED at the time of writing):
  *   1. Mobile app collects ExponentPushToken on first launch via expo-notifications

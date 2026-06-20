@@ -91,7 +91,7 @@ export function generateCheckoutHtml(order: PaymentOrder, prefill: {
       key: '${order.razorpayKeyId}',
       amount: ${order.amount},
       currency: '${order.currency}',
-      name: 'Safar',
+      name: 'BhramanKaro',
       description: 'Booking Payment',
       order_id: '${order.orderId}',
       prefill: {

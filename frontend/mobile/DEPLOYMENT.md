@@ -1,4 +1,4 @@
-# Safar Mobile App - Deployment Guide
+# BhramanKaro Mobile App - Deployment Guide
 
 ## Prerequisites
 
@@ -24,7 +24,7 @@ eas login
 
 #### a. Create App in Play Console
 1. Go to Play Console → Create App
-2. App name: "Safar - Property Rentals India"
+2. App name: "BhramanKaro - Property Rentals India"
 3. Default language: English (India)
 4. App type: App
 5. Category: Travel & Local
@@ -50,7 +50,7 @@ Use `store/google-play/listing.json` for descriptions.
 1. Go to https://appstoreconnect.apple.com
 2. My Apps → + → New App
 3. Bundle ID: `com.ysafar.app`
-4. Name: "Safar - Property Rentals India"
+4. Name: "BhramanKaro - Property Rentals India"
 
 #### b. Update eas.json with Apple Credentials
 Edit `eas.json` → submit → production → ios:

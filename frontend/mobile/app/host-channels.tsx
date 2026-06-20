@@ -271,7 +271,7 @@ export default function HostChannelsScreen() {
         <View style={styles.infoBanner}>
           <Text style={styles.infoBannerTitle}>Channel Manager</Text>
           <Text style={styles.infoBannerText}>
-            Sync your Safar calendar with Airbnb, Booking.com, and other platforms using iCal feeds.
+            Sync your BhramanKaro calendar with Airbnb, Booking.com, and other platforms using iCal feeds.
             This prevents double bookings by keeping availability in sync across all channels.
           </Text>
         </View>
@@ -321,9 +321,9 @@ export default function HostChannelsScreen() {
 
         {/* Export section */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Export Safar Calendar</Text>
+          <Text style={styles.sectionTitle}>Export BhramanKaro Calendar</Text>
           <Text style={styles.sectionSubtitle}>
-            Share this URL with Airbnb, Booking.com, etc. to export your Safar availability.
+            Share this URL with Airbnb, Booking.com, etc. to export your BhramanKaro availability.
           </Text>
 
           {exportUrl ? (

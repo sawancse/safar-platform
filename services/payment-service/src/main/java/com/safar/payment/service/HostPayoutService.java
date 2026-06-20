@@ -53,7 +53,7 @@ public class HostPayoutService {
             return null;
         }
 
-        // Calculate commission: Safar's cut
+        // Calculate commission: BhramanKaro's cut
         long commissionPaise = grossAmountPaise * commissionBps / 10000;
 
         // GST on commission (18%)

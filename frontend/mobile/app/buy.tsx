@@ -239,7 +239,7 @@ export default function BuyHomepage() {
             <Text style={styles.ctaBannerEmoji}>🏷️</Text>
             <View style={{ flex: 1 }}>
               <Text style={styles.ctaBannerTitle}>List your property for sale</Text>
-              <Text style={styles.ctaBannerSub}>Reach thousands of buyers on Safar</Text>
+              <Text style={styles.ctaBannerSub}>Reach thousands of buyers on BhramanKaro</Text>
             </View>
             <Text style={styles.ctaBannerArrow}>›</Text>
           </View>

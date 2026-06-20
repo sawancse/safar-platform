@@ -85,7 +85,7 @@ public class TenancyAgreementController {
         TenancyAgreement agreement = agreementService.getByTenancyId(tenancyId);
         byte[] pdf = pdfService.generatePdf(agreement);
 
-        String filename = "Safar-Agreement-" + agreement.getAgreementNumber() + ".pdf";
+        String filename = "BhramanKaro-Agreement-" + agreement.getAgreementNumber() + ".pdf";
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
@@ -101,7 +101,7 @@ public class TenancyAgreementController {
         TenancyAgreement agreement = agreementService.getByTenancyId(tenancyId);
         byte[] pdf = pdfService.generatePdf(agreement);
 
-        String filename = "Safar-Agreement-" + agreement.getAgreementNumber() + ".pdf";
+        String filename = "BhramanKaro-Agreement-" + agreement.getAgreementNumber() + ".pdf";
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")

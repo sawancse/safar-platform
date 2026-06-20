@@ -34,7 +34,7 @@ export default function BecomePartnerScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.hero}>
-        <Text style={styles.heroTitle}>Earn on Safar. Pick your craft.</Text>
+        <Text style={styles.heroTitle}>Earn on BhramanKaro. Pick your craft.</Text>
         <Text style={styles.heroSub}>Six ways to grow your business — cooking, pujas, cakes, décor, music and event staff.</Text>
       </View>
 
@@ -70,7 +70,7 @@ export default function BecomePartnerScreen() {
 
         <TouchableOpacity style={styles.altCard} onPress={() => router.push('/broker')}>
           <Text style={styles.altText}>Are you a real-estate broker?</Text>
-          <Text style={styles.altLink}>Become a Safar Broker →</Text>
+          <Text style={styles.altLink}>Become a BhramanKaro Broker →</Text>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />

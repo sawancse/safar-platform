@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Safar",
+    "name": "BhramanKaro",
     "slug": "safar",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -18,10 +18,10 @@
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "Safar needs camera access to take photos of your property listings",
-        "NSPhotoLibraryUsageDescription": "Safar needs photo library access to upload property images",
-        "NSLocationWhenInUseUsageDescription": "Safar uses your location to find nearby properties",
-        "NSLocationAlwaysUsageDescription": "Safar uses your location to find nearby properties",
+        "NSCameraUsageDescription": "BhramanKaro needs camera access to take photos of your property listings",
+        "NSPhotoLibraryUsageDescription": "BhramanKaro needs photo library access to upload property images",
+        "NSLocationWhenInUseUsageDescription": "BhramanKaro uses your location to find nearby properties",
+        "NSLocationAlwaysUsageDescription": "BhramanKaro uses your location to find nearby properties",
         "UIBackgroundModes": ["remote-notification"]
       },
       "config": {
@@ -86,8 +86,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Safar needs access to your photos to upload property images",
-          "cameraPermission": "Safar needs camera access to take photos of your property"
+          "photosPermission": "BhramanKaro needs access to your photos to upload property images",
+          "cameraPermission": "BhramanKaro needs camera access to take photos of your property"
         }
       ],
       "expo-clipboard",

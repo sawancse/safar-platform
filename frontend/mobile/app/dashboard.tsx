@@ -26,7 +26,7 @@ const QUICK_ACTIONS: QuickAction[] = [
   { label: 'Search Stays', icon: '🔍', route: '/' },
   { label: 'My Saved',     icon: '♡',  route: '/saved' },
   { label: 'Messages',     icon: '💬', route: '/messages' },
-  { label: 'Safar Cooks',  icon: '👨‍🍳', route: '/cooks' },
+  { label: 'BhramanKaro Cooks',  icon: '👨‍🍳', route: '/cooks' },
   { label: 'Flights',      icon: '✈️', route: '/flights' },
   { label: 'Miles',        icon: '✈',  route: '/miles' },
 ];

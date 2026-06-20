@@ -267,7 +267,7 @@ export default function BuilderProjectsPage() {
                 <div>
                   <p><strong>RERA ID:</strong> {detailModal.reraId || 'Not provided'}</p>
                   <p><strong>RERA Verified:</strong> {detailModal.reraVerified ? 'Yes' : 'No'}</p>
-                  <p><strong>Safar Verified:</strong> {detailModal.verified ? 'Yes' : 'No'}</p>
+                  <p><strong>BhramanKaro Verified:</strong> {detailModal.verified ? 'Yes' : 'No'}</p>
                   <p><strong>Bank Approvals:</strong> {detailModal.bankApprovals || '--'}</p>
                   <Space style={{ marginTop: 16 }}>
                     {!detailModal.verified && <Button type="primary" onClick={() => { verify(detailModal.id); setDetailModal(null); }}>Verify Project</Button>}

@@ -13,7 +13,7 @@ const TYPE_EMOJI: Record<string, string> = {
 
 const TRUST_BADGE: Record<string, { label: string; bg: string; text: string }> = {
   LISTED:         { label: 'Listed', bg: '#f3f4f6', text: '#374151' },
-  SAFAR_VERIFIED: { label: '✓ Safar Verified', bg: '#dbeafe', text: '#1e40af' },
+  SAFAR_VERIFIED: { label: '✓ BhramanKaro Verified', bg: '#dbeafe', text: '#1e40af' },
   TOP_RATED:      { label: '★ Top Rated', bg: '#fef3c7', text: '#92400e' },
 };
 

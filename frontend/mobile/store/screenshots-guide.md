@@ -40,5 +40,5 @@ xcrun simctl boot "iPhone 15 Pro Max"
 
 ## Feature Graphic (Google Play)
 - Size: 1024x500
-- Design: Safar logo + "Your Journey Starts Here" tagline + India-themed background
+- Design: BhramanKaro logo + "Your Journey Starts Here" tagline + India-themed background
 - Use brand orange (#f97316)

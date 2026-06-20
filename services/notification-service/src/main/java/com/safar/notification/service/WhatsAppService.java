@@ -28,7 +28,7 @@ public class WhatsAppService {
     private String authKey;
 
     @Value("${msg91.wa.integrated-number:}")
-    private String integratedNumber;       // Meta-verified Safar WA Business number
+    private String integratedNumber;       // Meta-verified BhramanKaro WA Business number
 
     @Value("${msg91.wa.namespace:}")
     private String namespace;              // Meta WA template namespace

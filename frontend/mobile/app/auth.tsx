@@ -601,7 +601,7 @@ export default function AuthScreen() {
       >
         <View style={styles.card}>
           <Text style={styles.logoIcon}>🧳</Text>
-          <Text style={styles.title}>Sign in to Safar</Text>
+          <Text style={styles.title}>Sign in to BhramanKaro</Text>
           <Text style={styles.subtitle}>{getSubtitle()}</Text>
 
           {error !== '' && (

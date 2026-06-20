@@ -349,7 +349,7 @@ public class NotificationService {
                             "Please retry your payment from your dashboard:\n" +
                             "https://bhramankaro.com/dashboard\n\n" +
                             "Your booking will be held for 24 hours. After that, it will be automatically cancelled.\n\n" +
-                            "Safar Team",
+                            "BhramanKaro Team",
                             booking.guestName(), booking.bookingRef()));
         }
         inAppNotificationService.create(
@@ -536,7 +536,7 @@ public class NotificationService {
                 "%s\n\n" +
                 "Complete your payment: " + baseUrl + "/dashboard\n\n" +
                 "If you've already paid, please ignore this email.\n\n" +
-                "Safar Team",
+                "BhramanKaro Team",
                 guestName, bookingRef, totalFormatted, urgencyLine);
 
         emailGateway.send(guestEmail, subject, body);
@@ -589,7 +589,7 @@ public class NotificationService {
         try {
             ctx.setHostName(hostName);
             emailTemplateService.sendHtmlEmail(hostEmail,
-                    "Your Earnings Report — Safar",
+                    "Your Earnings Report — BhramanKaro",
                     "host-earnings", ctx);
             log.info("Host earnings HTML report sent to {}", hostEmail);
         } catch (Exception e) {
@@ -627,7 +627,7 @@ public class NotificationService {
                 String guestName = guest.name() != null ? guest.name() : "Guest";
                 emailGateway.send(guest.email(),
                         "The host replied to your review",
-                        String.format("Hi %s,\n\nThe host has responded to your review (ID: %s).\n\nLog in to Safar to see the full reply.\n\nThank you,\nSafar Team",
+                        String.format("Hi %s,\n\nThe host has responded to your review (ID: %s).\n\nLog in to BhramanKaro to see the full reply.\n\nThank you,\nSafar Team",
                                 guestName, reviewId));
             }
             inAppNotificationService.create(
@@ -668,10 +668,10 @@ public class NotificationService {
                         "Important reminders:\n" +
                         "- Bring all medical records and prescriptions\n" +
                         "- Arrive at the hospital at least 2 hours before your procedure\n" +
-                        "- Ensure your medical profile is up to date on Safar\n" +
+                        "- Ensure your medical profile is up to date on BhramanKaro\n" +
                         "- Contact the hospital for any pre-procedure instructions\n\n" +
                         "Wishing you a safe and successful procedure.\n" +
-                        "Team Safar",
+                        "Team BhramanKaro",
                         guestName, procedureName, hospitalName, procedureDate, bookingId
                 );
 

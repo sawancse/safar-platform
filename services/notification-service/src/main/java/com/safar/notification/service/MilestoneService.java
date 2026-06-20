@@ -40,16 +40,16 @@ public class MilestoneService {
             "CITIES_5", "Wanderer",
             "CITIES_10", "Voyager",
             "CITIES_25", "Globetrotter",
-            "STAYS_10", "Safar Regular",
-            "STAYS_25", "Safar Loyalist",
-            "STAYS_50", "Safar Legend"
+            "STAYS_10", "BhramanKaro Regular",
+            "STAYS_25", "BhramanKaro Loyalist",
+            "STAYS_50", "BhramanKaro Legend"
     );
 
     private static final Map<String, String> HOST_MILESTONE_BADGES = Map.of(
             "REVIEWS_10", "Guest Favorite",
             "REVIEWS_25", "Hospitality Pro",
-            "HOSTED_50", "Safar Veteran",
-            "HOSTED_100", "Safar Champion",
+            "HOSTED_50", "BhramanKaro Veteran",
+            "HOSTED_100", "BhramanKaro Champion",
             "RESPONSE_95", "Quick Responder",
             "RESPONSE_99", "Lightning Host"
     );
@@ -78,8 +78,8 @@ public class MilestoneService {
                 String badge = GUEST_MILESTONE_BADGES.getOrDefault("CITIES_" + milestone, "Explorer");
                 int nextMilestone = findNextMilestone(CITY_MILESTONES, milestone);
                 sendGuestMilestoneEmail(guestEmail, guestName,
-                        "You've explored " + milestone + " cities with Safar!",
-                        "Your wanderlust is inspiring! You've now visited " + milestone + " different cities through Safar.",
+                        "You've explored " + milestone + " cities with BhramanKaro!",
+                        "Your wanderlust is inspiring! You've now visited " + milestone + " different cities through BhramanKaro.",
                         badge, milestone, nextMilestone);
 
                 log.info("Guest {} achieved CITIES milestone: {}", guestId, milestone);

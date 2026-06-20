@@ -35,7 +35,7 @@ public class LeadNurtureScheduler {
         for (UserLead lead : leads) {
             try {
                 kafka.send("lead.nurture.welcome", lead.getId().toString(),
-                        buildNurtureJson(lead, "DAY0", "Welcome to Safar! Your journey begins here"));
+                        buildNurtureJson(lead, "DAY0", "Welcome to BhramanKaro! Your journey begins here"));
                 lead.setNurtureDay0Sent(true);
                 lead.setNurtureStage("WELCOME_DAY0");
                 leadRepo.save(lead);

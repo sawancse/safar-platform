@@ -130,7 +130,7 @@ public class UserProfile {
     @Column(name = "verification_expires_at")
     private OffsetDateTime verificationExpiresAt;
 
-    // ── Safar Star Host (earned badge) ──
+    // ── BhramanKaro Star Host (earned badge) ──
     @Column(name = "star_host")
     @Builder.Default
     private Boolean starHost = false;

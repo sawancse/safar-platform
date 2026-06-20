@@ -7,7 +7,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@OpenAPIDefinition(info = @Info(title = "Safar Booking API", version = "v1"))
+@OpenAPIDefinition(info = @Info(title = "BhramanKaro Booking API", version = "v1"))
 @SpringBootApplication
 @EnableScheduling
 public class BookingApplication {

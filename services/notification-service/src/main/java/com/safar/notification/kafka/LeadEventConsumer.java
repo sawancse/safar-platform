@@ -52,8 +52,8 @@ public class LeadEventConsumer {
             ctx.setCity(city);
 
             switch (topic) {
-                case "lead.captured" -> sendLeadEmail(email, "Welcome to Safar — Your journey begins here!", "lead-welcome", ctx);
-                case "lead.nurture.welcome" -> sendLeadEmail(email, subject != null ? subject : "Welcome to Safar!", "lead-welcome", ctx);
+                case "lead.captured" -> sendLeadEmail(email, "Welcome to BhramanKaro — Your journey begins here!", "lead-welcome", ctx);
+                case "lead.nurture.welcome" -> sendLeadEmail(email, subject != null ? subject : "Welcome to BhramanKaro!", "lead-welcome", ctx);
                 case "lead.nurture.day3" -> sendLeadEmail(email, subject != null ? subject : "Top stays in " + (city != null ? city : "India"), "lead-day3-deals", ctx);
                 case "lead.nurture.day7" -> sendLeadEmail(email, subject != null ? subject : "₹500 off your first stay!", "lead-day7-offer", ctx);
                 case "lead.nurture.re-engagement" -> sendLeadEmail(email, subject != null ? subject : "We miss you! New stays added", "lead-re-engagement", ctx);
@@ -86,7 +86,7 @@ public class LeadEventConsumer {
                         "Hi " + (ctx.getGuestName() != null ? ctx.getGuestName() : "") + ",\n\n"
                         + subject + "\n\n"
                         + "Explore stays: https://bhramankaro.com\n\n"
-                        + "Safar Team");
+                        + "BhramanKaro Team");
             } catch (Exception e2) {
                 log.error("Lead email failed for {}: {}", email, e2.getMessage());
             }

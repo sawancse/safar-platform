@@ -85,11 +85,11 @@ public class OtpService {
             SimpleMailMessage msg = new SimpleMailMessage();
             msg.setFrom(fromEmail);
             msg.setTo(email);
-            msg.setSubject("Your Safar OTP: " + otp);
-            msg.setText("Your Safar verification code is: " + otp
+            msg.setSubject("Your BhramanKaro OTP: " + otp);
+            msg.setText("Your BhramanKaro verification code is: " + otp
                     + "\n\nThis code expires in " + otpExpiryMinutes + " minutes."
                     + "\n\nIf you didn't request this, please ignore this email."
-                    + "\n\n— Safar Team");
+                    + "\n\n— BhramanKaro Team");
             mailSender.send(msg);
             log.info("Email OTP sent to {}", email);
         } catch (Exception e) {
@@ -114,7 +114,7 @@ public class OtpService {
 
         // In production: send via WhatsApp Business API (Meta Cloud API)
         // Requires WhatsApp Business Account + approved message template
-        // WhatsApp Business API template: "Your Safar verification code is: {{1}}. Valid for {{2}} minutes."
+        // WhatsApp Business API template: "Your BhramanKaro verification code is: {{1}}. Valid for {{2}} minutes."
         log.info("WhatsApp OTP for {}: {} (dev mode — integrate WhatsApp Business API in prod)", phone, otp);
     }
 

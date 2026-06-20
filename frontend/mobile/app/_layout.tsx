@@ -68,7 +68,7 @@ export default function RootLayout() {
             <Stack.Screen name="projects" options={{ title: 'New Projects', headerShown: false }} />
             <Stack.Screen name="project-detail/[id]" options={{ title: 'Project Details', headerShown: false }} />
             <Stack.Screen name="builder-dashboard" options={{ title: 'Builder Dashboard', headerShown: false }} />
-            <Stack.Screen name="cooks" options={{ title: 'Safar Cooks' }} />
+            <Stack.Screen name="cooks" options={{ title: 'BhramanKaro Cooks' }} />
             <Stack.Screen name="cook/[id]" options={{ title: 'Cook' }} />
             <Stack.Screen name="cook-book" options={{ title: 'Book a cook' }} />
             <Stack.Screen name="cook-bookings" options={{ title: 'My cook bookings' }} />
@@ -80,7 +80,7 @@ export default function RootLayout() {
             <Stack.Screen name="flight/[id]" options={{ title: 'Flight booking' }} />
             <Stack.Screen name="my-flights" options={{ title: 'My flights' }} />
             <Stack.Screen name="become-a-partner" options={{ title: 'Become a Partner' }} />
-            <Stack.Screen name="broker" options={{ title: 'Safar Broker' }} />
+            <Stack.Screen name="broker" options={{ title: 'BhramanKaro Broker' }} />
             <Stack.Screen name="aashray-donate" options={{ title: 'Donate' }} />
             <Stack.Screen name="agreements" options={{ title: 'Agreements' }} />
             <Stack.Screen name="agreement/[id]" options={{ title: 'Agreement' }} />

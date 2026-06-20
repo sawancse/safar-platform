@@ -137,7 +137,7 @@ export default function BookingDetailScreen() {
               <View style={styles.hostAvatar}><Text style={styles.hostAvatarText}>{hostInitial}</Text></View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.hostName}>{hostName}</Text>
-                <Text style={styles.hostSub}>{listing?.isStarHost || listing?.superhost ? '⭐ Safar Star Host' : 'Property host'}</Text>
+                <Text style={styles.hostSub}>{listing?.isStarHost || listing?.superhost ? '⭐ BhramanKaro Star Host' : 'Property host'}</Text>
                 {listing?.hostSince ? <Text style={styles.hostMeta}>Hosting since {listing.hostSince}</Text> : null}
               </View>
             </View>

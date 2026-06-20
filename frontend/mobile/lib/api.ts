@@ -1372,7 +1372,7 @@ export const api = {
     });
   },
 
-  // ── Safar Cooks / Services marketplace ───────────────────────────────────
+  // ── BhramanKaro Cooks / Services marketplace ───────────────────────────────────
   searchChefs(params: Record<string, string>) {
     const qs = new URLSearchParams(params).toString();
     return apiFetch<any>(`/api/v1/chefs/search?${qs}`);

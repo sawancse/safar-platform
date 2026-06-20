@@ -183,7 +183,7 @@
                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#F0F7FF; border-radius:12px;">
                                         <tr>
                                             <td align="center" style="padding:24px;">
-                                                <p style="margin:0 0 12px; font-size:14px; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">How likely are you to recommend Safar to a friend?</p>
+                                                <p style="margin:0 0 12px; font-size:14px; color:#484848; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">How likely are you to recommend BhramanKaro to a friend?</p>
                                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                                                     <tr>
                                                         <td th:each="score : ${#numbers.sequence(0,10)}" align="center" style="padding:0 2px;">
@@ -221,10 +221,10 @@
                                 <span style="color:#DDD; padding:0 8px;">|</span>
                                 <a th:href="${ctx.helpUrl ?: '#'}" style="color:#FF5A5F; text-decoration:none;">Help Center</a>
                             </p>
-                            <p style="margin:0 0 8px; font-size:14px; color:#484848; font-weight:500; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Safar &mdash; Your Journey, Your Story</p>
+                            <p style="margin:0 0 8px; font-size:14px; color:#484848; font-weight:500; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">BhramanKaro &mdash; Your Journey, Your Story</p>
                             <p style="margin:0; font-size:11px; color:#AAA; line-height:1.5; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
                                 This email was sent to <span th:text="${ctx.recipientEmail ?: 'you'}">you</span>.<br/>
-                                <span th:text="${ctx.companyAddress ?: 'Safar Technologies Pvt. Ltd., India'}">Safar Technologies Pvt. Ltd., India</span>
+                                <span th:text="${ctx.companyAddress ?: 'BhramanKaro Technologies Pvt. Ltd., India'}">BhramanKaro Technologies Pvt. Ltd., India</span>
                             </p>
                         </td></tr></table>
                     </td>

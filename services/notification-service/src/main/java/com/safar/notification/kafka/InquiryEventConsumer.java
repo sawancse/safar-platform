@@ -72,7 +72,7 @@ public class InquiryEventConsumer {
                 buyerCtx.setVariable("message", inquiryMessage.isBlank() ? "No message provided" : inquiryMessage);
 
                 String buyerHtml = templateEngine.process("email/inquiry-confirmation", buyerCtx);
-                emailGateway.send(buyerEmail, "Your Inquiry Has Been Sent - Safar", buyerHtml);
+                emailGateway.send(buyerEmail, "Your Inquiry Has Been Sent - BhramanKaro", buyerHtml);
                 log.info("Inquiry confirmation sent to buyer {}", buyerEmail);
             }
 

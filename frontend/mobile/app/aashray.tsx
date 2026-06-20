@@ -40,7 +40,7 @@ interface AashrayProperty {
 const HOW_IT_WORKS_HOST = [
   { step: '1', title: 'Enable Aashray', desc: 'Toggle Aashray on any of your listings to offer discounted or free stays.' },
   { step: '2', title: 'NGOs discover you', desc: 'Verified NGOs search for Aashray-enabled properties for their teams.' },
-  { step: '3', title: 'Make an impact', desc: 'Host those who serve communities and earn recognition on Safar.' },
+  { step: '3', title: 'Make an impact', desc: 'Host those who serve communities and earn recognition on BhramanKaro.' },
 ];
 
 const BENEFITS = [
@@ -309,7 +309,7 @@ export default function AashrayScreen() {
         <Text style={styles.heroTitle}>Aashray</Text>
         <Text style={styles.heroSubtitle}>Shelter for those who serve</Text>
         <Text style={styles.heroDesc}>
-          Safar's 0% commission program connecting NGOs with generous hosts who offer discounted or free accommodation for those making a difference.
+          BhramanKaro's 0% commission program connecting NGOs with generous hosts who offer discounted or free accommodation for those making a difference.
         </Text>
         <TouchableOpacity style={styles.donateCta} onPress={() => router.push('/aashray-donate')} activeOpacity={0.85}>
           <Text style={styles.donateCtaText}>💛  Donate to give shelter</Text>

@@ -127,7 +127,7 @@ public class EmailContext {
     private String unsubscribeUrl;
     private String preferencesUrl;
 
-    // Safar Cooks fields
+    // BhramanKaro Cooks fields
     private String chefName;
     private String chefRating;
     private String customerName;
@@ -419,7 +419,7 @@ public class EmailContext {
     public String getSubject() { return "Booking " + (bookingRef != null ? bookingRef : ""); }
     public String getSupportUrl() { return "https://bhramankaro.com/support"; }
     public String getSupportPhone() { return "+91-1800-SAFAR"; }
-    public String getCompanyAddress() { return "Safar Technologies, India"; }
+    public String getCompanyAddress() { return "BhramanKaro Technologies, India"; }
     public String getExploreUrl() { return dashboardUrl != null ? dashboardUrl : "https://bhramankaro.com"; }
     public String getRebookUrl() { return dashboardUrl != null ? dashboardUrl : "https://bhramankaro.com"; }
     public String getEmailPreferencesUrl() { return preferencesUrl != null ? preferencesUrl : "https://bhramankaro.com/dashboard/account"; }
@@ -509,7 +509,7 @@ public class EmailContext {
     public int getMinsUntilCheckin() { return getHoursUntilCheckin() * 60; }
     public boolean getIsStarHost() { return starHost; }
 
-    // ── Safar Cooks getters/setters ──
+    // ── BhramanKaro Cooks getters/setters ──
     public String getChefName() { return chefName; }
     public void setChefName(String chefName) { this.chefName = chefName; }
     public String getChefRating() { return chefRating; }
@@ -638,34 +638,34 @@ public class EmailContext {
                 + " Inquiry Submitted";
     }
 
-    /** Footer tagline — replaces the cook-only "Safar Cooks — Home-cooked, Happiness Delivered". */
+    /** Footer tagline — replaces the cook-only "BhramanKaro Cooks — Home-cooked, Happiness Delivered". */
     public String getEventBrandFooter() {
-        if (serviceCategory == null || serviceCategory.isBlank()) return "Safar Cooks — Home-cooked, Happiness Delivered";
+        if (serviceCategory == null || serviceCategory.isBlank()) return "BhramanKaro Cooks — Home-cooked, Happiness Delivered";
         return switch (serviceCategory) {
-            case "PANDIT_PUJA"      -> "Safar — Trusted pandits for every occasion";
-            case "CAKE_DESIGNER", "DESIGNER_CAKE" -> "Safar — Custom cakes, freshly baked";
-            case "EVENT_DECOR"      -> "Safar — Decor that sets the mood";
-            case "LIVE_MUSIC"       -> "Safar — Live music for your moment";
-            case "STAFF_HIRE"       -> "Safar — Reliable staff for every event";
-            case "APPLIANCE_RENTAL" -> "Safar — Event rentals, on time";
-            case "COOK", "CHEF"     -> "Safar Cooks — Home-cooked, Happiness Delivered";
-            default                  -> "Safar — Events made simple";
+            case "PANDIT_PUJA"      -> "BhramanKaro — Trusted pandits for every occasion";
+            case "CAKE_DESIGNER", "DESIGNER_CAKE" -> "BhramanKaro — Custom cakes, freshly baked";
+            case "EVENT_DECOR"      -> "BhramanKaro — Decor that sets the mood";
+            case "LIVE_MUSIC"       -> "BhramanKaro — Live music for your moment";
+            case "STAFF_HIRE"       -> "BhramanKaro — Reliable staff for every event";
+            case "APPLIANCE_RENTAL" -> "BhramanKaro — Event rentals, on time";
+            case "COOK", "CHEF"     -> "BhramanKaro Cooks — Home-cooked, Happiness Delivered";
+            default                  -> "BhramanKaro — Events made simple";
         };
     }
 
-    /** Sign-off team name for plain-text email fallbacks — "Safar Pandit Team",
-     *  etc. — so a puja/decor/cake enquiry never signs off as "Safar Cooks Team". */
+    /** Sign-off team name for plain-text email fallbacks — "BhramanKaro Pandit Team",
+     *  etc. — so a puja/decor/cake enquiry never signs off as "BhramanKaro Cooks Team". */
     public String getEventBrandTeam() {
-        if (serviceCategory == null || serviceCategory.isBlank()) return "Safar Team";
+        if (serviceCategory == null || serviceCategory.isBlank()) return "BhramanKaro Team";
         return switch (serviceCategory) {
-            case "PANDIT_PUJA"      -> "Safar Pandit Team";
-            case "CAKE_DESIGNER", "DESIGNER_CAKE" -> "Safar Cakes Team";
-            case "EVENT_DECOR"      -> "Safar Decor Team";
-            case "LIVE_MUSIC"       -> "Safar Music Team";
-            case "STAFF_HIRE"       -> "Safar Staffing Team";
-            case "APPLIANCE_RENTAL" -> "Safar Rentals Team";
-            case "COOK", "CHEF"     -> "Safar Cooks Team";
-            default                  -> "Safar Team";
+            case "PANDIT_PUJA"      -> "BhramanKaro Pandit Team";
+            case "CAKE_DESIGNER", "DESIGNER_CAKE" -> "BhramanKaro Cakes Team";
+            case "EVENT_DECOR"      -> "BhramanKaro Decor Team";
+            case "LIVE_MUSIC"       -> "BhramanKaro Music Team";
+            case "STAFF_HIRE"       -> "BhramanKaro Staffing Team";
+            case "APPLIANCE_RENTAL" -> "BhramanKaro Rentals Team";
+            case "COOK", "CHEF"     -> "BhramanKaro Cooks Team";
+            default                  -> "BhramanKaro Team";
         };
     }
 

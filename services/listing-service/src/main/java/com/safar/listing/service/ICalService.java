@@ -49,16 +49,16 @@ public class ICalService {
         StringBuilder sb = new StringBuilder();
         sb.append("BEGIN:VCALENDAR\r\n");
         sb.append("VERSION:2.0\r\n");
-        sb.append("PRODID:-//Safar//Availability//EN\r\n");
+        sb.append("PRODID:-//BhramanKaro//Availability//EN\r\n");
         sb.append("CALSCALE:GREGORIAN\r\n");
         sb.append("METHOD:PUBLISH\r\n");
-        sb.append("X-WR-CALNAME:Safar Calendar\r\n");
+        sb.append("X-WR-CALNAME:BhramanKaro Calendar\r\n");
 
         for (Availability av : blocked) {
             sb.append("BEGIN:VEVENT\r\n");
             sb.append("DTSTART;VALUE=DATE:").append(av.getDate().format(ICAL_DATE_FMT)).append("\r\n");
             sb.append("DTEND;VALUE=DATE:").append(av.getDate().plusDays(1).format(ICAL_DATE_FMT)).append("\r\n");
-            sb.append("SUMMARY:Blocked - Safar\r\n");
+            sb.append("SUMMARY:Blocked - BhramanKaro\r\n");
             sb.append("UID:").append(av.getId()).append("@bhramankaro.com\r\n");
             sb.append("DTSTAMP:").append(OffsetDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'"))).append("\r\n");
             sb.append("END:VEVENT\r\n");

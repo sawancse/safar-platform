@@ -98,7 +98,7 @@ export default function BrokerScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.hero}>
-        <Text style={styles.heroTitle}>Become a Safar Broker</Text>
+        <Text style={styles.heroTitle}>Become a BhramanKaro Broker</Text>
         <Text style={styles.heroSub}>List properties, manage clients, and earn commissions with zero platform fee.</Text>
         <View style={styles.trustRow}>
           <Text style={styles.trustChip}>✓ RERA Verified</Text>
@@ -117,7 +117,7 @@ export default function BrokerScreen() {
           ))}
         </View>
 
-        <Text style={styles.sectionTitle}>Why brokers choose Safar</Text>
+        <Text style={styles.sectionTitle}>Why brokers choose BhramanKaro</Text>
         {BENEFITS.map((b) => (
           <View key={b.title} style={styles.benefitCard}>
             <Text style={styles.benefitIcon}>{b.icon}</Text>

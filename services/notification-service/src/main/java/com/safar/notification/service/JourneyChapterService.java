@@ -70,7 +70,7 @@ public class JourneyChapterService {
         ctx.setTotalChapters(9);
 
         String subject = emailTemplateService.buildChapterSubject(
-                chapterNum, ctx.getListingCity() != null ? ctx.getListingCity() : "Safar", chapterName
+                chapterNum, ctx.getListingCity() != null ? ctx.getListingCity() : "BhramanKaro", chapterName
         );
 
         emailTemplateService.sendHtmlEmail(email, subject, template, ctx);

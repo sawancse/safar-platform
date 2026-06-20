@@ -6,7 +6,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@OpenAPIDefinition(info = @Info(title = "Safar Supply Chain API", version = "v1"))
+@OpenAPIDefinition(info = @Info(title = "BhramanKaro Supply Chain API", version = "v1"))
 @SpringBootApplication
 @EnableScheduling
 public class SupplyServiceApplication {

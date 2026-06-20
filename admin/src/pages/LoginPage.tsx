@@ -63,7 +63,7 @@ export default function LoginPage() {
       <Card style={{ width: 380, borderRadius: 16 }} variant="outlined">
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{ fontSize: 40, marginBottom: 8 }}>🧳</div>
-          <Title level={3} style={{ margin: 0 }}>Safar Admin</Title>
+          <Title level={3} style={{ margin: 0 }}>BhramanKaro Admin</Title>
           <Text type="secondary">Admin portal</Text>
         </div>
 

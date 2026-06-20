@@ -273,7 +273,7 @@ export default function SalePropertiesPage() {
                   <p><strong>RERA Verified:</strong> {detailModal.reraVerified ? '✅ Yes' : '❌ No'}</p>
                   <p><strong>Builder:</strong> {detailModal.builderName || '—'}</p>
                   <p><strong>Project:</strong> {detailModal.projectName || '—'}</p>
-                  <p><strong>Safar Verified:</strong> {detailModal.verified ? '✅ Yes' : '❌ No'}</p>
+                  <p><strong>BhramanKaro Verified:</strong> {detailModal.verified ? '✅ Yes' : '❌ No'}</p>
                   <Space style={{ marginTop: 16 }}>
                     {!detailModal.verified && <Button type="primary" onClick={() => { verify(detailModal.id); setDetailModal(null); }}>Verify Property</Button>}
                     {detailModal.reraId && !detailModal.reraVerified && <Button onClick={() => { verifyRera(detailModal.id); setDetailModal(null); }}>Verify RERA</Button>}

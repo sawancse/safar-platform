@@ -18,7 +18,7 @@ public class EmailGatewayImpl implements EmailGateway {
     @Value("${notification.from-email}")
     private String fromEmail;
 
-    @Value("${notification.from-name:Safar}")
+    @Value("${notification.from-name:BhramanKaro}")
     private String fromName;
 
     @Override

@@ -97,7 +97,7 @@ public class RazorpayPaymentGateway implements PaymentGateway {
     public SubscriptionResult createSubscription(String planName, long amountPaise, String currency) {
         try {
             JSONObject item = new JSONObject();
-            item.put("name", (Object) ("Safar " + planName + " Plan"));
+            item.put("name", (Object) ("BhramanKaro " + planName + " Plan"));
             item.put("amount", (Object) amountPaise);
             item.put("currency", (Object) currency);
 

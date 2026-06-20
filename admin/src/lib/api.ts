@@ -353,7 +353,7 @@ export const adminApi = {
   getDonationStats: (token: string) =>
     axios.get(`${BASE}/donations/stats`, { headers: authHeaders(token) }).then(r => r.data),
 
-  // ── Safar Cooks (Admin) ─────────────────────────────────────────────────
+  // ── BhramanKaro Cooks (Admin) ─────────────────────────────────────────────────
   getChefs(token: string) {
     return axios.get(`${BASE}/chefs/admin/all?size=200`, { headers: authHeaders(token) }).then(r => r.data).catch(() => ({ content: [] }));
   },

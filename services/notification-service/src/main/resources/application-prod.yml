@@ -40,7 +40,7 @@ spring:
 
 notification:
   from-email: ${NOTIFICATION_FROM_EMAIL:sawank.sit@gmail.com}
-  from-name: Safar
+  from-name: BhramanKaro
   base-url: ${NOTIFICATION_BASE_URL:https://bhramankaro.com}
 
 services:

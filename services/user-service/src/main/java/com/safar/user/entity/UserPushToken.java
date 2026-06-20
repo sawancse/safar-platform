@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Expo push token registered by the Safar mobile app on first launch.
+ * Expo push token registered by the BhramanKaro mobile app on first launch.
  * One row per (user, device) so users can have multiple registered
  * devices and we can revoke one without affecting others.
  */

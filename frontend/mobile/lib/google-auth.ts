@@ -16,7 +16,7 @@ const discovery = {
 
 /**
  * Initiate Google Sign-In flow using expo-auth-session.
- * Returns JWT tokens from Safar backend.
+ * Returns JWT tokens from BhramanKaro backend.
  */
 export async function signInWithGoogle(): Promise<{
   success: boolean;
@@ -46,7 +46,7 @@ export async function signInWithGoogle(): Promise<{
         discovery
       );
 
-      // Send Google ID token to Safar backend
+      // Send Google ID token to BhramanKaro backend
       const response = await axios.post(`${API_BASE}/auth/google-signin`, {
         idToken: tokenResponse.idToken,
       });

@@ -266,7 +266,7 @@ public class TenancyAgreementService {
                 Licensor Signature: [Pending]
                 Licensee Signature: [Pending]
 
-                Generated via Safar Platform | Agreement Reference: [Auto-assigned]
+                Generated via BhramanKaro Platform | Agreement Reference: [Auto-assigned]
                 """.formatted(
                 moveInFormatted,
                 req.hostName(), req.hostPhone() != null ? req.hostPhone() : "N/A",

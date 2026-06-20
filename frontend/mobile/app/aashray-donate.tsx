@@ -113,7 +113,7 @@ export default function AashrayDonateScreen() {
   }
 
   function shareWhatsApp() {
-    const msg = `I just donated ${formatPaise(effectiveAmount * 100)} to Safar Aashray to help house displaced families. Join me 💛`;
+    const msg = `I just donated ${formatPaise(effectiveAmount * 100)} to BhramanKaro Aashray to help house displaced families. Join me 💛`;
     Linking.openURL(`https://wa.me/?text=${encodeURIComponent(msg)}`).catch(() => {});
   }
 

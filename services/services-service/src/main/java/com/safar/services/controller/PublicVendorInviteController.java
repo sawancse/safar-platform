@@ -34,7 +34,7 @@ public class PublicVendorInviteController {
         if (active.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of(
                     "valid", false,
-                    "message", "This invite link has expired or been cancelled. Ask your Safar contact for a new one."
+                    "message", "This invite link has expired or been cancelled. Ask your BhramanKaro contact for a new one."
             ));
         }
 

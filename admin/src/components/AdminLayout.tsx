@@ -37,7 +37,7 @@ const menuItems = [
   { key: '/sale-properties', icon: <ShopOutlined />,     label: 'Sale Properties' },
   { key: '/builder-projects', icon: <BuildOutlined />,   label: 'Builder Projects' },
   { key: '/room-occupancy', icon: <AppstoreOutlined />,  label: 'Room Occupancy' },
-  { key: '/cooks',          icon: <FireOutlined />,       label: 'Safar Cooks' },
+  { key: '/cooks',          icon: <FireOutlined />,       label: 'BhramanKaro Cooks' },
   { key: '/staff-pool',     icon: <TeamOutlined />,       label: 'Staff Pool' },
   { key: '/vendors',         icon: <ShopOutlined />,       label: 'Vendors' },
   { key: '/service-listings',icon: <SafetyOutlined />,    label: 'Service Listings' },
@@ -80,7 +80,7 @@ export default function AdminLayout() {
         style={{ borderRight: `1px solid ${token.colorBorderSecondary}` }}
       >
         <div style={{ padding: '20px 16px', fontWeight: 700, fontSize: 18, color: '#f97316' }}>
-          Safar Admin
+          BhramanKaro Admin
         </div>
         <Menu
           mode="inline"

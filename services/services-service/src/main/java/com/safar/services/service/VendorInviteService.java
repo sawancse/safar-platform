@@ -149,7 +149,7 @@ public class VendorInviteService {
     public String buildWhatsAppMessage(VendorInvite invite) {
         String name = (invite.getBusinessName() == null || invite.getBusinessName().isBlank())
                 ? "there" : invite.getBusinessName();
-        return "Hi " + name + " — start selling on Safar in 10 minutes: "
+        return "Hi " + name + " — start selling on BhramanKaro in 10 minutes: "
                 + buildDeepLink(invite)
                 + "\n\nYour phone is pre-filled. You'll need ID + (for food) FSSAI to publish.";
     }

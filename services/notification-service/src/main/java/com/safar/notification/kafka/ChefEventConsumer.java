@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 /**
- * Handles Kafka events from chef-service for Safar Cooks notifications.
+ * Handles Kafka events from chef-service for BhramanKaro Cooks notifications.
  * Both chef and customer receive HTML email + in-app notifications.
  */
 @Component

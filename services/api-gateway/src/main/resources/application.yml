@@ -377,7 +377,7 @@ spring:
           predicates:
             - Path=/api/v1/staff,/api/v1/staff/**
 
-        # ── Safar Cooks (chef-service) ──────────────────────────────────────
+        # ── BhramanKaro Cooks (chef-service) ──────────────────────────────────────
         - id: chef-profiles
           uri: ${CHEF_SERVICE_URL:http://localhost:8093}
           predicates:

@@ -34,7 +34,7 @@ const ROLE_META: Record<string, { label: string; color: string; icon: string }> 
 
 // Suggestions for the language picker. Users can still type custom entries
 // (mode="tags"). Kept to the languages most commonly spoken across India's
-// metros + the major regional hubs Safar services.
+// metros + the major regional hubs BhramanKaro services.
 const LANGUAGE_OPTIONS = [
   'Hindi', 'English', 'Tamil', 'Telugu', 'Kannada', 'Malayalam',
   'Marathi', 'Gujarati', 'Bengali', 'Punjabi', 'Odia', 'Assamese',

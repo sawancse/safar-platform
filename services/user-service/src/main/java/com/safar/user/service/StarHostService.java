@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Safar Star Host — earned badge similar to Airbnb Superhost.
+ * BhramanKaro Star Host — earned badge similar to Airbnb Superhost.
  *
  * Criteria (all must be met):
  * - Average host rating >= 4.8

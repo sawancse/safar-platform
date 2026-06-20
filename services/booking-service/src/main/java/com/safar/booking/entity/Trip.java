@@ -74,7 +74,7 @@ public class Trip {
     @Column(length = 10)
     private String destinationState;
 
-    /** Safar-defined broader bucket for routing rules (e.g. 'SOUTH_INDIA', 'GULF', 'SE_ASIA'). */
+    /** BhramanKaro-defined broader bucket for routing rules (e.g. 'SOUTH_INDIA', 'GULF', 'SE_ASIA'). */
     @Column(length = 30)
     private String originRegion;
 

@@ -7,7 +7,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@OpenAPIDefinition(info = @Info(title = "Safar Review API", version = "v1"))
+@OpenAPIDefinition(info = @Info(title = "BhramanKaro Review API", version = "v1"))
 @SpringBootApplication
 @EnableScheduling
 public class ReviewServiceApplication {
