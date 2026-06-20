@@ -123,7 +123,7 @@ resource "aws_ecs_task_definition" "services" {
         { name = "SPRING_MAIL_HOST", value = "smtp.gmail.com" },
         { name = "SPRING_MAIL_PORT", value = "587" },
         { name = "NOTIFICATION_FROM_EMAIL", value = "sawank.sit@gmail.com" },
-        { name = "NOTIFICATION_BASE_URL", value = "https://ysafar.com" },
+        { name = "NOTIFICATION_BASE_URL", value = "https://bhramankaro.com" },
       ] : [],
       # S3/CDN for media-service and listing-service
       contains(["media-service", "listing-service"], each.key) ? [

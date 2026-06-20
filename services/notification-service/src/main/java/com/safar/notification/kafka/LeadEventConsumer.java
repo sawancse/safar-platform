@@ -85,7 +85,7 @@ public class LeadEventConsumer {
                 emailGateway.send(email, subject,
                         "Hi " + (ctx.getGuestName() != null ? ctx.getGuestName() : "") + ",\n\n"
                         + subject + "\n\n"
-                        + "Explore stays: https://ysafar.com\n\n"
+                        + "Explore stays: https://bhramankaro.com\n\n"
                         + "Safar Team");
             } catch (Exception e2) {
                 log.error("Lead email failed for {}: {}", email, e2.getMessage());

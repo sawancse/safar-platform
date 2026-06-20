@@ -417,12 +417,12 @@ public class EmailContext {
     }
     public String getStayDuration() { return nights + " night" + (nights != 1 ? "s" : ""); }
     public String getSubject() { return "Booking " + (bookingRef != null ? bookingRef : ""); }
-    public String getSupportUrl() { return "https://ysafar.com/support"; }
+    public String getSupportUrl() { return "https://bhramankaro.com/support"; }
     public String getSupportPhone() { return "+91-1800-SAFAR"; }
     public String getCompanyAddress() { return "Safar Technologies, India"; }
-    public String getExploreUrl() { return dashboardUrl != null ? dashboardUrl : "https://ysafar.com"; }
-    public String getRebookUrl() { return dashboardUrl != null ? dashboardUrl : "https://ysafar.com"; }
-    public String getEmailPreferencesUrl() { return preferencesUrl != null ? preferencesUrl : "https://ysafar.com/dashboard/account"; }
+    public String getExploreUrl() { return dashboardUrl != null ? dashboardUrl : "https://bhramankaro.com"; }
+    public String getRebookUrl() { return dashboardUrl != null ? dashboardUrl : "https://bhramankaro.com"; }
+    public String getEmailPreferencesUrl() { return preferencesUrl != null ? preferencesUrl : "https://bhramankaro.com/dashboard/account"; }
     public String getPriceLabel() {
         if ("MONTH".equals(pricingUnit)) return "per month";
         if ("HOUR".equals(pricingUnit)) return "per hour";
@@ -469,7 +469,7 @@ public class EmailContext {
     }
     public String getStarHostProgressText() { return starHostProgress != null ? starHostProgress + "%" : "0%"; }
     public String getTierUpgradeSaving() { return nextTierSavings; }
-    public String getUpgradeTierUrl() { return "https://ysafar.com/host?tab=subscription"; }
+    public String getUpgradeTierUrl() { return "https://bhramankaro.com/host?tab=subscription"; }
     public String getReceiptDownloadUrl() { return bookingUrl; }
     public String getRefundMethod() { return "Original payment method"; }
     public String getBadgeName() { return milestoneBadge; }
@@ -503,7 +503,7 @@ public class EmailContext {
     public String getFestivalImageUrl() { return null; }
     public String getServiceFee() { return platformFee; }
     public String getBookingAmount() { return totalAmount; }
-    public String getHelpUrl() { return "https://ysafar.com/help"; }
+    public String getHelpUrl() { return "https://bhramankaro.com/help"; }
     public String getHostResponseRate() { return "95%"; }
     public int getHoursUntilCheckin() { return getDaysUntilCheckin() * 24; }
     public int getMinsUntilCheckin() { return getHoursUntilCheckin() * 60; }
@@ -572,10 +572,10 @@ public class EmailContext {
     public void setEndDate(String endDate) { this.endDate = endDate; }
     public String getSchedule() { return schedule; }
     public void setSchedule(String schedule) { this.schedule = schedule; }
-    public String getRepeatBookUrl() { return repeatBookUrl != null ? repeatBookUrl : "https://ysafar.com/cooks"; }
+    public String getRepeatBookUrl() { return repeatBookUrl != null ? repeatBookUrl : "https://bhramankaro.com/cooks"; }
     public void setRepeatBookUrl(String repeatBookUrl) { this.repeatBookUrl = repeatBookUrl; }
-    public String getCooksUrl() { return "https://ysafar.com/cooks"; }
-    public String getCooksBookingsUrl() { return "https://ysafar.com/cooks/my-bookings"; }
+    public String getCooksUrl() { return "https://bhramankaro.com/cooks"; }
+    public String getCooksBookingsUrl() { return "https://bhramankaro.com/cooks/my-bookings"; }
     public String getServiceCategory() { return serviceCategory; }
     public void setServiceCategory(String serviceCategory) { this.serviceCategory = serviceCategory; }
 
@@ -694,7 +694,7 @@ public class EmailContext {
         if (donorPan == null || donorPan.length() < 4) return donorPan;
         return "XXXXX" + donorPan.substring(donorPan.length() - 4) + "X";
     }
-    public String getDonationImpactUrl() { return "https://ysafar.com/aashray/impact"; }
+    public String getDonationImpactUrl() { return "https://bhramankaro.com/aashray/impact"; }
 
     // Template aliases used by payment-receipt.html
     public boolean getIsNonRefundable() { return nonRefundable; }

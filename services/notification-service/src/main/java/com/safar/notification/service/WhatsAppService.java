@@ -86,7 +86,7 @@ public class WhatsAppService {
     public void sendInsurancePolicyIssued(String phone, String policyRef, String insurer, String coverage, String certUrl) {
         if (!isConfigured(insurancePolicyIssuedTemplate)) return;
         sendTemplate(phone, insurancePolicyIssuedTemplate, List.of(
-                policyRef, insurer, coverage, certUrl != null ? certUrl : "ysafar.com/insurance"));
+                policyRef, insurer, coverage, certUrl != null ? certUrl : "bhramankaro.com/insurance"));
         log.info("Sent insurance policy WA to {} ({})", maskPhone(phone), policyRef);
     }
 

@@ -538,9 +538,9 @@ Here are the environment variables to set for production:
   ┌───────────────────────────────┬────────────────────┐
   │             Field             │       Value        │
   ├───────────────────────────────┼────────────────────┤
-  │ Authorized JavaScript origins │ https://ysafar.com │
+  │ Authorized JavaScript origins │ https://bhramankaro.com │
   ├───────────────────────────────┼────────────────────┤
-  │ Authorized redirect URIs      │ https://ysafar.com │
+  │ Authorized redirect URIs      │ https://bhramankaro.com │
   └───────────────────────────────┴────────────────────┘
 
   Also make sure NEXT_PUBLIC_GOOGLE_CLIENT_ID is set in your .env.local (not the placeholder 'GOOGLE_CLIENT_ID' fallback
@@ -562,7 +562,7 @@ s3 bucket cors policy:
 ● Bash(aws s3api put-bucket-cors --bucket safar-media-dev --cors-configuration '{
         "CORSRules": [
           {
-            "AllowedOrigins": ["http://localhost:3000", "http://localhost:3001", "https://ysafar.com", "https://www.ysafar.com"],
+            "AllowedOrigins": ["http://localhost:3000", "http://localhost:3001", "https://bhramankaro.com", "https://www.bhramankaro.com"],
             "AllowedMethods": ["GET", "PUT", "POST", "HEAD"],
             "AllowedHeaders": ["*"],
             "ExposeHeaders": ["ETag"],
@@ -588,8 +588,8 @@ s3 bucket cors policy:
                  "AllowedOrigins": [
                      "http://localhost:3000",
                      "http://localhost:3001",
-                     "https://ysafar.com",
-     "https://www.ysafar.com"
+                     "https://bhramankaro.com",
+     "https://www.bhramankaro.com"
                  ],
                  "ExposeHeaders": [
      "ETag"
@@ -603,7 +603,7 @@ s3 bucket cors policy:
 ● Fixed. S3 bucket safar-media-dev now has CORS configured for:
   - localhost:3000 (web dev)
   - localhost:3001 (admin dev)
-  - ysafar.com (production)
+  - bhramankaro.com (production)
 
   Allowed methods: GET, PUT, POST, HEAD. Try the photo upload again — it should work now.
   
@@ -618,7 +618,7 @@ upon clicking PG management it's getting logged out.
 
 2). do ticket management who stay in hotel/apartment. to get neccesasry suppoort oor basic thing water, breakfast lunch ordering etc.
 
-3). received email notification. why 404 for https://ysafar.com/dashboard/bookings/SAF-BKG-RC524G
+3). received email notification. why 404 for https://bhramankaro.com/dashboard/bookings/SAF-BKG-RC524G
 
 ==========
 @10/04/2026
@@ -669,7 +669,7 @@ sawancse@gmail.com
 ===============
 1).{"type":"about:blank","title":"Bad Request","status":400,"detail":"Property not available: Listing status is DRAFT (must be VERIFIED to accept bookings)","instance":"/api/v1/bookings"}
 
-https://www.ysafar.com/book/a8bc1904-bb80-4b01-899d-fbf1ec80f9d0?checkIn=2026-04-12&checkOut=2026-05-12&rooms=1&guests=1&adults=1&children=0&infants=0&pets=0&roomSelections=%5B%7B%22id%22%3A%2203855916-069d-4c8c-9c39-dd59adaa58dd%22%2C%22c%22%3A1%2C%22rooms%22%3A1%2C%22gpr%22%3A5%7D%5D
+https://www.bhramankaro.com/book/a8bc1904-bb80-4b01-899d-fbf1ec80f9d0?checkIn=2026-04-12&checkOut=2026-05-12&rooms=1&guests=1&adults=1&children=0&infants=0&pets=0&roomSelections=%5B%7B%22id%22%3A%2203855916-069d-4c8c-9c39-dd59adaa58dd%22%2C%22c%22%3A1%2C%22rooms%22%3A1%2C%22gpr%22%3A5%7D%5D
 
 curL:
 curl -s http://localhost:8092/api/v1/users/hosts/92ebd08c-f323-4312-a5f8-3d96b7271385 2>&1 | head -20

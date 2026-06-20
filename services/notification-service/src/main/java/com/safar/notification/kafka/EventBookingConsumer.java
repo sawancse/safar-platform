@@ -329,7 +329,7 @@ public class EventBookingConsumer {
                         capitalise(ctx.getServiceLabel()) + " " + ctx.getBookingRef() + " — " + subject
                         + "\n\nDate: " + ctx.getServiceDate()
                         + "\nAmount: " + ctx.getTotalAmount()
-                        + "\n\nView details: https://ysafar.com/cooks/my-bookings"
+                        + "\n\nView details: https://bhramankaro.com/cooks/my-bookings"
                         + "\n\n" + ctx.getEventBrandTeam());
             } catch (Exception e2) {
                 log.error("Plain text email also failed for {}: {}", email, e2.getMessage());

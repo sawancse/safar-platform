@@ -322,7 +322,7 @@ public class ChefEventConsumer {
                             + "\n\nChef: " + ctx.getChefName()
                             + "\nDate: " + ctx.getServiceDate()
                             + "\nAmount: " + ctx.getTotalAmount()
-                            + "\n\nView details: https://ysafar.com/cooks/my-bookings"
+                            + "\n\nView details: https://bhramankaro.com/cooks/my-bookings"
                             + "\n\nSafar Cooks Team");
                 }
             } catch (Exception e2) {

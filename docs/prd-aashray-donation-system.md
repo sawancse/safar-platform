@@ -330,7 +330,7 @@ Analyzed 6 leading platforms to identify best-practice UX patterns for the India
 
 ### 5.1 Page: `/aashray/donate`
 
-**URL**: `https://www.ysafar.com/aashray/donate`
+**URL**: `https://www.bhramankaro.com/aashray/donate`
 **Bundle size**: 7.65 kB (static, client-rendered)
 
 ### 5.2 Page Sections

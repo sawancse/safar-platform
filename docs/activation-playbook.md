@@ -88,7 +88,7 @@ When you finish each item, replace the ⏳ with ✅ and date.
   MSG91_WA_BOT_HELP_TEMPLATE=bot_help
   MSG91_WA_WEBHOOK_SECRET=<your-webhook-secret>  # for inbound HMAC verification
   ```
-- **Also configure:** MSG91 dashboard → WhatsApp → Webhooks → POST URL: `https://api.ysafar.com/api/v1/whatsapp/webhook`
+- **Also configure:** MSG91 dashboard → WhatsApp → Webhooks → POST URL: `https://api.bhramankaro.com/api/v1/whatsapp/webhook`
 
 ### 6. Acko Insurance partnership ⏳
 - **What:** Apply for B2B partnership for travel insurance

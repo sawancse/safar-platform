@@ -347,7 +347,7 @@ public class NotificationService {
                     "Payment Failed — " + booking.bookingRef(),
                     String.format("Hi %s,\n\nPayment for booking %s failed.\n\n" +
                             "Please retry your payment from your dashboard:\n" +
-                            "https://ysafar.com/dashboard\n\n" +
+                            "https://bhramankaro.com/dashboard\n\n" +
                             "Your booking will be held for 24 hours. After that, it will be automatically cancelled.\n\n" +
                             "Safar Team",
                             booking.guestName(), booking.bookingRef()));

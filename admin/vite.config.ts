@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     port: 3001,
     host: true,
-    allowedHosts: ['admin.ysafar.com', '.ysafar.com', 'localhost'],
+    allowedHosts: ['admin.bhramankaro.com', '.bhramankaro.com', 'localhost'],
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

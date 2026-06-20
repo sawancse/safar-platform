@@ -29,7 +29,7 @@
           "reservedClientId": "com.googleusercontent.apps.YOUR_IOS_CLIENT_ID"
         }
       },
-      "associatedDomains": ["applinks:ysafar.com", "applinks:www.ysafar.com"]
+      "associatedDomains": ["applinks:bhramankaro.com", "applinks:www.bhramankaro.com"]
     },
     "android": {
       "adaptiveIcon": {
@@ -56,12 +56,12 @@
           "data": [
             {
               "scheme": "https",
-              "host": "ysafar.com",
+              "host": "bhramankaro.com",
               "pathPrefix": "/listing"
             },
             {
               "scheme": "https",
-              "host": "www.ysafar.com",
+              "host": "www.bhramankaro.com",
               "pathPrefix": "/listing"
             }
           ],
@@ -100,7 +100,7 @@
     ],
     "scheme": "safar",
     "extra": {
-      "apiUrl": "https://api.ysafar.com",
+      "apiUrl": "https://api.bhramankaro.com",
       "router": {
         "origin": false
       },

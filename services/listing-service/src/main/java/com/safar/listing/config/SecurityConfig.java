@@ -34,7 +34,7 @@ public class SecurityConfig {
                         return null; // skip CORS — gateway handles it
                     }
                     var config = new org.springframework.web.cors.CorsConfiguration();
-                    config.setAllowedOriginPatterns(java.util.List.of("http://localhost:*", "https://ysafar.com", "https://*.ysafar.com"));
+                    config.setAllowedOriginPatterns(java.util.List.of("http://localhost:*", "https://bhramankaro.com", "https://*.bhramankaro.com"));
                     config.setAllowedMethods(java.util.List.of("*"));
                     config.setAllowedHeaders(java.util.List.of("*"));
                     config.setAllowCredentials(true);

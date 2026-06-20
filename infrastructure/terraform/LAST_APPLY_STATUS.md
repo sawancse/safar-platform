@@ -2,7 +2,7 @@
 
 **AWS Account:** `624627192872` (user: `sawank.sit`)
 **Region:** `ap-south-1` (Mumbai)
-**Domain:** `ysafar.com` (changed from `safar.com`)
+**Domain:** `bhramankaro.com` (changed from `safar.com`)
 
 ## Outputs
 
@@ -48,8 +48,8 @@ ecr_repositories:
 | RDS | 2 | PostgreSQL 16 subnet group + parameter group |
 | Redis | 2 | ElastiCache replication group + subnet group |
 | MSK | 1 | Serverless Kafka cluster |
-| Route 53 | 3 | Zone `ysafar.com` + 2 ACM validation records |
-| ACM Certs | 2 | `ysafar.com` + `*.ysafar.com` (CloudFront us-east-1 + ALB ap-south-1) |
+| Route 53 | 3 | Zone `bhramankaro.com` + 2 ACM validation records |
+| ACM Certs | 2 | `bhramankaro.com` + `*.bhramankaro.com` (CloudFront us-east-1 + ALB ap-south-1) |
 | S3 | 3 | Media bucket + CORS + ALB logs policy |
 | CloudFront | 2 | OAC for media + admin CDN |
 | Secrets Manager | 10 | 5 secrets + 5 versions (DB password, JWT, AES key, Razorpay, Mail) |
@@ -62,10 +62,10 @@ ecr_repositories:
 ## Issues
 
 ### 1. ACM Certificates — PENDING_VALIDATION
-Both `ysafar.com` certs are still pending DNS validation.
+Both `bhramankaro.com` certs are still pending DNS validation.
 Set this CNAME in Namecheap (or wherever DNS is managed):
 ```
-_5622cfa89f2a3a0ac9a05237dc4cbbae.ysafar.com → _c73eea9639f8fd1d0aaf0f805341184d.jkddzztszm.acm-validations.aws
+_5622cfa89f2a3a0ac9a05237dc4cbbae.bhramankaro.com → _c73eea9639f8fd1d0aaf0f805341184d.jkddzztszm.acm-validations.aws
 ```
 
 ### 2. RDS Endpoint Missing from Outputs
@@ -88,7 +88,7 @@ terraform state rm 'aws_acm_certificate.cloudfront[deposed]'
 ```
 
 ### 5. Route 53 Nameservers
-Set these as Custom DNS in Namecheap for `ysafar.com`:
+Set these as Custom DNS in Namecheap for `bhramankaro.com`:
 ```
 ns-1368.awsdns-43.org
 ns-1621.awsdns-10.co.uk

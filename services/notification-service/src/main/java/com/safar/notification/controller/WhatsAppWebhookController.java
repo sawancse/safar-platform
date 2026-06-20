@@ -41,7 +41,7 @@ public class WhatsAppWebhookController {
     @Value("${msg91.wa.webhook-secret:}")
     private String webhookSecret;
 
-    @Value("${safar.web.base-url:https://ysafar.com}")
+    @Value("${safar.web.base-url:https://bhramankaro.com}")
     private String webBaseUrl;
 
     @PostMapping

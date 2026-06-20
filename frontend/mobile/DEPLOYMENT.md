@@ -63,7 +63,7 @@ Edit `eas.json` → submit → production → ios:
 ```
 
 ### 4. Privacy Policy
-Deploy `store/privacy-policy.html` to https://ysafar.com/privacy-policy
+Deploy `store/privacy-policy.html` to https://bhramankaro.com/privacy-policy
 ```bash
 # Upload to S3 (same bucket as admin dashboard)
 aws s3 cp store/privacy-policy.html s3://safar-admin-dashboard/privacy-policy.html --content-type text/html
@@ -142,7 +142,7 @@ npm run update "Fix: description of update"
 - [ ] Create Apple Developer account ($99/year)
 - [ ] Generate Google service account key → `google-service-account.json`
 - [ ] Update `eas.json` with Apple credentials (appleId, ascAppId, appleTeamId)
-- [ ] Deploy privacy policy to https://ysafar.com/privacy-policy
+- [ ] Deploy privacy policy to https://bhramankaro.com/privacy-policy
 - [ ] Create Google Play store listing with screenshots
 - [ ] Create App Store Connect listing with screenshots
 - [ ] Fill Google Play data safety form

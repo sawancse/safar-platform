@@ -17,7 +17,7 @@ Search for `[BRACKETS]` in the emails below and fill in:
 - `[Safar Platform Pvt Ltd]` — exact legal entity
 - `[mobile]` — best phone for callback (with `+91` country code)
 - `[email]` — your business email (the one you're sending from)
-- `[website]` — public site (ysafar.com? safar.com?)
+- `[website]` — public site (bhramankaro.com? safar.com?)
 - `[N]` cities — current operational footprint (be conservative; under-promise is fine)
 - `[200–500 bookings/mo]` — adjust if you want a different ballpark
 

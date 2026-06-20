@@ -189,8 +189,8 @@ ALB logs:      safar-alb-logs-production
 Auth:          IAM task role (no explicit keys needed)
 
 # ── CloudFront CDN ──
-Media:    d40begvouhqsy.cloudfront.net  → media.ysafar.com
-Admin:    d2fl04pl2b7q9p.cloudfront.net → admin.ysafar.com
+Media:    d40begvouhqsy.cloudfront.net  → media.bhramankaro.com
+Admin:    d2fl04pl2b7q9p.cloudfront.net → admin.bhramankaro.com
 
 ```
 
@@ -232,7 +232,7 @@ aws secretsmanager update-secret --secret-id safar-production/aes-encryption-key
 aws secretsmanager update-secret --secret-id safar-production/razorpay --secret-string '{"key_id":"rzp_live_xxx","key_secret":"xxx","webhook_secret":"xxx"}'
 
 # Update Mail Credentials (JSON)
-aws secretsmanager update-secret --secret-id safar-production/mail-credentials --secret-string '{"username":"noreply@ysafar.com","password":"app-password"}'
+aws secretsmanager update-secret --secret-id safar-production/mail-credentials --secret-string '{"username":"noreply@bhramankaro.com","password":"app-password"}'
 ```
 
 ### After Updating Secrets
@@ -322,13 +322,13 @@ Cluster:  safar-production-cluster
 Services: 12 (all on Fargate, 512 CPU / 1024 MB each)
 
 # ── DNS ──
-Domain:       ysafar.com
+Domain:       bhramankaro.com
 Registrar:    Namecheap
 Nameservers:  Route53 (Z03179051FKL0D1Y2X830)
-Subdomains:   api.ysafar.com (ALB), admin.ysafar.com (CF), media.ysafar.com (CF)
+Subdomains:   api.bhramankaro.com (ALB), admin.bhramankaro.com (CF), media.bhramankaro.com (CF)
 
 # ── Amplify (Frontend) ──
 App URL:  https://master.d2xwyyu5ngq13t.amplifyapp.com
-Custom:   ysafar.com (pending SSL)
+Custom:   bhramankaro.com (pending SSL)
 Repo:     sawancse/safar-web
 ```

@@ -14,7 +14,7 @@ public class EmailContextBuilder {
 
     private final ToneService toneService;
 
-    // Production: set NOTIFICATION_BASE_URL=https://ysafar.com
+    // Production: set NOTIFICATION_BASE_URL=https://bhramankaro.com
     @Value("${notification.base-url}")
     private String baseUrl;
 

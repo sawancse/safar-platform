@@ -34,7 +34,7 @@ public class TenancyEventConsumer {
     private final UserClient userClient;
     private final ObjectMapper objectMapper;
 
-    @Value("${app.base-url:https://ysafar.com}")
+    @Value("${app.base-url:https://bhramankaro.com}")
     private String baseUrl;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd MMM yyyy");

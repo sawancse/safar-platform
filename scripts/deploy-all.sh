@@ -117,7 +117,7 @@ if [ "$BUILD" = true ]; then
     info "Building admin dashboard..."
     cd admin
     npm ci --silent
-    VITE_API_URL=https://api.ysafar.com npm run build 2>&1 | tail -3
+    VITE_API_URL=https://api.bhramankaro.com npm run build 2>&1 | tail -3
     ok "Admin built"
 
     info "Syncing admin to S3..."
@@ -280,8 +280,8 @@ if [ "$DEPLOY" = true ]; then
   info "Note: ES indexes (sale_properties, builder_projects) will be auto-created"
   info "by IndexInitializer on search-service startup."
   info "To force reindex, call:"
-  info "  POST https://api.ysafar.com/api/v1/sale-properties/admin/reindex"
-  info "  POST https://api.ysafar.com/api/v1/builder-projects/admin/reindex"
+  info "  POST https://api.bhramankaro.com/api/v1/sale-properties/admin/reindex"
+  info "  POST https://api.bhramankaro.com/api/v1/builder-projects/admin/reindex"
   ok "ES indexes will be created on startup"
 fi
 
@@ -290,7 +290,7 @@ fi
 # ════════════════════════════════════════════════════════════════
 step "7. Verifying deployment"
 
-API_BASE="https://api.ysafar.com"
+API_BASE="https://api.bhramankaro.com"
 
 check_health() {
   local name=$1 url=$2
@@ -338,7 +338,7 @@ echo "  1. Reindex sale properties: curl -X POST $API_BASE/api/v1/sale-propertie
 echo "  2. Reindex builder projects: curl -X POST $API_BASE/api/v1/builder-projects/admin/reindex -H 'Authorization: Bearer \$TOKEN'"
 echo "  3. Verify Kafka topics created: sale.property.indexed, sale.property.deleted, builder.project.indexed"
 echo "  4. Test agreement PDF: curl $API_BASE/api/v1/pg-tenancies/{tenancyId}/agreement/pdf -o test.pdf"
-echo "  5. Check admin panel: https://admin.ysafar.com/sale-properties"
+echo "  5. Check admin panel: https://admin.bhramankaro.com/sale-properties"
 echo ""
 echo "Image tag: $IMAGE_TAG"
 echo "Deployed at: $(date)"

@@ -14,7 +14,7 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
-    @org.springframework.beans.factory.annotation.Value("${cors.allowed-origins:http://localhost:*,https://ysafar.com,https://*.ysafar.com}")
+    @org.springframework.beans.factory.annotation.Value("${cors.allowed-origins:http://localhost:*,https://bhramankaro.com,https://*.bhramankaro.com}")
     private String allowedOrigins;
 
     @Bean
