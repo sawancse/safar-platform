@@ -58,8 +58,9 @@ spring:
 notification:
   from-email: ${NOTIFICATION_FROM_EMAIL:sawank.sit@gmail.com}
   from-name: BhramanKaro
-  # Production: use https://bhramankaro.com poll record 100
-  base-url: ${NOTIFICATION_BASE_URL:http://localhost:3000}
+  # Laptop-as-server runs the default profile and serves real customers, so the
+  # base-url must be the public domain (override via NOTIFICATION_BASE_URL for true local dev).
+  base-url: ${NOTIFICATION_BASE_URL:https://bhramankaro.com}
 
 services:
   booking-service:
