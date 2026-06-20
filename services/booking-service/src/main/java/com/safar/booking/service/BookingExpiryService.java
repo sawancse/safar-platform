@@ -83,8 +83,8 @@ public class BookingExpiryService {
             booking.setCancelledAt(OffsetDateTime.now());
             bookingRepo.save(booking);
 
-            // Release inventory
-            releaseInventory(booking);
+            // PENDING_PAYMENT bookings never hold inventory (reserved only on payment
+            // confirmation via holdInventory), so there is nothing to release on expiry.
 
             // Notify via Kafka
             String event = String.format(

@@ -582,11 +582,8 @@ public class BookingService {
                         .pricePerUnitPaise(rtPrice)
                         .totalPaise(selTotal)
                         .build());
-                // Decrement availability for each room type selection
-                listingClient.decrementRoomTypeAvailability(
-                        sel.roomTypeId(), checkInDate, checkOutDate, sel.count());
-                // Reflect booking on host room board (occupiedBeds aggregate)
-                listingClient.incrementRoomTypeOccupancy(sel.roomTypeId(), sel.count());
+                // Inventory is reserved on payment confirmation (holdInventory), NOT at
+                // PENDING creation — abandoned/expired bookings never decrement availability.
             }
             log.info("Saved {} room selections for booking {}", req.roomSelections().size(), saved.getBookingRef());
         }
@@ -609,30 +606,15 @@ public class BookingService {
             log.info("Saved {} guests for booking {}", req.guests().size(), saved.getBookingRef());
         }
 
-        // Decrement room type availability — HARD FAIL (single room type — legacy flow)
-        if (req.roomTypeId() != null && (req.roomSelections() == null || req.roomSelections().isEmpty())) {
-            listingClient.decrementRoomTypeAvailability(
-                    req.roomTypeId(), checkInDate, checkOutDate, rooms);
-            // Reflect booking on host room board (occupiedBeds aggregate)
-            listingClient.incrementRoomTypeOccupancy(req.roomTypeId(), rooms);
-
-            // For multi-room: only block listing calendar when ALL rooms of ALL types are booked
-            Integer totalRooms = availInfo.get("totalRooms") instanceof Number
-                    ? ((Number) availInfo.get("totalRooms")).intValue() : 1;
-            if (totalRooms <= 1) {
-                // Single-room: always block calendar
-                listingClient.blockDates(req.listingId(), checkInDate, checkOutDate);
-            }
-            // Multi-room: calendar stays open — availability tracked via room-type inventory
-        } else {
-            // No room type selected: block calendar (single-room or legacy)
-            listingClient.blockDates(req.listingId(), checkInDate, checkOutDate);
-        }
+        // Inventory (room-type availability, occupancy, listing calendar) is reserved only
+        // when the booking is confirmed/paid — see holdInventory(). PENDING bookings hold
+        // nothing, so abandoned/expired/deleted ones never orphan availability.
 
         // PAY_AT_PROPERTY: auto-confirm (no online payment required)
         if ("PAY_AT_PROPERTY".equals(paymentMode)) {
             saved.setStatus(BookingStatus.CONFIRMED);
             saved = bookingRepo.save(saved);
+            holdInventory(saved); // auto-confirmed (no online payment) → reserve inventory now
             log.info("Auto-confirmed PAY_AT_PROPERTY booking: {}", saved.getBookingRef());
         }
 
@@ -683,6 +665,7 @@ public class BookingService {
             throw new IllegalStateException("Only PENDING_PAYMENT bookings can be confirmed");
         }
         booking.setStatus(BookingStatus.CONFIRMED);
+        holdInventory(booking); // reserve room-type availability + calendar now that payment is in
         // The security deposit is part of the upfront total (see total calc in createBooking).
         // For a fully-prepaid booking (no balance due at property) the deposit is now collected,
         // so advance it out of PENDING. PARTIAL_PREPAID collects it when the balance is settled
@@ -700,6 +683,39 @@ public class BookingService {
             log.warn("Failed to send Kafka event for confirmed booking {}: {}", booking.getBookingRef(), e.getMessage());
         }
         return toResponse(confirmed);
+    }
+
+    /**
+     * Reserve inventory for a booking that is now confirmed/paid: decrement room-type
+     * availability, bump occupancy, and block the listing calendar. Called on payment
+     * confirmation (and PAY_AT_PROPERTY auto-confirm), NOT at PENDING creation — so an
+     * abandoned/expired/deleted booking never holds, and therefore never orphans, inventory.
+     */
+    private void holdInventory(Booking booking) {
+        java.time.LocalDate ci = booking.getCheckIn().toLocalDate();
+        java.time.LocalDate co = booking.getCheckOut().toLocalDate();
+        try {
+            List<BookingRoomSelection> sels = roomSelectionRepo.findByBookingId(booking.getId());
+            if (!sels.isEmpty()) {
+                for (BookingRoomSelection sel : sels) {
+                    listingClient.decrementRoomTypeAvailability(sel.getRoomTypeId(), ci, co, sel.getCount());
+                    listingClient.incrementRoomTypeOccupancy(sel.getRoomTypeId(), sel.getCount());
+                }
+                // multi-room: listing calendar stays open (tracked via room-type inventory)
+            } else if (booking.getRoomTypeId() != null) {
+                int rooms = booking.getRoomsCount() != null ? booking.getRoomsCount() : 1;
+                listingClient.decrementRoomTypeAvailability(booking.getRoomTypeId(), ci, co, rooms);
+                listingClient.incrementRoomTypeOccupancy(booking.getRoomTypeId(), rooms);
+                Integer totalRooms = listingClient.getTotalRooms(booking.getListingId());
+                if (totalRooms == null || totalRooms <= 1) {
+                    listingClient.blockDates(booking.getListingId(), ci, co);
+                }
+            } else {
+                listingClient.blockDates(booking.getListingId(), ci, co);
+            }
+        } catch (Exception e) {
+            log.warn("holdInventory failed for booking {}: {}", booking.getBookingRef(), e.getMessage());
+        }
     }
 
     /**
@@ -744,12 +760,19 @@ public class BookingService {
             throw new IllegalStateException("Booking cannot be cancelled in status: " + booking.getStatus());
         }
 
+        // Inventory is only held once a booking is confirmed/paid (holdInventory). A
+        // never-confirmed PENDING booking holds nothing, so skip the release for it —
+        // incrementAvailability does not cap and would over-state availability.
+        boolean wasHeld = booking.getStatus() == BookingStatus.CONFIRMED
+                || booking.getStatus() == BookingStatus.CHECKED_IN;
+
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancellationReason(reason);
         booking.setCancelledAt(OffsetDateTime.now());
         Booking cancelled = bookingRepo.save(booking);
 
         // Unblock dates on listing calendar
+        if (wasHeld) {
         try {
             listingClient.unblockDates(booking.getListingId(),
                     booking.getCheckIn().toLocalDate(), booking.getCheckOut().toLocalDate());
@@ -797,6 +820,7 @@ public class BookingService {
                 log.warn("Failed to release room type occupancy for {}: {}", booking.getRoomTypeId(), e.getMessage());
             }
         }
+        } // end if (wasHeld) — only release inventory that was actually reserved
 
         // Release Redis hold
         try {
