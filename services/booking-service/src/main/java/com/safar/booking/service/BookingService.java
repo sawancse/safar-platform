@@ -667,6 +667,16 @@ public class BookingService {
             throw new IllegalStateException("Only PENDING_PAYMENT bookings can be confirmed");
         }
         booking.setStatus(BookingStatus.CONFIRMED);
+        // The security deposit is part of the upfront total (see total calc in createBooking).
+        // For a fully-prepaid booking (no balance due at property) the deposit is now collected,
+        // so advance it out of PENDING. PARTIAL_PREPAID collects it when the balance is settled
+        // (see markBalancePaid); PAY_AT_PROPERTY collects it offline at the property.
+        if ("PENDING".equals(booking.getSecurityDepositStatus())
+                && booking.getSecurityDepositPaise() != null
+                && booking.getSecurityDepositPaise() > 0
+                && (booking.getDueAtPropertyPaise() == null || booking.getDueAtPropertyPaise() == 0L)) {
+            booking.setSecurityDepositStatus("COLLECTED");
+        }
         Booking confirmed = bookingRepo.save(booking);
         try {
             kafka.send("booking.confirmed", bookingId.toString());
@@ -691,6 +701,12 @@ public class BookingService {
             return toResponse(booking);
         }
         booking.setDueAtPropertyPaise(0L);
+        // Full amount (incl. the proportional deposit) is now paid → deposit is collected.
+        if ("PENDING".equals(booking.getSecurityDepositStatus())
+                && booking.getSecurityDepositPaise() != null
+                && booking.getSecurityDepositPaise() > 0) {
+            booking.setSecurityDepositStatus("COLLECTED");
+        }
         Booking saved = bookingRepo.save(booking);
         try {
             kafka.send("booking.balance.paid", bookingId.toString());
