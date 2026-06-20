@@ -56,9 +56,7 @@ public class HostKycService {
         // Auto-verify in dev mode (replace with actual API verification in prod)
         kyc.setAadhaarVerified(true);
         kyc.setPanVerified(true);
-        if (kyc.getStatus() == KycStatus.NOT_STARTED) {
-            kyc.setStatus(KycStatus.ADDRESS_PENDING);
-        }
+        recomputeStatus(kyc);
         HostKycDto dto = toDto(kycRepository.save(kyc));
         // Recalculate trust score after identity update
         trustScoreService.calculateTrustScore(userId);
@@ -73,9 +71,7 @@ public class HostKycService {
         kyc.setCity(req.city());
         kyc.setState(req.state());
         kyc.setPincode(req.pincode());
-        if (kyc.getStatus() == KycStatus.ADDRESS_PENDING || kyc.getStatus() == KycStatus.NOT_STARTED) {
-            kyc.setStatus(KycStatus.BANK_PENDING);
-        }
+        recomputeStatus(kyc);
         return toDto(kycRepository.save(kyc));
     }
 
@@ -100,10 +96,7 @@ public class HostKycService {
         kyc.setBankName(req.bankName());
         // Auto-verify in dev mode
         kyc.setBankVerified(true);
-        if (kyc.getStatus() == KycStatus.BANK_PENDING || kyc.getStatus() == KycStatus.NOT_STARTED) {
-            kyc.setStatus(KycStatus.SUBMITTED);
-            kyc.setSubmittedAt(OffsetDateTime.now());
-        }
+        recomputeStatus(kyc);
         HostKycDto dto = toDto(kycRepository.save(kyc));
         // Recalculate trust score after bank update
         trustScoreService.calculateTrustScore(userId);
@@ -156,6 +149,42 @@ public class HostKycService {
         kyc.setSubmittedAt(OffsetDateTime.now());
         log.info("Host KYC submitted for user {}", userId);
         return toDto(kycRepository.save(kyc));
+    }
+
+    /**
+     * Derive KYC status from which sections are actually complete, instead of
+     * relying on strict step-by-step transitions. The old linear flow (identity →
+     * address → bank) stranded hosts who completed steps out of order: e.g. saving
+     * bank while still ADDRESS_PENDING set bankVerified=true but skipped the
+     * SUBMITTED promotion, leaving a fully-verified host stuck at BANK_PENDING and
+     * invisible to the admin review queue. Recomputing from completeness is
+     * order-independent and idempotent. Admin decisions (VERIFIED/REJECTED) are
+     * terminal and never overwritten here.
+     */
+    private void recomputeStatus(HostKyc kyc) {
+        if (kyc.getStatus() == KycStatus.VERIFIED || kyc.getStatus() == KycStatus.REJECTED) {
+            return;
+        }
+        boolean identityDone = Boolean.TRUE.equals(kyc.getAadhaarVerified())
+                && Boolean.TRUE.equals(kyc.getPanVerified());
+        boolean addressDone = kyc.getAddressLine1() != null && kyc.getCity() != null
+                && kyc.getPincode() != null;
+        boolean bankDone = Boolean.TRUE.equals(kyc.getBankVerified());
+
+        KycStatus next;
+        if (identityDone && addressDone && bankDone) {
+            next = KycStatus.SUBMITTED;
+        } else if (identityDone && addressDone) {
+            next = KycStatus.BANK_PENDING;
+        } else if (identityDone) {
+            next = KycStatus.ADDRESS_PENDING;
+        } else {
+            next = KycStatus.NOT_STARTED;
+        }
+        kyc.setStatus(next);
+        if (next == KycStatus.SUBMITTED && kyc.getSubmittedAt() == null) {
+            kyc.setSubmittedAt(OffsetDateTime.now());
+        }
     }
 
     // Admin endpoints
