@@ -332,6 +332,19 @@ public class BookingService {
                 securityDepositPaise = listingDeposit != null ? listingDeposit * rooms : null;
             }
             securityDepositStatus = securityDepositPaise != null && securityDepositPaise > 0 ? "PENDING" : null;
+        } else {
+            // Non-PG stays (apartments, homes, etc.) still honour a security deposit
+            // configured on the listing — it was previously dropped, so a listing with a
+            // deposit collected nothing. Charge listing deposit × rooms (added to total below).
+            if (req.securityDepositPaise() != null) {
+                securityDepositPaise = req.securityDepositPaise();
+            } else {
+                Long listingDeposit = listingClient.getSecurityDepositPaise(req.listingId());
+                if (listingDeposit != null && listingDeposit > 0) {
+                    securityDepositPaise = listingDeposit * rooms;
+                }
+            }
+            securityDepositStatus = securityDepositPaise != null && securityDepositPaise > 0 ? "PENDING" : null;
         }
         // Insurance is a stay-protection fee for short-term bookings; skip for
         // residential monthly rentals (PG/co-living) — same as GST and cleaning fee.

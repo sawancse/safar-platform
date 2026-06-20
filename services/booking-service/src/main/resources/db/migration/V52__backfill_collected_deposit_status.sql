@@ -6,5 +6,5 @@ SET security_deposit_status = 'COLLECTED'
 WHERE security_deposit_status = 'PENDING'
   AND security_deposit_paise IS NOT NULL
   AND security_deposit_paise > 0
-  AND status IN ('CONFIRMED', 'COMPLETED')
+  AND status IN ('CONFIRMED', 'CHECKED_IN', 'COMPLETED')
   AND (due_at_property_paise IS NULL OR due_at_property_paise = 0);
