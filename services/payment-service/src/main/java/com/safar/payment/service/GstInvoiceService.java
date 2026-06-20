@@ -21,7 +21,6 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 @RequiredArgsConstructor
@@ -31,8 +30,6 @@ public class GstInvoiceService {
     private final HostTaxProfileRepository taxProfileRepo;
     private final HostExpenseRepository expenseRepo;
     private final GstInvoiceRepository gstInvoiceRepo;
-
-    private final AtomicLong invoiceCounter = new AtomicLong(0);
 
     @Transactional
     public HostTaxProfile createTaxProfile(UUID hostId, TaxProfileRequest req) {
@@ -77,6 +74,16 @@ public class GstInvoiceService {
 
     @Transactional
     public GstInvoice generateInvoice(UUID hostId, UUID bookingId, long totalAmountPaise, boolean isInterState) {
+        // Idempotency: one GST invoice per booking. Booking completion can be
+        // re-delivered (Kafka at-least-once) or overlap with backfill — never duplicate.
+        if (bookingId != null) {
+            var existing = gstInvoiceRepo.findFirstByBookingId(bookingId);
+            if (existing.isPresent()) {
+                log.debug("GST invoice already exists for booking {} — skipping", bookingId);
+                return existing.get();
+            }
+        }
+
         // For 18% GST: totalAmount = taxableAmount * 1.18
         // taxableAmount = totalAmount * 100 / 118
         long taxableAmount = Math.round(totalAmountPaise * 100.0 / 118.0);
@@ -112,7 +119,11 @@ public class GstInvoiceService {
     }
 
     public TdsReport generateTdsReport(UUID hostId, int year, int quarter) {
-        HostTaxProfile profile = getTaxProfile(hostId);
+        // Tax profile is optional — a host can have completed bookings (and therefore
+        // a TDS liability) before filling in their PAN/GSTIN. Don't 500 the whole tab.
+        String pan = taxProfileRepo.findByHostId(hostId)
+                .map(HostTaxProfile::getPan)
+                .orElse(null);
 
         // Quarter date range
         int startMonth = (quarter - 1) * 3 + 1;
@@ -131,7 +142,7 @@ public class GstInvoiceService {
 
         String period = String.format("Q%d-%d", quarter, year);
 
-        return new TdsReport(hostId, profile.getPan(), period, totalRevenue, tdsDeducted, invoices.size());
+        return new TdsReport(hostId, pan, period, totalRevenue, tdsDeducted, invoices.size());
     }
 
     public PnlStatement generatePnl(UUID hostId, int year) {
@@ -199,7 +210,9 @@ public class GstInvoiceService {
 
     private String generateInvoiceNumber() {
         YearMonth now = YearMonth.now();
-        long seq = invoiceCounter.incrementAndGet();
+        // Seed from persisted count so sequence survives restarts (in-memory counter
+        // resets to 0 each boot and would collide with the unique invoiceNumber index).
+        long seq = gstInvoiceRepo.count() + 1;
         return String.format("SAF-GST-%d%02d-%04d", now.getYear(), now.getMonthValue(), seq);
     }
 }

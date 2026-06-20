@@ -220,4 +220,11 @@ public class KafkaTopicConfig {
     public NewTopic bookingBalancePaidTopic() {
         return new NewTopic("booking.balance.paid", 1, (short) 1);
     }
+
+    // --- Host GST invoice generation (booking → payment) ---
+
+    @Bean
+    public NewTopic bookingInvoiceRequestedTopic() {
+        return new NewTopic("booking.invoice.requested", 1, (short) 1);
+    }
 }

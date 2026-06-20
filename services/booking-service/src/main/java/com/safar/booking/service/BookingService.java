@@ -56,6 +56,7 @@ public class BookingService {
     private final BookingGuestRepository guestRepo;
     private final StringRedisTemplate redis;
     private final KafkaTemplate<String, String> kafka;
+    private final com.safar.booking.kafka.KafkaJsonPublisher kafkaJsonPublisher;
     private final ListingServiceClient listingClient;
     private final PgTenancyService pgTenancyService;
     private final TenancyAgreementService tenancyAgreementService;
@@ -1081,6 +1082,22 @@ public class BookingService {
             kafka.send("booking.completed", booking.getId().toString());
         } catch (Exception e) {
             log.warn("Failed to send Kafka event for completed booking {}: {}", booking.getBookingRef(), e.getMessage());
+        }
+
+        // Trigger host GST invoice generation in payment-service. Carries hostId +
+        // total so the consumer needs no callback. Drives Earnings/Invoices/TDS tabs.
+        if (booking.getHostId() != null && booking.getTotalAmountPaise() != null
+                && booking.getTotalAmountPaise() > 0) {
+            try {
+                kafkaJsonPublisher.publish("booking.invoice.requested", booking.getId().toString(), Map.of(
+                        "bookingId", booking.getId().toString(),
+                        "hostId", booking.getHostId().toString(),
+                        "totalAmountPaise", booking.getTotalAmountPaise()
+                ));
+            } catch (Exception e) {
+                log.warn("Failed to publish booking.invoice.requested for booking {}: {}",
+                        booking.getBookingRef(), e.getMessage());
+            }
         }
     }
 
