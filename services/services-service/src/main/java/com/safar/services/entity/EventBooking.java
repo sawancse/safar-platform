@@ -126,6 +126,14 @@ public class EventBooking {
     @Column(name = "special_requests", columnDefinition = "TEXT")
     private String specialRequests;
 
+    // ── V31: pandit-specific structured fields (promoted out of menu_description JSON) ──
+    @Column(name = "pandit_count")
+    @Builder.Default
+    private Integer panditCount = 1;
+
+    @Column(name = "samagri_tier", length = 20)
+    private String samagriTier;             // BASIC | STANDARD | PREMIUM
+
     @Enumerated(EnumType.STRING)
     private EventBookingStatus status;
 

@@ -89,6 +89,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/services/items/**").authenticated()
                         // Vendor invites — token resolve is public (the token IS the auth)
                         .requestMatchers(HttpMethod.GET, "/api/v1/services/invites/**").permitAll()
+                        // Pandit vertical: matcher + muhurat (public, read-only, no PII)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/services/pandit/match").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/services/pandit/muhurat").permitAll()
+                        // Availability calendar: public read, vendor write (PUT rule first)
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/services/listings/*/availability").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/services/listings/*/availability").permitAll()
                         // Services-leg listings: public storefront browse
                         .requestMatchers(HttpMethod.GET, "/api/v1/services/listings", "/api/v1/services/listings/by-slug/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/services/listings/*").permitAll()

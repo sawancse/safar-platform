@@ -29,6 +29,7 @@ public class ServiceListingController {
 
     private final ServiceListingService listingService;
     private final KycDocumentService kycService;
+    private final com.safar.services.service.ServiceAvailabilityService availabilityService;
 
     private UUID userId(Authentication auth) {
         return UUID.fromString(auth.getName());
@@ -117,6 +118,28 @@ public class ServiceListingController {
     public ResponseEntity<List<KycDocumentResponse>> listKyc(@PathVariable UUID id, Authentication auth) {
         return ResponseEntity.ok(kycService.listForListing(id, userId(auth), isAdmin(auth))
                 .stream().map(KycDocumentResponse::from).toList());
+    }
+
+    // ── Availability calendar (V23 table; CRUD added here) ──────
+
+    /** Public: a listing's calendar in a date window. */
+    @GetMapping("/{id}/availability")
+    public ResponseEntity<List<AvailabilityResponse>> getAvailability(
+            @PathVariable UUID id,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+            java.time.LocalDate from,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+            java.time.LocalDate to) {
+        return ResponseEntity.ok(availabilityService.list(id, from, to));
+    }
+
+    /** Vendor: open / block a batch of dates on their own listing. */
+    @PutMapping("/{id}/availability")
+    public ResponseEntity<List<AvailabilityResponse>> setAvailability(
+            @PathVariable UUID id,
+            @RequestBody SetAvailabilityRequest req,
+            Authentication auth) {
+        return ResponseEntity.ok(availabilityService.set(id, userId(auth), req));
     }
 
     @PostMapping("/{id}/pause")

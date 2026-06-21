@@ -26,5 +26,7 @@ public record CreateEventBookingRequest(
         String customerPhone,
         String customerEmail,
         String servicesJson,
-        String staffRolesJson
+        String staffRolesJson,
+        Integer panditCount,            // V31 — pandits needed (1 default; 2-3 for premium/luxury pujas)
+        String samagriTier              // V31 — BASIC | STANDARD | PREMIUM
 ) {}

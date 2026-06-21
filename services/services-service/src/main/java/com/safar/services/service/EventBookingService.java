@@ -262,6 +262,8 @@ public class EventBookingService {
                 .specialRequests(req.specialRequests())
                 .servicesJson(req.servicesJson())
                 .staffRolesJson(req.staffRolesJson())
+                .panditCount(req.panditCount() != null && req.panditCount() > 0 ? req.panditCount() : 1)
+                .samagriTier(req.samagriTier())
                 // Bespoke service bookings (singer / decor / cake / pandit /
                 // staff / appliance) ship with a fixed catalog price — there's
                 // no chef quote step. Skip INQUIRY → QUOTED → CONFIRMED and
