@@ -639,6 +639,11 @@ export const adminApi = {
     if (city) qs.set('city', city);
     return axios.get(`${BASE}/vendors/admin/eligible?${qs}`, { headers: authHeaders(token) }).then(r => r.data);
   },
+  // Ranked verified pandits for a booking's criteria — decision support on assign.
+  matchPandits(criteria: any, token: string) {
+    return axios.post(`${BASE}/services/pandit/match`, criteria, { headers: authHeaders(token) })
+      .then(r => r.data).catch(() => []);
+  },
   createVendor(data: any, token: string) {
     return axios.post(`${BASE}/vendors/admin`, data, { headers: authHeaders(token) }).then(r => r.data);
   },

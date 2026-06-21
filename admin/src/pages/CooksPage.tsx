@@ -129,6 +129,9 @@ export default function CooksPage() {
   const [vendorPayoutOverride, setVendorPayoutOverride] = useState<number | null>(null);
   const [vendorAdminNotes, setVendorAdminNotes] = useState('');
   const [vendorByBookingId, setVendorByBookingId] = useState<Record<string, any | null>>({});
+  // Pandit matcher decision-support (shown inside the assign-vendor modal)
+  const [panditMatches, setPanditMatches] = useState<any[]>([]);
+  const [panditPreferred, setPanditPreferred] = useState<{ id?: string; name?: string } | null>(null);
   const [payoutModal, setPayoutModal] = useState<{ visible: boolean; bookingId: string; assignmentId: string; payoutPaise?: number } | null>(null);
   const [payoutRef, setPayoutRef] = useState('');
 
@@ -249,6 +252,8 @@ export default function CooksPage() {
     setSelectedVendorId(null);
     setVendorPayoutOverride(null);
     setVendorAdminNotes('');
+    setPanditMatches([]);
+    setPanditPreferred(null);
     try {
       const list = await adminApi.listEligibleVendors(token, serviceType, row.city);
       setEligibleVendors(Array.isArray(list) ? list : []);
@@ -256,6 +261,30 @@ export default function CooksPage() {
       message.error(e?.response?.data?.message || 'Failed to load vendors');
       setEligibleVendors([]);
     }
+    // Pandit-only: surface the customer's preferred pandit + the ranked shortlist.
+    if (serviceType === 'PANDIT_PUJA') {
+      let md: any = {};
+      try { md = typeof row.menuDescription === 'string' ? JSON.parse(row.menuDescription) : (row.menuDescription || {}); } catch { md = {}; }
+      if (md.preferredPanditId || md.preferredPanditName) {
+        setPanditPreferred({ id: md.preferredPanditId, name: md.preferredPanditName });
+      }
+      try {
+        const matches = await adminApi.matchPandits({
+          occasion: md.occasion || row.eventType,
+          language: md.language,
+          gotra: md.gotra || undefined,
+          city: row.city || undefined,
+        }, token);
+        setPanditMatches(Array.isArray(matches) ? matches : []);
+      } catch { setPanditMatches([]); }
+    }
+  };
+
+  // Best-effort: clicking a ranked pandit pre-selects the matching eligible vendor by name.
+  const pickRankedPandit = (businessName: string) => {
+    const hit = eligibleVendors.find(v => (v.businessName || '').trim().toLowerCase() === businessName.trim().toLowerCase());
+    if (hit) { setSelectedVendorId(hit.id); message.success(`Selected ${hit.businessName}`); }
+    else message.info('This pandit is not in the eligible-vendor list yet — onboard them in Vendors to assign.');
   };
 
   const handleAssignVendor = async () => {
@@ -1022,6 +1051,48 @@ export default function CooksPage() {
         okText="Assign" okButtonProps={{ disabled: !selectedVendorId }}
         width={680}
       >
+        {vendorModal?.serviceType === 'PANDIT_PUJA' && (panditPreferred || panditMatches.length > 0) && (
+          <div style={{ marginBottom: 14, padding: 12, background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8 }}>
+            {panditPreferred?.name && (
+              <div style={{ marginBottom: panditMatches.length ? 10 : 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 13 }}>🙏 <b>Customer's preferred pandit:</b> {panditPreferred.name}</span>
+                <Button size="small" onClick={() => pickRankedPandit(panditPreferred.name!)}>Select</Button>
+              </div>
+            )}
+            {panditMatches.length > 0 && (
+              <>
+                <div style={{ fontSize: 12, color: '#9a3412', fontWeight: 600, marginBottom: 6 }}>
+                  Recommended pandits (ranked by match)
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {panditMatches.slice(0, 5).map((p: any) => (
+                    <div key={p.listingId} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: '#fff', border: '1px solid #f3f4f6', borderRadius: 6, padding: '6px 8px' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ fontWeight: 600, fontSize: 13 }}>{p.businessName}</span>
+                        {p.trustTier === 'TOP_RATED' && <Tag color="purple" style={{ marginLeft: 6 }}>TOP</Tag>}
+                        {p.trustTier === 'SAFAR_VERIFIED' && <Tag color="blue" style={{ marginLeft: 6 }}>VERIFIED</Tag>}
+                        <span style={{ fontSize: 11, color: '#6b7280', marginLeft: 6 }}>
+                          {p.rating ? `⭐${Number(p.rating).toFixed(1)}` : 'New'}{p.reviewCount ? ` (${p.reviewCount})` : ''}{p.city ? ` · ${p.city}` : ''}
+                        </span>
+                        {Array.isArray(p.matchReasons) && p.matchReasons.length > 0 && (
+                          <div style={{ marginTop: 3 }}>
+                            {p.matchReasons.slice(0, 4).map((r: string, i: number) => (
+                              <Tag key={i} color="green" style={{ fontSize: 10, marginRight: 4 }}>✓ {r}</Tag>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <Button size="small" type="link" onClick={() => pickRankedPandit(p.businessName)}>Use</Button>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 6 }}>
+                  Ranking is decision-support. "Use"/"Select" picks the matching eligible vendor below if they're onboarded.
+                </div>
+              </>
+            )}
+          </div>
+        )}
         <div style={{ marginBottom: 12, color: '#6b7280', fontSize: 13 }}>
           {eligibleVendors.length === 0
             ? <span style={{ color: '#dc2626' }}>No verified vendors found{vendorModal?.city ? ` for ${vendorModal.city}` : ''}. Add one in <a href="/vendors">Vendors</a>.</span>
