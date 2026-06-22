@@ -879,6 +879,9 @@ public class ListingService {
                 l.getInsuranceEnabled(),
                 l.getInsuranceAmountPaise(),
                 l.getInsuranceType(),
+                // Maintenance (monthly rentals)
+                l.getMaintenanceChargePaise(),
+                l.getMaintenanceIncluded(),
                 // Hotel fields
                 l.getHotelChain(),
                 l.getFrontDesk24h(),

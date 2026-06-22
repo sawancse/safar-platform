@@ -221,6 +221,12 @@ public class BookingService {
             throw new IllegalArgumentException("Monthly-priced bookings require a minimum stay of 30 days");
         }
 
+        // Overbooking guard for whole-unit (listing-level) stays — apartments/homes had none.
+        // Fail fast at create against already-confirmed overlaps (re-checked again at confirm).
+        boolean hasSelections = req.roomSelections() != null && !req.roomSelections().isEmpty();
+        assertWholeUnitAvailable(req.listingId(), req.roomTypeId(), hasSelections,
+                req.checkIn(), req.checkOut(), null);
+
         // Use room type price if roomTypeId is provided
         long baseRate; // the rate per pricingUnit (per night, per month, or per hour)
         String roomTypeName = null;
@@ -356,6 +362,21 @@ public class BookingService {
             insurancePaise = configured != null && configured > 0 ? configured : 0L;
         }
 
+        // Maintenance charge for monthly apartment/home rentals (non-PG). Society/upkeep
+        // fee the host configures on the listing; prorated by nights/30 exactly like rent so
+        // the booking-page estimate matches what we charge. PG/co-living bills it via monthly
+        // invoices, not upfront, so it's excluded here. maintenanceIncluded=true means it's
+        // baked into the rent (don't double-charge).
+        long maintenancePaise = 0L;
+        if ("MONTH".equals(pricingUnit) && !isPgColiving && !listingClient.isMaintenanceIncluded(req.listingId())) {
+            long maint = listingClient.getMaintenanceChargePaise(req.listingId());
+            if (maint > 0) {
+                long mFull = nights / 30;
+                long mRem = nights % 30;
+                maintenancePaise = maint * mFull + (mRem > 0 ? Math.round((double) maint * mRem / 30) : 0);
+            }
+        }
+
         // Feature 1: Non-refundable discount
         boolean isNonRefundable = Boolean.TRUE.equals(req.nonRefundable());
         long nonRefundableDiscountPaise = 0;
@@ -423,7 +444,7 @@ public class BookingService {
                 ? Math.round(basePaise * GST_RATE) : 0L;
         // Deposit already computed as total (per-bed × beds) above for PG, or single amount otherwise
         long depositPaise = securityDepositPaise != null ? securityDepositPaise : 0L;
-        long totalPaise = basePaise + cleaningFee + insurancePaise + gstPaise + inclusionsTotalPaise + depositPaise;
+        long totalPaise = basePaise + cleaningFee + insurancePaise + maintenancePaise + gstPaise + inclusionsTotalPaise + depositPaise;
 
         // Feature 2: Pay at Property
         String paymentMode = req.paymentMode() != null ? req.paymentMode() : "PREPAID";
@@ -665,6 +686,12 @@ public class BookingService {
         if (booking.getStatus() != BookingStatus.PENDING_PAYMENT) {
             throw new IllegalStateException("Only PENDING_PAYMENT bookings can be confirmed");
         }
+        // Re-check overbooking inside the confirm transaction: another whole-unit booking may
+        // have confirmed the same dates while this one sat PENDING_PAYMENT. Closes the race the
+        // 15-min Redis hold + create-time check can't fully cover.
+        boolean hasSelections = !roomSelectionRepo.findByBookingId(booking.getId()).isEmpty();
+        assertWholeUnitAvailable(booking.getListingId(), booking.getRoomTypeId(), hasSelections,
+                booking.getCheckIn(), booking.getCheckOut(), booking.getId());
         booking.setStatus(BookingStatus.CONFIRMED);
         holdInventory(booking); // reserve room-type availability + calendar now that payment is in
         // The security deposit is part of the upfront total (see total calc in createBooking).
@@ -692,6 +719,33 @@ public class BookingService {
      * confirmation (and PAY_AT_PROPERTY auto-confirm), NOT at PENDING creation — so an
      * abandoned/expired/deleted booking never holds, and therefore never orphans, inventory.
      */
+    /**
+     * Overbooking guard for WHOLE-UNIT (listing-level) bookings — apartments/homes booked
+     * as the entire place, which have no room-type inventory to backstop them. Multi-room
+     * listings (roomTypeId / roomSelections) are enforced by listing-service room-type
+     * availability and are skipped here. Blocks when confirmed/checked-in overlaps already
+     * fill the listing's unit count (default 1).
+     */
+    private void assertWholeUnitAvailable(UUID listingId, UUID roomTypeId, boolean hasSelections,
+                                          LocalDateTime checkIn, LocalDateTime checkOut, UUID excludeId) {
+        if (roomTypeId != null || hasSelections) return;
+        int units = 1;
+        try {
+            Integer t = listingClient.getTotalRooms(listingId);
+            if (t != null && t > 0) units = t;
+        } catch (Exception ignored) { /* default to 1 unit */ }
+        long overlapping = bookingRepo
+                .findByListingIdAndStatusIn(listingId, List.of(BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN))
+                .stream()
+                .filter(b -> excludeId == null || !b.getId().equals(excludeId))
+                .filter(b -> b.getRoomTypeId() == null)
+                .filter(b -> b.getCheckIn().isBefore(checkOut) && b.getCheckOut().isAfter(checkIn))
+                .count();
+        if (overlapping >= units) {
+            throw new IllegalStateException("These dates are no longer available for this property.");
+        }
+    }
+
     private void holdInventory(Booking booking) {
         java.time.LocalDate ci = booking.getCheckIn().toLocalDate();
         java.time.LocalDate co = booking.getCheckOut().toLocalDate();

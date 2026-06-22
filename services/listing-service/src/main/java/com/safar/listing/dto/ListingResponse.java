@@ -86,6 +86,9 @@ public record ListingResponse(
         Boolean insuranceEnabled,
         Long insuranceAmountPaise,
         String insuranceType,
+        // Maintenance (monthly rentals)
+        Long maintenanceChargePaise,
+        Boolean maintenanceIncluded,
         // Hotel fields
         String hotelChain,
         Boolean frontDesk24h,

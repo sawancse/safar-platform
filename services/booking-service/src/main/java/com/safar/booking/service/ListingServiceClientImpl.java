@@ -444,6 +444,37 @@ public class ListingServiceClientImpl implements ListingServiceClient {
     }
 
     @Override
+    @CircuitBreaker(name = "listingService", fallbackMethod = "getMaintenanceChargePaiseFallback")
+    @Retry(name = "listingService")
+    public long getMaintenanceChargePaise(UUID listingId) {
+        Map<String, Object> listing = fetchListing(listingId);
+        if (listing == null) return 0L;
+        Object val = listing.get("maintenanceChargePaise");
+        if (val instanceof Number) return ((Number) val).longValue();
+        return 0L;
+    }
+
+    public long getMaintenanceChargePaiseFallback(UUID listingId, Throwable t) {
+        log.warn("Could not get maintenance charge for {}: {}", listingId, t.getMessage());
+        return 0L;
+    }
+
+    @Override
+    @CircuitBreaker(name = "listingService", fallbackMethod = "isMaintenanceIncludedFallback")
+    @Retry(name = "listingService")
+    public boolean isMaintenanceIncluded(UUID listingId) {
+        Map<String, Object> listing = fetchListing(listingId);
+        if (listing == null) return false;
+        Object val = listing.get("maintenanceIncluded");
+        return val instanceof Boolean && (Boolean) val;
+    }
+
+    public boolean isMaintenanceIncludedFallback(UUID listingId, Throwable t) {
+        log.warn("Could not check maintenance-included flag for {}: {} — defaulting to false", listingId, t.getMessage());
+        return false;
+    }
+
+    @Override
     @CircuitBreaker(name = "listingService", fallbackMethod = "getSecurityDepositPaiseFallback")
     @Retry(name = "listingService")
     public Long getSecurityDepositPaise(UUID listingId) {

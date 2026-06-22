@@ -67,4 +67,8 @@ public interface ListingServiceClient {
     // Micro-insurance / stay protection — host-configurable per listing
     default boolean isInsuranceEnabled(UUID listingId) { return false; }
     default Long getInsuranceAmountPaise(UUID listingId) { return null; }
+
+    // Maintenance / society upkeep charge for monthly rentals — host-configurable per listing
+    default long getMaintenanceChargePaise(UUID listingId) { return 0L; }
+    default boolean isMaintenanceIncluded(UUID listingId) { return false; }
 }
