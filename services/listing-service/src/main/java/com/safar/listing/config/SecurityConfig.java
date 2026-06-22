@@ -66,6 +66,10 @@ public class SecurityConfig {
                         // VAS public endpoints
                         .requestMatchers(HttpMethod.GET, "/api/v1/agreements/templates").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/agreements/stamp-duty/**").permitAll()
+                        // eSign provider webhook + sandbox signing link + public status
+                        .requestMatchers(HttpMethod.POST, "/api/v1/agreements/esign/webhook").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/agreements/esign/sandbox-sign").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/agreements/*/esign/status").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/homeloan/banks", "/api/v1/homeloan/banks/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/homeloan/emi/calculate").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/legal/packages").permitAll()

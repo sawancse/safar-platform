@@ -60,6 +60,12 @@ public class AgreementParty {
 
     private String eSignRequestId;
 
+    @Column(name = "esign_signing_url", columnDefinition = "TEXT")
+    private String esignSigningUrl;                  // per-party Aadhaar eSign link
+
+    @Column(name = "esign_signer_vid_masked", length = 20)
+    private String esignSignerVidMasked;             // masked VID/Aadhaar from ESP (never full Aadhaar)
+
     private OffsetDateTime signedAt;
 
     @Builder.Default

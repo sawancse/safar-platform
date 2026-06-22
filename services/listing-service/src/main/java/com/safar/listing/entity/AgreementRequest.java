@@ -83,6 +83,28 @@ public class AgreementRequest {
     @Column(name = "e_stamp_id")
     private String stampCertificateNumber;
 
+    // ── Aadhaar eSign + e-Stamp integration (V85) ──
+    @Column(name = "esign_provider", length = 30)
+    private String esignProvider;
+
+    @Column(name = "esign_document_id", length = 120)
+    private String esignDocumentId;
+
+    @Column(name = "esign_status", length = 30)
+    private String esignStatus;                      // NONE/INITIATED/PARTIALLY_SIGNED/SIGNED/FAILED
+
+    @Column(name = "unsigned_pdf_url", columnDefinition = "TEXT")
+    private String unsignedPdfUrl;
+
+    @Column(name = "estamp_provider", length = 30)
+    private String estampProvider;
+
+    @Column(name = "estamp_pdf_url", columnDefinition = "TEXT")
+    private String estampPdfUrl;
+
+    @Column(name = "estamp_issued_at")
+    private OffsetDateTime estampIssuedAt;
+
     private LocalDate agreementDate;
 
     private LocalDate startDate;

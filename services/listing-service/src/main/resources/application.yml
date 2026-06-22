@@ -136,3 +136,18 @@ resilience4j:
 springdoc:
   api-docs.path: /api-docs
   swagger-ui.path: /swagger-ui.html
+
+# ── Agreement Aadhaar eSign + government e-Stamp ──
+# Default 'sandbox' = fully-mocked flow (no credentials). Switch to 'digio' once a
+# Digio contract + API keys exist and the DigioAgreementProvider TODO blocks are filled.
+agreement:
+  esign:
+    provider: ${AGREEMENT_ESIGN_PROVIDER:sandbox}      # sandbox | digio
+    public-base-url: ${AGREEMENT_ESIGN_BASE_URL:}       # gateway origin for sandbox signing links
+  estamp:
+    provider: ${AGREEMENT_ESTAMP_PROVIDER:sandbox}      # sandbox | digio
+  digio:
+    base-url: ${DIGIO_BASE_URL:https://ext.digio.in:444}
+    client-id: ${DIGIO_CLIENT_ID:}
+    client-secret: ${DIGIO_CLIENT_SECRET:}
+    webhook-secret: ${DIGIO_WEBHOOK_SECRET:}

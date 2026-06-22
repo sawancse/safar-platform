@@ -15,6 +15,8 @@ public interface AgreementRequestRepository extends JpaRepository<AgreementReque
 
     List<AgreementRequest> findByStatus(AgreementStatus status);
 
+    java.util.Optional<AgreementRequest> findByEsignDocumentId(String esignDocumentId);
+
     Page<AgreementRequest> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     Page<AgreementRequest> findByStatusOrderByCreatedAtDesc(AgreementStatus status, Pageable pageable);

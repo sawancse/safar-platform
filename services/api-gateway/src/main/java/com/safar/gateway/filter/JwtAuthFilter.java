@@ -207,6 +207,10 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         // VAS: Agreement templates & stamp duty calculator — public
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/agreements/templates")) return true;
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/agreements/stamp-duty")) return true;
+        // Agreement eSign: provider webhook + sandbox signing link + public status — no token
+        if (HttpMethod.POST.equals(method) && path.equals("/api/v1/agreements/esign/webhook")) return true;
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/agreements/esign/sandbox-sign")) return true;
+        if (HttpMethod.GET.equals(method) && path.endsWith("/esign/status")) return true;
         // VAS: Home loan — banks, EMI calculator, eligibility are public reads
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/homeloan/banks")) return true;
         if (HttpMethod.POST.equals(method) && path.equals("/api/v1/homeloan/emi/calculate")) return true;
