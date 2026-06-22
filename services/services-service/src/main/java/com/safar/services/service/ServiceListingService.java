@@ -63,10 +63,12 @@ public class ServiceListingService {
         if (req.serviceType() == null) throw new IllegalArgumentException("serviceType required");
         if (req.businessName() == null || req.businessName().isBlank())
             throw new IllegalArgumentException("businessName required");
-        if (req.vendorSlug() == null || req.vendorSlug().isBlank())
-            throw new IllegalArgumentException("vendorSlug required");
-        if (repo.existsByVendorSlug(req.vendorSlug()))
-            throw new IllegalArgumentException("vendorSlug already taken: " + req.vendorSlug());
+        // Slugify guard: always persist a clean, unique lowercase-hyphenated slug.
+        // The onboarding wizard has shipped garbage slugs ("urga Pandit", free text),
+        // so normalize here and derive from businessName when blank.
+        String rawSlug = (req.vendorSlug() != null && !req.vendorSlug().isBlank())
+                ? req.vendorSlug() : req.businessName();
+        String finalSlug = uniqueSlug(slugify(rawSlug));
 
         ServiceListingType type;
         try {
@@ -76,6 +78,7 @@ public class ServiceListingService {
         }
 
         Map<String, Object> combined = sharedFields(req);
+        combined.put("vendorSlug", finalSlug);          // override any raw/garbage slug from the request
         combined.put("vendorUserId", vendorUserId);
         combined.put("status", ServiceListingStatus.DRAFT.name());
         combined.put("trustTier", "LISTED");
@@ -241,6 +244,27 @@ public class ServiceListingService {
         };
     }
 
+    /** Normalize any text to a URL-safe slug: strip accents, lowercase, non-alnum -> hyphen, trim. */
+    static String slugify(String input) {
+        if (input == null) return "";
+        String s = java.text.Normalizer.normalize(input, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "");                 // drop accent marks
+        return s.toLowerCase(java.util.Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", "-")              // any run of non-alnum -> single hyphen
+                .replaceAll("(^-+)|(-+$)", "");             // trim leading/trailing hyphens
+    }
+
+    /** Ensure the slug is unique, appending -2, -3, … on collision. Falls back to "vendor" if empty. */
+    private String uniqueSlug(String base) {
+        String candidate = (base == null || base.isBlank()) ? "vendor" : base;
+        String slug = candidate;
+        int n = 2;
+        while (repo.existsByVendorSlug(slug)) {
+            slug = candidate + "-" + n++;
+        }
+        return slug;
+    }
+
     private Map<String, Object> sharedFields(CreateServiceListingRequest req) {
         Map<String, Object> m = new HashMap<>();
         if (req.businessName() != null) m.put("businessName", req.businessName());
@@ -270,7 +294,7 @@ public class ServiceListingService {
     private Map<String, Object> sharedFieldsFromUpdate(UpdateServiceListingRequest req) {
         Map<String, Object> m = new HashMap<>();
         if (req.businessName() != null) m.put("businessName", req.businessName());
-        if (req.vendorSlug() != null) m.put("vendorSlug", req.vendorSlug());
+        if (req.vendorSlug() != null && !req.vendorSlug().isBlank()) m.put("vendorSlug", slugify(req.vendorSlug()));
         if (req.heroImageUrl() != null) m.put("heroImageUrl", req.heroImageUrl());
         if (req.tagline() != null) m.put("tagline", req.tagline());
         if (req.aboutMd() != null) m.put("aboutMd", req.aboutMd());
