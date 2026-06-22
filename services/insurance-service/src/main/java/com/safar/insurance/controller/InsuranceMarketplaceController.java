@@ -27,6 +27,7 @@ public class InsuranceMarketplaceController {
 
     private final InsuranceProviderRegistry registry;
     private final InsurancePolicyService policyService;
+    private final com.safar.insurance.repository.InsurancePolicyRepository policyRepository;
 
     public record ProductCard(String key, String category, String coverageType, String title,
                               String tagline, List<String> highlights, String applyPath) {}
@@ -34,7 +35,7 @@ public class InsuranceMarketplaceController {
     public record MarketplaceQuoteResponse(String quoteId, long premiumPaise, long sumInsuredPaise,
                                            String currency, List<String> coverageHighlights) {}
     public record MarketplaceBuyRequest(String quoteId, CoverageType coverageType, String fullName,
-                                        String contactEmail, String contactPhone) {}
+                                        String contactEmail, String contactPhone, String bookingId) {}
 
     /** Catalog for the hub: insurance products (buyable here) + loans (link to existing VAS). */
     @GetMapping("/products")
@@ -96,6 +97,13 @@ public class InsuranceMarketplaceController {
         InsurancePolicy policy = policyService.issue(userId, issueReq);
         // Sandbox auto-confirm so it shows as ISSUED in My Policies.
         policy = policyService.confirmPayment(userId, policy.getId(), "SBX-ORDER-" + policy.getId(), "SBX-PAY");
+        // Embedded (booking-attached) policy → link to the booking.
+        if (req.bookingId() != null && !req.bookingId().isBlank()) {
+            try {
+                policy.setBookingId(UUID.fromString(req.bookingId()));
+                policy = policyRepository.save(policy);
+            } catch (IllegalArgumentException ignored) { /* malformed bookingId — leave standalone */ }
+        }
         return ResponseEntity.ok(Map.of(
                 "policyRef", policy.getPolicyRef(),
                 "status", policy.getStatus(),
