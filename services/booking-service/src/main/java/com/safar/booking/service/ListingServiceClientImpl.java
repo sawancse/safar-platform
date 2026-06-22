@@ -475,6 +475,32 @@ public class ListingServiceClientImpl implements ListingServiceClient {
     }
 
     @Override
+    @CircuitBreaker(name = "listingService", fallbackMethod = "getLongStayPctFallback")
+    @Retry(name = "listingService")
+    public int getWeeklyDiscountPercent(UUID listingId) {
+        return readIntField(listingId, "weeklyDiscountPercent");
+    }
+
+    @Override
+    @CircuitBreaker(name = "listingService", fallbackMethod = "getLongStayPctFallback")
+    @Retry(name = "listingService")
+    public int getMonthlyDiscountPercent(UUID listingId) {
+        return readIntField(listingId, "monthlyDiscountPercent");
+    }
+
+    public int getLongStayPctFallback(UUID listingId, Throwable t) {
+        log.warn("Could not get long-stay discount for {}: {} — defaulting to 0", listingId, t.getMessage());
+        return 0;
+    }
+
+    private int readIntField(UUID listingId, String field) {
+        Map<String, Object> listing = fetchListing(listingId);
+        if (listing == null) return 0;
+        Object val = listing.get(field);
+        return val instanceof Number ? ((Number) val).intValue() : 0;
+    }
+
+    @Override
     @CircuitBreaker(name = "listingService", fallbackMethod = "getSecurityDepositPaiseFallback")
     @Retry(name = "listingService")
     public Long getSecurityDepositPaise(UUID listingId) {

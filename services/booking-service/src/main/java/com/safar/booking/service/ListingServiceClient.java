@@ -50,6 +50,10 @@ public interface ListingServiceClient {
     // Pricing unit (NIGHT, HOUR, MONTH)
     default String getPricingUnit(UUID listingId) { return "NIGHT"; }
 
+    // Long-stay discounts (Booking.com/MakeMyTrip style) — host-configurable per listing
+    default int getWeeklyDiscountPercent(UUID listingId) { return 0; }
+    default int getMonthlyDiscountPercent(UUID listingId) { return 0; }
+
     // Non-refundable & Pay-at-Property
     default int getNonRefundableDiscountPercent(UUID listingId) { return 10; }
     default int getPartialPrepaidPercent(UUID listingId) { return 30; }

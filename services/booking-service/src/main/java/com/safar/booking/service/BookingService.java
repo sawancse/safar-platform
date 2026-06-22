@@ -379,6 +379,22 @@ public class BookingService {
             }
         }
 
+        // Long-stay discount (Booking.com / MakeMyTrip style): weekly rate for >=7 nights,
+        // monthly rate for >=28 nights, off the room base. Best tier wins. Nightly-priced
+        // stays only — MONTH-priced listings already price the long stay via the monthly rate.
+        long longStayDiscountPaise = 0L;
+        if ("NIGHT".equals(pricingUnit)) {
+            int weeklyPct = listingClient.getWeeklyDiscountPercent(req.listingId());
+            int monthlyPct = listingClient.getMonthlyDiscountPercent(req.listingId());
+            int longStayPct = 0;
+            if (nights >= 28) longStayPct = monthlyPct > 0 ? monthlyPct : weeklyPct;
+            else if (nights >= 7) longStayPct = weeklyPct;
+            if (longStayPct > 0) {
+                longStayDiscountPaise = Math.round(basePaise * longStayPct / 100.0);
+                basePaise -= longStayDiscountPaise;
+            }
+        }
+
         // Feature 1: Non-refundable discount
         boolean isNonRefundable = Boolean.TRUE.equals(req.nonRefundable());
         long nonRefundableDiscountPaise = 0;
