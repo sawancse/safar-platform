@@ -155,6 +155,20 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         // Pandit vertical — matcher + muhurat are public (read-only, no PII)
         if (HttpMethod.POST.equals(method) && path.equals("/api/v1/services/pandit/match")) return true;
         if (HttpMethod.GET.equals(method) && path.equals("/api/v1/services/pandit/muhurat")) return true;
+        // Services-leg storefront — public GET reads only (mirrors services-service SecurityConfig).
+        // Vendor-owned reads (/me, /kyc-documents) and all writes still require auth and are NOT matched here.
+        if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/services/")) {
+            if (path.equals("/api/v1/services/listings")) return true;                  // storefront browse
+            if (path.startsWith("/api/v1/services/listings/by-slug/")) return true;      // slug lookup
+            if (path.startsWith("/api/v1/services/invites/")) return true;               // invite token resolve
+            // public sub-reads on a listing: items list, reviews, availability calendar
+            if (path.startsWith("/api/v1/services/listings/")
+                    && (path.endsWith("/items") || path.endsWith("/reviews") || path.endsWith("/availability"))) return true;
+            // single listing detail (/listings/{id}) or single item detail (/items/{id}) — exactly one id segment, not /me
+            String[] seg = path.split("/");   // ["", api, v1, services, {listings|items}, {id}]
+            if (seg.length == 6 && "listings".equals(seg[4]) && !"me".equals(seg[5])) return true;
+            if (seg.length == 6 && "items".equals(seg[4])) return true;
+        }
         // Chef events — only specific reads + the create-inquiry POST are public.
         // All lifecycle actions (pay-balance, claim, location, start-job-as-vendor,
         // complete-as-vendor, confirm, advance-paid, cancel, modify, etc.) require
