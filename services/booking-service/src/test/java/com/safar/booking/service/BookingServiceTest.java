@@ -81,12 +81,14 @@ class BookingServiceTest {
                 null, null,
                 // Hourly bookings
                 null,
-                // Non-refundable & Pay-at-Property
-                null, null,
+                // Non-refundable, couponCode, paymentMode
+                null, null, null,
                 // Inclusions
                 null,
                 // Room selections + guests
-                null, null);
+                null, null,
+                // tripProtection
+                null);
     }
 
     @Test
