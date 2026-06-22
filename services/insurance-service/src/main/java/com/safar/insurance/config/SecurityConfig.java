@@ -34,6 +34,8 @@ public class SecurityConfig {
                         // Standalone marketplace: catalog + quote public, buy authenticated (anyRequest)
                         .requestMatchers(HttpMethod.GET, "/api/v1/insurance/marketplace/products").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/insurance/marketplace/quote").permitAll()
+                        // Server-to-server issuance — no JWT (booking-service direct call); secret-gated in the controller
+                        .requestMatchers(HttpMethod.POST, "/api/v1/insurance/marketplace/internal/issue").permitAll()
                         // Admin endpoints
                         .requestMatchers("/api/v1/insurance/admin/**").hasRole("ADMIN")
                         // Authenticated booking + management

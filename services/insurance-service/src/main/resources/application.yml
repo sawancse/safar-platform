@@ -59,6 +59,8 @@ insurance:
     primary: ${INSURANCE_PRIMARY_PROVIDER:SANDBOX} # which adapter issues policies by default
   sandbox:
     enabled: ${INSURANCE_SANDBOX_ENABLED:true}     # fully-mocked provider; turn off once a real partner is live
+  internal:
+    token: ${INSURANCE_INTERNAL_TOKEN:safar-internal-insurance-2026}   # shared secret for service-to-service issuance
 
 acko:
   enabled: ${ACKO_ENABLED:false}                   # MASTER SWITCH — flip when sandbox creds arrive

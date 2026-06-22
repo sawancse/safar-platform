@@ -29,6 +29,9 @@ public class InsuranceMarketplaceController {
     private final InsurancePolicyService policyService;
     private final com.safar.insurance.repository.InsurancePolicyRepository policyRepository;
 
+    @org.springframework.beans.factory.annotation.Value("${insurance.internal.token:safar-internal-insurance-2026}")
+    private String internalToken;
+
     public record ProductCard(String key, String category, String coverageType, String title,
                               String tagline, List<String> highlights, String applyPath) {}
     public record MarketplaceQuoteRequest(CoverageType coverageType, Integer tenureDays, Integer ageYears) {}
@@ -79,35 +82,69 @@ public class InsuranceMarketplaceController {
                 q.premiumPaise(), q.sumInsuredPaise(), q.currency(), q.coverageHighlights()));
     }
 
-    @PostMapping("/buy")
-    public ResponseEntity<Map<String, Object>> buy(Authentication auth, @RequestBody MarketplaceBuyRequest req) {
-        UUID userId = UUID.fromString(auth.getName());
-        String quoteId = req.quoteId();
+    /** Shared issue path: quote-if-needed → issue → sandbox-confirm → link booking. */
+    private InsurancePolicy doIssue(UUID userId, CoverageType coverageType, String quoteId,
+                                    String fullName, String contactEmail, String contactPhone, String bookingId) {
         if (quoteId == null || quoteId.isBlank()) {
             QuoteResult q = registry.primary().quote(new QuoteRequest(
-                    null, null, "IN", "IN", LocalDate.now().plusDays(1), LocalDate.now().plusDays(366), req.coverageType(), List.of(30)));
+                    null, null, "IN", "IN", LocalDate.now().plusDays(1), LocalDate.now().plusDays(366), coverageType, List.of(30)));
             quoteId = ProviderQuoteId.encode(q.provider(), q.providerQuoteToken());
         }
-        String[] name = (req.fullName() != null ? req.fullName() : "Customer").trim().split(" ", 2);
+        String[] name = (fullName != null && !fullName.isBlank() ? fullName : "Customer").trim().split(" ", 2);
         var traveller = new IssuePolicyRequest.TravellerDTO(
                 name[0], name.length > 1 ? name[1] : name[0], LocalDate.now().minusYears(30), "X", "IN", null, null);
         IssuePolicyRequest issueReq = new IssuePolicyRequest(quoteId, null, null, "IN", "IN",
-                LocalDate.now().plusDays(1), LocalDate.now().plusDays(366), req.coverageType(),
-                List.of(traveller), req.contactEmail(), req.contactPhone());
+                LocalDate.now().plusDays(1), LocalDate.now().plusDays(366), coverageType,
+                List.of(traveller), contactEmail, contactPhone);
         InsurancePolicy policy = policyService.issue(userId, issueReq);
-        // Sandbox auto-confirm so it shows as ISSUED in My Policies.
         policy = policyService.confirmPayment(userId, policy.getId(), "SBX-ORDER-" + policy.getId(), "SBX-PAY");
-        // Embedded (booking-attached) policy → link to the booking.
+        if (bookingId != null && !bookingId.isBlank()) {
+            try { policy.setBookingId(UUID.fromString(bookingId)); policy = policyRepository.save(policy); }
+            catch (IllegalArgumentException ignored) { /* malformed bookingId — leave standalone */ }
+        }
+        return policy;
+    }
+
+    private Map<String, Object> policyResponse(InsurancePolicy p) {
+        Map<String, Object> m = new java.util.HashMap<>();
+        m.put("policyRef", p.getPolicyRef());
+        m.put("status", p.getStatus());
+        m.put("premiumPaise", p.getPremiumPaise() != null ? p.getPremiumPaise() : 0);
+        m.put("certificateUrl", p.getCertificateUrl() != null ? p.getCertificateUrl() : "");
+        return m;
+    }
+
+    @PostMapping("/buy")
+    public ResponseEntity<Map<String, Object>> buy(Authentication auth, @RequestBody MarketplaceBuyRequest req) {
+        InsurancePolicy policy = doIssue(UUID.fromString(auth.getName()), req.coverageType(), req.quoteId(),
+                req.fullName(), req.contactEmail(), req.contactPhone(), req.bookingId());
+        return ResponseEntity.ok(policyResponse(policy));
+    }
+
+    // ── Server-to-server issuance (booking-service on payment.captured) ──
+    // Secret-gated (X-Internal-Token) + idempotent per booking. Not for browser use.
+    public record InternalIssueRequest(String userId, String bookingId, CoverageType coverageType,
+                                       String quoteId, String fullName, String contactEmail, String contactPhone) {}
+
+    @PostMapping("/internal/issue")
+    public ResponseEntity<Map<String, Object>> internalIssue(
+            @RequestHeader(value = "X-Internal-Token", required = false) String token,
+            @RequestBody InternalIssueRequest req) {
+        if (internalToken == null || internalToken.isBlank() || !internalToken.equals(token)) {
+            return ResponseEntity.status(403).body(Map.of("error", "forbidden"));
+        }
         if (req.bookingId() != null && !req.bookingId().isBlank()) {
             try {
-                policy.setBookingId(UUID.fromString(req.bookingId()));
-                policy = policyRepository.save(policy);
-            } catch (IllegalArgumentException ignored) { /* malformed bookingId — leave standalone */ }
+                var existing = policyRepository.findFirstByBookingId(UUID.fromString(req.bookingId()));
+                if (existing.isPresent()) {
+                    Map<String, Object> r = policyResponse(existing.get());
+                    r.put("idempotent", true);
+                    return ResponseEntity.ok(r);
+                }
+            } catch (IllegalArgumentException ignored) { /* fall through to issue */ }
         }
-        return ResponseEntity.ok(Map.of(
-                "policyRef", policy.getPolicyRef(),
-                "status", policy.getStatus(),
-                "premiumPaise", policy.getPremiumPaise() != null ? policy.getPremiumPaise() : 0,
-                "certificateUrl", policy.getCertificateUrl() != null ? policy.getCertificateUrl() : ""));
+        InsurancePolicy policy = doIssue(UUID.fromString(req.userId()), req.coverageType(), req.quoteId(),
+                req.fullName(), req.contactEmail(), req.contactPhone(), req.bookingId());
+        return ResponseEntity.ok(policyResponse(policy));
     }
 }

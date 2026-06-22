@@ -53,6 +53,9 @@ public class BookingService {
     @org.springframework.beans.factory.annotation.Value("${services.insurance-service.url:http://localhost:8097}")
     private String insuranceServiceUrl;
 
+    @org.springframework.beans.factory.annotation.Value("${insurance.internal.token:safar-internal-insurance-2026}")
+    private String insuranceInternalToken;
+
     private final BookingRepository bookingRepo;
     private final BookingInclusionRepository inclusionRepo;
     private final BookingRoomSelectionRepository roomSelectionRepo;
@@ -770,6 +773,30 @@ public class BookingService {
             kafka.send("booking.confirmed", bookingId.toString());
         } catch (Exception e) {
             log.warn("Failed to send Kafka event for confirmed booking {}: {}", booking.getBookingRef(), e.getMessage());
+        }
+        // Embedded trip-protection: issue the policy server-side now that payment is in
+        // (idempotent per booking; secret-gated). Must never block confirmation.
+        if (confirmed.getTripProtectionPaise() != null && confirmed.getTripProtectionPaise() > 0) {
+            try {
+                org.springframework.http.HttpHeaders h = new org.springframework.http.HttpHeaders();
+                h.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+                h.set("X-Internal-Token", insuranceInternalToken);
+                java.util.Map<String, Object> body = new java.util.HashMap<>();
+                body.put("userId", confirmed.getGuestId() != null ? confirmed.getGuestId().toString() : null);
+                body.put("bookingId", confirmed.getId().toString());
+                body.put("coverageType", "STAY_PROTECTION");
+                body.put("quoteId", confirmed.getTripProtectionQuoteId());
+                body.put("fullName", ((confirmed.getGuestFirstName() != null ? confirmed.getGuestFirstName() : "")
+                        + " " + (confirmed.getGuestLastName() != null ? confirmed.getGuestLastName() : "")).trim());
+                body.put("contactEmail", confirmed.getGuestEmail());
+                body.put("contactPhone", confirmed.getGuestPhone());
+                new org.springframework.web.client.RestTemplate().postForObject(
+                        insuranceServiceUrl + "/api/v1/insurance/marketplace/internal/issue",
+                        new org.springframework.http.HttpEntity<>(body, h), java.util.Map.class);
+                log.info("Trip-protection policy issued for booking {}", confirmed.getId());
+            } catch (Exception e) {
+                log.warn("Trip-protection issuance failed for booking {}: {}", confirmed.getId(), e.getMessage());
+            }
         }
         return toResponse(confirmed);
     }

@@ -19,5 +19,7 @@ public interface InsurancePolicyRepository extends JpaRepository<InsurancePolicy
 
     Optional<InsurancePolicy> findByProviderAndExternalPolicyId(String provider, String externalPolicyId);
 
+    Optional<InsurancePolicy> findFirstByBookingId(UUID bookingId);
+
     long countByStatus(PolicyStatus status);
 }
