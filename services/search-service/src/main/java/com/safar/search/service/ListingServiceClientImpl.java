@@ -60,6 +60,8 @@ public class ListingServiceClientImpl implements ListingServiceClient {
                 .maxGuests(toInt(listing.get("maxGuests")))
                 .amenities((List<String>) listing.get("amenities"))
                 .isVerified("VERIFIED".equals(listing.get("status")))
+                .avgRating(toDouble(listing.get("avgRating")))
+                .reviewCount(toInt(listing.get("reviewCount")))
                 .instantBook(Boolean.TRUE.equals(listing.get("instantBook")))
                 .petFriendly(Boolean.TRUE.equals(listing.get("petFriendly")))
                 .bedrooms(toInt(listing.get("bedrooms")))
