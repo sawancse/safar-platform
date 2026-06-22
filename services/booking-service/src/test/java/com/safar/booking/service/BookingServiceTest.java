@@ -55,6 +55,16 @@ class BookingServiceTest {
         when(inclusionRepo.findByBookingId(any())).thenReturn(java.util.List.of());
         when(roomSelectionRepo.findByBookingId(any())).thenReturn(java.util.List.of());
         when(guestRepo.findByBookingId(any())).thenReturn(java.util.List.of());
+        // createBooking registers an after-commit Kafka synchronization (prod runs @Transactional);
+        // simulate an active transaction so that registration succeeds in this unit test.
+        org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void clearTxSync() {
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     private Map<String, Object> availableResponse() {
@@ -109,6 +119,9 @@ class BookingServiceTest {
         assertThat(resp.status()).isEqualTo(BookingStatus.PENDING_PAYMENT);
         assertThat(resp.guestId()).isEqualTo(guestId);
         assertThat(resp.nights()).isEqualTo(5);
+        // booking.created publishes in an after-commit synchronization — simulate the commit
+        org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations()
+                .forEach(org.springframework.transaction.support.TransactionSynchronization::afterCommit);
         verify(kafka).send(eq("booking.created"), anyString());
     }
 
@@ -136,11 +149,14 @@ class BookingServiceTest {
         when(listingClient.getListingType(listingId)).thenReturn("HOME");
         when(listingClient.getPricingUnit(listingId)).thenReturn("NIGHT");
         when(listingClient.getHostTier(hostId)).thenReturn("STARTER");
+        when(listingClient.isInsuranceEnabled(listingId)).thenReturn(true);
+        when(listingClient.getInsuranceAmountPaise(listingId)).thenReturn(150000L);
         when(bookingRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         BookingResponse resp = bookingService.createBooking(guestId, request(checkIn, checkOut));
 
-        assertThat(resp.insuranceAmountPaise()).isEqualTo(150000L); // ₹1,500 cap
+        // Insurance is now a flat listing-configured fee (per-night calc moved to GroupBookingService)
+        assertThat(resp.insuranceAmountPaise()).isEqualTo(150000L);
     }
 
     @Test
@@ -154,11 +170,14 @@ class BookingServiceTest {
         when(listingClient.getListingType(listingId)).thenReturn("HOME");
         when(listingClient.getPricingUnit(listingId)).thenReturn("NIGHT");
         when(listingClient.getHostTier(hostId)).thenReturn("STARTER");
+        when(listingClient.isInsuranceEnabled(listingId)).thenReturn(true);
+        when(listingClient.getInsuranceAmountPaise(listingId)).thenReturn(15000L);
         when(bookingRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         BookingResponse resp = bookingService.createBooking(guestId, request(checkIn, checkOut));
 
-        assertThat(resp.insuranceAmountPaise()).isEqualTo(15000L); // ₹150
+        // Insurance is now a flat listing-configured fee (per-night calc moved to GroupBookingService)
+        assertThat(resp.insuranceAmountPaise()).isEqualTo(15000L);
     }
 
     @Test
