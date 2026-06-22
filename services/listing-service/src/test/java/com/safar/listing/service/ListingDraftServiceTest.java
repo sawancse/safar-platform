@@ -66,40 +66,15 @@ class ListingDraftServiceTest {
                 .status(DraftStatus.DRAFT)
                 .build();
 
-        ListingResponse expectedResponse = new ListingResponse(
-                UUID.randomUUID(), hostId,
-                "Cozy Home in Mumbai", "A beautiful home in Mumbai",
-                ListingType.HOME, null,
-                "123 MG Road, Mumbai, Maharashtra", null,
-                "Mumbai", "TBD", "000000",
-                null, null,
-                2, null, null, null,
-                null, 350000L, PricingUnit.NIGHT, 1,
-                false, ListingStatus.DRAFT, null,
-                true, null, false, 0, 0.0, 0, null,
-                null, null, null, null, null,
-                null, null, null, null, null,
-                null, null, null, null,
-                null, null, null,
-                null, null, null, null,
-                null, null, null, null,
-                null, null, null,
-                null, null, null,
-                null, null, // visibilityBoostPercent, preferredPartner
-                // PG/Co-living fields
-                null, null, null, null, null, null, null, null, null,
-                // Insurance
-                null, null, null,
-                // Maintenance (monthly rentals)
-                null, null,
-                // Hotel fields
-                null, null, null, null,
-                // Hotel enhancements
-                null, null, null, null, null, null,
-                // Partial-prepayment (PG)
-                null, null,
-                null, null
-        );
+        ListingResponse expectedResponse = ListingResponse.builder()
+                .id(UUID.randomUUID()).hostId(hostId)
+                .title("Cozy Home in Mumbai").description("A beautiful home in Mumbai")
+                .type(ListingType.HOME)
+                .addressLine1("123 MG Road, Mumbai, Maharashtra").city("Mumbai").state("TBD").pincode("000000")
+                .maxGuests(2).basePricePaise(350000L).pricingUnit(PricingUnit.NIGHT).minBookingHours(1)
+                .instantBook(false).status(ListingStatus.DRAFT).gstApplicable(true)
+                .petFriendly(false).maxPets(0).avgRating(0.0).reviewCount(0)
+                .build();
 
         when(draftRepository.findById(draftId)).thenReturn(Optional.of(draft));
         when(listingService.createListing(eq(hostId), any())).thenReturn(expectedResponse);

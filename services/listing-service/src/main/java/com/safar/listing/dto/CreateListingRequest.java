@@ -6,6 +6,7 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.util.List;
 
+@lombok.Builder
 public record CreateListingRequest(
         @NotBlank String title,
         @NotBlank String description,

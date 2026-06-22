@@ -60,71 +60,34 @@ class ListingControllerTest {
     }
 
     private ListingResponse sampleResponse() {
-        return new ListingResponse(
-                LISTING_ID, HOST_ID,
-                "Test Villa", "A lovely villa",
-                ListingType.HOME, null,
-                "123 MG Road", null,
-                "Mumbai", "Maharashtra", "400001",
-                new BigDecimal("19.076090"), new BigDecimal("72.877426"),
-                4, 2, 2, null, List.of("wifi"),
-                500000L, PricingUnit.NIGHT, 1, false,
-                ListingStatus.DRAFT, null, true, null,
-                false, 0,
-                0.0, 0, null,
-                null, null, null, null, null,
-                null, null, null, null, null,
-                null, null, null, null,
-                null, null, null,
-                null, null, null, null,
-                null, null, null, null,
-                null, null, null,
-                null, null, null, // weeklyDiscount, monthlyDiscount, cleaningFeePaise
-                null, null, // visibilityBoostPercent, preferredPartner
-                // PG/Co-living fields
-                null, null, null, null, null, null, null, null, null,
-                // Insurance
-                null, null, null,
-                // Maintenance (monthly rentals)
-                null, null,
-                // Hotel fields
-                null, null, null, null,
-                // Hotel enhancements
-                null, null, null, null, null, null,
-                // Partial-prepayment (PG)
-                null, null,
-                OffsetDateTime.now(), OffsetDateTime.now()
-        );
+        // Builder: set only the fields under test; the rest default to null/0.
+        // New record fields no longer break this construction.
+        return ListingResponse.builder()
+                .id(LISTING_ID).hostId(HOST_ID)
+                .title("Test Villa").description("A lovely villa")
+                .type(ListingType.HOME)
+                .addressLine1("123 MG Road").city("Mumbai").state("Maharashtra").pincode("400001")
+                .lat(new BigDecimal("19.076090")).lng(new BigDecimal("72.877426"))
+                .maxGuests(4).bedrooms(2).bathrooms(2).amenities(List.of("wifi"))
+                .basePricePaise(500000L).pricingUnit(PricingUnit.NIGHT).minBookingHours(1)
+                .instantBook(false).status(ListingStatus.DRAFT).gstApplicable(true)
+                .petFriendly(false).maxPets(0).avgRating(0.0).reviewCount(0)
+                .createdAt(OffsetDateTime.now()).updatedAt(OffsetDateTime.now())
+                .build();
     }
 
     @Test
     void createListing_valid_returns201() throws Exception {
         when(listingService.createListing(any(), any())).thenReturn(sampleResponse());
 
-        CreateListingRequest req = new CreateListingRequest(
-                "Test Villa", "A lovely villa", ListingType.HOME, null,
-                "123 MG Road", null, "Mumbai", "Maharashtra", "400001",
-                new BigDecimal("19.076090"), new BigDecimal("72.877426"),
-                4, 2, 2, null, null, 500000L, PricingUnit.NIGHT, 1,
-                false, true, null,
-                null, null,
-                null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null,
-                null, null, null,
-                null, null, null, null,
-                null, null, null, null,
-                null, null, null,
-                null, // visibilityBoostPercent
-                // PG/Co-living fields
-                null, null, null, null, null, null, null, null, null,
-                // Insurance
-                null, null, null,
-                // Hotel fields
-                null, null, null, null,
-                // Partial-prepayment (PG)
-                null, null,
-                null
-        );
+        CreateListingRequest req = CreateListingRequest.builder()
+                .title("Test Villa").description("A lovely villa").type(ListingType.HOME)
+                .addressLine1("123 MG Road").city("Mumbai").state("Maharashtra").pincode("400001")
+                .lat(new BigDecimal("19.076090")).lng(new BigDecimal("72.877426"))
+                .maxGuests(4).bedrooms(2).bathrooms(2)
+                .basePricePaise(500000L).pricingUnit(PricingUnit.NIGHT).minBookingHours(1)
+                .instantBook(false).gstApplicable(true)
+                .build();
 
         mockMvc.perform(post("/api/v1/listings")
                         .header("Authorization", "Bearer " + VALID_TOKEN)

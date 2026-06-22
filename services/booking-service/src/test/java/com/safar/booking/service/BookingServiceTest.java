@@ -78,27 +78,13 @@ class BookingServiceTest {
     }
 
     private CreateBookingRequest request(LocalDateTime in, LocalDateTime out) {
-        return new CreateBookingRequest(listingId, in, out, 2,
-                null, null, null, null,
-                1, // roomsCount
-                "John", "Doe", "john@example.com", "9876543210",
-                "self", false, false, null,
-                null, // arrivalTime
-                null, // roomTypeId
-                null, null, null, null,
-                null, null, null, null, null, null, null, null, null,
-                // PG/Hotel booking fields
-                null, null,
-                // Hourly bookings
-                null,
-                // Non-refundable, couponCode, paymentMode
-                null, null, null,
-                // Inclusions
-                null,
-                // Room selections + guests
-                null, null,
-                // tripProtection
-                null);
+        return CreateBookingRequest.builder()
+                .listingId(listingId).checkIn(in).checkOut(out)
+                .guestsCount(2).roomsCount(1)
+                .guestFirstName("John").guestLastName("Doe")
+                .guestEmail("john@example.com").guestPhone("9876543210")
+                .bookingFor("self").travelForWork(false).airportShuttle(false)
+                .build();
     }
 
     @Test

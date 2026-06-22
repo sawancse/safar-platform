@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+@lombok.Builder
 public record CreateBookingRequest(
         @NotNull UUID listingId,
         @NotNull LocalDateTime checkIn,
