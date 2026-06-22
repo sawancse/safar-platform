@@ -162,6 +162,31 @@ public class AvailabilityService {
         return true;
     }
 
+    /**
+     * Validate stay length against the listing minimum AND the check-in date's
+     * availability-record min/max stay (host-configurable per date). Returns a
+     * human-readable reason if violated, else null. Powers the booking-time guard
+     * that previously ignored min/max stay entirely.
+     */
+    public String validateStayLength(UUID listingId, LocalDate checkIn, LocalDate checkOut, int listingMinStayDays) {
+        long nights = java.time.temporal.ChronoUnit.DAYS.between(checkIn, checkOut);
+        if (nights <= 0) return null;
+        int min = Math.max(1, listingMinStayDays);
+        List<Availability> ci = availabilityRepository.findByListingIdAndDateBetween(listingId, checkIn, checkIn);
+        if (!ci.isEmpty()) {
+            Availability rec = ci.get(0);
+            if (rec.getMinStayNights() != null && rec.getMinStayNights() > min) min = rec.getMinStayNights();
+            Integer max = rec.getMaxStayNights();
+            if (max != null && max > 0 && nights > max) {
+                return "Maximum stay for these dates is " + max + " night" + (max > 1 ? "s" : "");
+            }
+        }
+        if (nights < min) {
+            return "Minimum stay for these dates is " + min + " night" + (min > 1 ? "s" : "");
+        }
+        return null;
+    }
+
     private AvailabilityResponse toResponse(Availability a) {
         return new AvailabilityResponse(
                 a.getId(), a.getListingId(),

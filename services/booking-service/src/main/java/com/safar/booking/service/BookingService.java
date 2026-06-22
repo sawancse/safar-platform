@@ -78,9 +78,11 @@ public class BookingService {
         boolean available = Boolean.TRUE.equals(availInfo.get("available"));
         if (!available) {
             String listingStatus = (String) availInfo.get("status");
-            String reason = "VERIFIED".equals(listingStatus)
-                    ? "Some dates in the selected range are blocked"
-                    : "Listing status is " + listingStatus + " (must be VERIFIED to accept bookings)";
+            // listing-service supplies a specific reason for stay-length/min-max violations
+            String reason = availInfo.get("reason") instanceof String r ? r
+                    : ("VERIFIED".equals(listingStatus)
+                        ? "Some dates in the selected range are blocked"
+                        : "Listing status is " + listingStatus + " (must be VERIFIED to accept bookings)");
             throw new IllegalArgumentException("Property not available: " + reason);
         }
 

@@ -123,8 +123,16 @@ public class InternalListingController {
             datesAvailable = statusOk && availabilityService.areDatesAvailable(listingId, checkInDate, checkOutDate);
         }
 
+        // Min/max stay enforcement (listing minimum + per-date availability min/max).
+        String stayReason = null;
+        if (statusOk && datesAvailable) {
+            stayReason = availabilityService.validateStayLength(listingId, checkInDate, checkOutDate,
+                    listing.getMinStayDays() != null ? listing.getMinStayDays() : 1);
+        }
+
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("available", statusOk && datesAvailable);
+        result.put("available", statusOk && datesAvailable && stayReason == null);
+        if (stayReason != null) result.put("reason", stayReason);
         result.put("status", listing.getStatus().name());
         result.put("maxGuests", listing.getMaxGuests());
         result.put("totalRooms", totalRooms);
