@@ -147,7 +147,10 @@ agreement:
   estamp:
     provider: ${AGREEMENT_ESTAMP_PROVIDER:sandbox}      # sandbox | digio
   digio:
-    base-url: ${DIGIO_BASE_URL:https://ext.digio.in:444}
+    base-url: ${DIGIO_BASE_URL:https://ext.digio.in:444}      # prod: https://api.digio.in
+    gateway-url: ${DIGIO_GATEWAY_URL:https://ext.digio.in}    # prod: https://app.digio.in — confirm signer-URL format
     client-id: ${DIGIO_CLIENT_ID:}
     client-secret: ${DIGIO_CLIENT_SECRET:}
     webhook-secret: ${DIGIO_WEBHOOK_SECRET:}
+    expire-in-days: ${DIGIO_EXPIRE_IN_DAYS:15}
+    estamp-path: ${DIGIO_ESTAMP_PATH:}                        # set once Digio shares your eStamp endpoint contract

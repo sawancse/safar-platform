@@ -1,6 +1,9 @@
 # Agreement Aadhaar eSign + Government e-Stamp — Design & Implementation
 
-Status: **Scaffold landed (Sandbox live, Digio TODO-blocked).** 2026-06-22.
+Status: **Sandbox live + Digio integration wired (v2 API implemented).** 2026-06-22.
+Digio activates when `agreement.esign.provider=digio` + credentials are set; two
+fields need confirmation against your Digio account (signer gateway-URL format,
+eStamp endpoint path) — see "To go live" below.
 
 ## Goal
 Let parties execute rental/sale agreements with a legally-valid **Aadhaar eSign**

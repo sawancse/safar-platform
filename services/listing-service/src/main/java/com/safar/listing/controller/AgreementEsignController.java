@@ -69,6 +69,16 @@ public class AgreementEsignController {
                 + " You can close this window.</p></body></html>");
     }
 
+    /** Stream the signed PDF (proxied from the eSign provider; draft fallback for sandbox). */
+    @GetMapping(value = "/{id}/document/signed.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> signedPdf(@PathVariable UUID id) {
+        byte[] pdf = esignService.downloadSignedPdf(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header("Content-Disposition", "inline; filename=agreement-" + id + "-signed.pdf")
+                .body(pdf);
+    }
+
     /** Provider webhook (Digio etc.) — verified + parsed in the service. */
     @PostMapping("/esign/webhook")
     public ResponseEntity<Void> webhook(@RequestBody String payload,

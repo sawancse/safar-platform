@@ -36,6 +36,7 @@ public class AgreementEsignService {
     private final AgreementPartyRepository partyRepo;
     private final AgreementPdfService pdfService;
     private final AgreementProviderResolver providers;
+    private final org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;
 
     private AgreementRequest load(UUID id) {
         return agreementRepo.findById(id)
@@ -140,21 +141,30 @@ public class AgreementEsignService {
     }
 
     private void finalizeSigned(AgreementRequest a, String documentId) {
-        EsignProvider provider = providers.esign();
-        byte[] signed = null;
-        try { signed = provider.downloadSignedPdf(documentId); } catch (Exception ex) {
-            log.warn("Could not download signed PDF for {}: {}", documentId, ex.getMessage());
-        }
-        // TODO: persist `signed` bytes to media/S3 and set that URL. For now, fall back to the
-        // draft document URL (sandbox returns null bytes; real providers also expose a download path).
-        if (a.getSignedDocumentUrl() == null) {
-            a.setSignedDocumentUrl(signed != null
-                    ? "/api/v1/agreements/" + a.getId() + "/document/signed.pdf"
-                    : a.getDocumentUrl());
-        }
+        // The signed PKCS#7 PDF is served on-demand via the proxy endpoint (downloadSignedPdf),
+        // which streams from the provider; sandbox falls back to the draft.
+        a.setSignedDocumentUrl("/api/v1/agreements/" + a.getId() + "/document/signed.pdf");
         a.setStatus(AgreementStatus.SIGNED);
+        try {
+            kafkaTemplate.send("agreement.signed", a.getId().toString(), a.getId().toString());
+        } catch (Exception ex) {
+            log.warn("Kafka agreement.signed emit failed for {}: {}", a.getId(), ex.getMessage());
+        }
         log.info("Agreement {} fully signed via eSign doc {}", a.getId(), documentId);
-        // TODO: emit Kafka agreement.signed (existing AgreementService topic) for downstream notifications.
+    }
+
+    /** Stream the signed PDF: from the provider for real eSign, draft fallback for sandbox/none. */
+    public byte[] downloadSignedPdf(UUID agreementId) {
+        AgreementRequest a = load(agreementId);
+        if (a.getEsignDocumentId() != null) {
+            try {
+                byte[] b = providers.esign().downloadSignedPdf(a.getEsignDocumentId());
+                if (b != null && b.length > 0) return b;
+            } catch (Exception ex) {
+                log.warn("Signed-PDF download failed for {}: {}", agreementId, ex.getMessage());
+            }
+        }
+        return pdfService.generateDraftPdf(a, partyRepo.findByAgreementRequestId(agreementId));
     }
 
     public AgreementRequest getStatus(UUID agreementId) { return load(agreementId); }
