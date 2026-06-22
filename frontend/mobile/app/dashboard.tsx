@@ -32,6 +32,7 @@ const QUICK_ACTIONS: QuickAction[] = [
 ];
 
 const SERVICE_ACTIONS: QuickAction[] = [
+  { label: 'Pandit & Puja', icon: '🪔', route: '/pandit' },
   { label: 'Agreements',   icon: '📄', route: '/agreements' },
   { label: 'Legal Check',  icon: '⚖️', route: '/legal' },
   { label: 'Interiors',    icon: '🛋️', route: '/interiors' },

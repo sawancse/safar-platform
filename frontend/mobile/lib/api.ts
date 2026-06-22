@@ -1464,6 +1464,18 @@ export const api = {
       method: 'POST', headers: { Authorization: `Bearer ${token}` },
     });
   },
+  // Mark the 60% advance paid on an auto-confirmed event booking (pandit/bespoke).
+  markEventAdvancePaid(id: string, razorpayOrderId: string, razorpayPaymentId: string, token: string) {
+    return apiFetch<any>(`/api/v1/chef-events/${id}/advance-paid?razorpayOrderId=${encodeURIComponent(razorpayOrderId)}&razorpayPaymentId=${encodeURIComponent(razorpayPaymentId)}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+  // Ranked verified pandits for the customer's puja criteria (public, no PII).
+  matchPandits(criteria: object) {
+    return apiFetch<any[]>('/api/v1/services/pandit/match', {
+      method: 'POST', body: JSON.stringify(criteria), headers: { 'Content-Type': 'application/json' },
+    }).catch(() => []);
+  },
 
   createChefSubscription(data: object, token: string) {
     return apiFetch<any>('/api/v1/chef-subscriptions', {
