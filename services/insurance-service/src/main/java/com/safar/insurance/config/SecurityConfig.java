@@ -31,6 +31,9 @@ public class SecurityConfig {
                         .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         // Public quote (no login needed to see premiums)
                         .requestMatchers(HttpMethod.GET, "/api/v1/insurance/quote").permitAll()
+                        // Standalone marketplace: catalog + quote public, buy authenticated (anyRequest)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/insurance/marketplace/products").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/insurance/marketplace/quote").permitAll()
                         // Admin endpoints
                         .requestMatchers("/api/v1/insurance/admin/**").hasRole("ADMIN")
                         // Authenticated booking + management

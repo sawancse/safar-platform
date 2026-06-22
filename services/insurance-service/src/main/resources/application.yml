@@ -56,7 +56,9 @@ jwt:
 
 insurance:
   providers:
-    primary: ${INSURANCE_PRIMARY_PROVIDER:ACKO}    # which adapter issues policies by default
+    primary: ${INSURANCE_PRIMARY_PROVIDER:SANDBOX} # which adapter issues policies by default
+  sandbox:
+    enabled: ${INSURANCE_SANDBOX_ENABLED:true}     # fully-mocked provider; turn off once a real partner is live
 
 acko:
   enabled: ${ACKO_ENABLED:false}                   # MASTER SWITCH — flip when sandbox creds arrive

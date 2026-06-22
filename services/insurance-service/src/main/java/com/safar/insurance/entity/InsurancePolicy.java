@@ -27,6 +27,9 @@ public class InsurancePolicy {
     @Column(nullable = false)
     private UUID userId;
 
+    @Column(name = "booking_id")
+    private UUID bookingId;            // set for embedded (booking-attached) policies; null for standalone
+
     @Column(nullable = false, unique = true, length = 30)
     private String policyRef;
 

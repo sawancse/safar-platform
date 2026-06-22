@@ -112,6 +112,9 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         if (path.startsWith("/api/v1/flights/webhooks/")) return true;
         // Insurance — quote endpoint is public (no login required to see premiums)
         if (HttpMethod.GET.equals(method) && path.equals("/api/v1/insurance/quote")) return true;
+        // Insurance marketplace — catalog + quote public (buy requires login)
+        if (HttpMethod.GET.equals(method) && path.equals("/api/v1/insurance/marketplace/products")) return true;
+        if (HttpMethod.POST.equals(method) && path.equals("/api/v1/insurance/marketplace/quote")) return true;
         // WhatsApp inbound webhook — signed by MSG91, no user JWT
         if (path.startsWith("/api/v1/whatsapp/webhook")) return true;
         // Donations — create and verify are public (anonymous donations allowed), stats are public GET
