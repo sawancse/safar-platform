@@ -91,6 +91,12 @@ public class Booking {
     @Column(nullable = false)
     private Long insuranceAmountPaise;
 
+    @Column(name = "trip_protection_paise")
+    private Long tripProtectionPaise;
+
+    @Column(name = "trip_protection_quote_id", length = 80)
+    private String tripProtectionQuoteId;
+
     @Column(nullable = false)
     private Long gstAmountPaise;
 

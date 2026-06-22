@@ -60,7 +60,9 @@ public record CreateBookingRequest(
         // Multi-room-type selections: [{roomTypeId, count}]
         List<RoomSelection> roomSelections,
         // Guest list
-        List<GuestInfo> guests
+        List<GuestInfo> guests,
+        // Embedded trip-protection opt-in (premium fetched server-side from insurance-service)
+        Boolean tripProtection
 ) {
     // count = rooms for Hotel, beds/guests for PG
     // guests = total guests in this room type (PG: same as count; Hotel: guests per room × count)

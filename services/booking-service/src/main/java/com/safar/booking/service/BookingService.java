@@ -50,6 +50,9 @@ import java.util.stream.Collectors;
 @Slf4j
 public class BookingService {
 
+    @org.springframework.beans.factory.annotation.Value("${services.insurance-service.url:http://localhost:8097}")
+    private String insuranceServiceUrl;
+
     private final BookingRepository bookingRepo;
     private final BookingInclusionRepository inclusionRepo;
     private final BookingRoomSelectionRepository roomSelectionRepo;
@@ -365,6 +368,23 @@ public class BookingService {
             insurancePaise = configured != null && configured > 0 ? configured : 0L;
         }
 
+        // Embedded trip-protection: fetch the authoritative premium from insurance-service
+        // (so the client can't set the amount) and fold it into the booking total.
+        long tripProtectionPaise = 0L;
+        String tripProtectionQuoteId = null;
+        if (Boolean.TRUE.equals(req.tripProtection())) {
+            try {
+                @SuppressWarnings("rawtypes")
+                java.util.Map resp = new org.springframework.web.client.RestTemplate().postForObject(
+                        insuranceServiceUrl + "/api/v1/insurance/marketplace/quote",
+                        java.util.Map.of("coverageType", "STAY_PROTECTION"), java.util.Map.class);
+                if (resp != null && resp.get("premiumPaise") != null) {
+                    tripProtectionPaise = ((Number) resp.get("premiumPaise")).longValue();
+                    tripProtectionQuoteId = (String) resp.get("quoteId");
+                }
+            } catch (Exception e) { log.warn("Trip-protection quote failed, skipping: {}", e.getMessage()); }
+        }
+
         // Maintenance charge for monthly apartment/home rentals (non-PG). Society/upkeep
         // fee the host configures on the listing; prorated by nights/30 exactly like rent so
         // the booking-page estimate matches what we charge. PG/co-living bills it via monthly
@@ -475,7 +495,7 @@ public class BookingService {
                 ? Math.round(basePaise * GST_RATE) : 0L;
         // Deposit already computed as total (per-bed × beds) above for PG, or single amount otherwise
         long depositPaise = securityDepositPaise != null ? securityDepositPaise : 0L;
-        long totalPaise = basePaise + cleaningFee + insurancePaise + maintenancePaise + gstPaise + inclusionsTotalPaise + depositPaise;
+        long totalPaise = basePaise + cleaningFee + insurancePaise + maintenancePaise + gstPaise + inclusionsTotalPaise + depositPaise + tripProtectionPaise;
 
         // Feature 2: Pay at Property
         String paymentMode = req.paymentMode() != null ? req.paymentMode() : "PREPAID";
@@ -533,6 +553,8 @@ public class BookingService {
                 .status(BookingStatus.PENDING_PAYMENT)
                 .baseAmountPaise(basePaise)
                 .insuranceAmountPaise(insurancePaise)
+                .tripProtectionPaise(tripProtectionPaise)
+                .tripProtectionQuoteId(tripProtectionQuoteId)
                 .gstAmountPaise(gstPaise)
                 .totalAmountPaise(totalPaise)
                 .hostPayoutPaise(hostEarnings)
