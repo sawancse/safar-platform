@@ -421,6 +421,12 @@ spring:
           predicates:
             - Path=/api/v1/services/admin/**
 
+        # Pandit vertical: matcher + muhurat
+        - id: service-pandit
+          uri: ${CHEF_SERVICE_URL:http://localhost:8093}
+          predicates:
+            - Path=/api/v1/services/pandit,/api/v1/services/pandit/**
+
         # ── Flights (flight-service) ──────────────────────────────────────
         - id: flights
           uri: ${FLIGHT_SERVICE_URL:http://localhost:8094}

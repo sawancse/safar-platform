@@ -152,6 +152,9 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
                 && !path.contains("/admin") && !path.contains("/me")) return true;
         // Aggregate ratings for the services landing — public
         if (HttpMethod.GET.equals(method) && path.equals("/api/v1/chef-events/aggregate-ratings")) return true;
+        // Pandit vertical — matcher + muhurat are public (read-only, no PII)
+        if (HttpMethod.POST.equals(method) && path.equals("/api/v1/services/pandit/match")) return true;
+        if (HttpMethod.GET.equals(method) && path.equals("/api/v1/services/pandit/muhurat")) return true;
         // Chef events — only specific reads + the create-inquiry POST are public.
         // All lifecycle actions (pay-balance, claim, location, start-job-as-vendor,
         // complete-as-vendor, confirm, advance-paid, cancel, modify, etc.) require
