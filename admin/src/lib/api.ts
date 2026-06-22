@@ -707,6 +707,16 @@ export const adminApi = {
   cancelVendorInvite(id: string, token: string) {
     return axios.post(`${BASE}/services/admin/invites/${id}/cancel`, {}, { headers: authHeaders(token) }).then(r => r.data);
   },
+  // ── Coupons (platform-wide promo codes) ──
+  listCoupons(token: string) {
+    return axios.get(`${BASE}/coupons/admin`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  createCoupon(body: any, token: string) {
+    return axios.post(`${BASE}/coupons/admin`, body, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  setCouponActive(id: string, active: boolean, token: string) {
+    return axios.post(`${BASE}/coupons/admin/${id}/active?active=${active}`, {}, { headers: authHeaders(token) }).then(r => r.data);
+  },
   // ── Pending changes (post-VERIFIED re-review) ──
   listPendingChanges(token: string) {
     return axios.get(`${BASE}/services/admin/listings/pending-changes`, { headers: authHeaders(token) }).then(r => r.data);

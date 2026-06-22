@@ -58,6 +58,7 @@ public class BookingService {
     private final KafkaTemplate<String, String> kafka;
     private final com.safar.booking.kafka.KafkaJsonPublisher kafkaJsonPublisher;
     private final ListingServiceClient listingClient;
+    private final CouponService couponService;
     private final PgTenancyService pgTenancyService;
     private final TenancyAgreementService tenancyAgreementService;
 
@@ -407,6 +408,18 @@ public class BookingService {
             basePaise -= nonRefundableDiscountPaise;
         }
 
+        // Coupon / promo code (MakeMyTrip style): validate against the room fare and deduct
+        // before GST. Redemption is finalized at payment confirmation (confirmBooking).
+        String couponCode = null;
+        long couponDiscountPaise = 0L;
+        if (req.couponCode() != null && !req.couponCode().isBlank()) {
+            var cv = couponService.validate(req.couponCode(), req.listingId(), guestId, basePaise);
+            if (!cv.valid()) throw new IllegalArgumentException(cv.message());
+            couponCode = cv.code();
+            couponDiscountPaise = cv.discountPaise();
+            basePaise -= couponDiscountPaise;
+        }
+
         // ── Inclusions pricing ──
         long inclusionsTotalPaise = 0L;
         List<Map<String, Object>> inclusionSnapshots = new ArrayList<>();
@@ -556,6 +569,8 @@ public class BookingService {
                 .securityDepositStatus(securityDepositStatus)
                 .nonRefundable(isNonRefundable)
                 .nonRefundableDiscountPaise(nonRefundableDiscountPaise)
+                .couponCode(couponCode)
+                .couponDiscountPaise(couponDiscountPaise)
                 .paymentMode(paymentMode)
                 .prepaidAmountPaise(prepaidAmountPaise)
                 .dueAtPropertyPaise(dueAtPropertyPaise)
@@ -721,6 +736,12 @@ public class BookingService {
                 && booking.getSecurityDepositPaise() > 0
                 && (booking.getDueAtPropertyPaise() == null || booking.getDueAtPropertyPaise() == 0L)) {
             booking.setSecurityDepositStatus("COLLECTED");
+        }
+        // Finalize coupon redemption now that payment is in (idempotent per booking).
+        if (booking.getCouponCode() != null && booking.getCouponDiscountPaise() != null
+                && booking.getCouponDiscountPaise() > 0) {
+            couponService.redeem(booking.getCouponCode(), booking.getGuestId(),
+                    booking.getId(), booking.getCouponDiscountPaise());
         }
         Booking confirmed = bookingRepo.save(booking);
         try {

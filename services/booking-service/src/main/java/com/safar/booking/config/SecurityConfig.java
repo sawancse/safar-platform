@@ -30,6 +30,8 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
                                 "/api/v1/listings/*/video-reviews").permitAll()
                         .requestMatchers("/api/v1/internal/**").permitAll()
+                        // Coupon preview is public (per-user limit only checks when logged in)
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/coupons/validate").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(e -> e

@@ -53,6 +53,7 @@ public record CreateBookingRequest(
         Integer hours, // for HOUR pricing unit
         // Non-refundable & Pay-at-Property
         Boolean nonRefundable,
+        String couponCode,  // optional promo code (MakeMyTrip-style)
         String paymentMode, // PREPAID, PAY_AT_PROPERTY, PARTIAL_PREPAID
         // Inclusions & Perks — list of inclusion IDs the guest selected (PAID_ADDON items)
         List<UUID> selectedInclusionIds,

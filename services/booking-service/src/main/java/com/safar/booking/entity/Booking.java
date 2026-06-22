@@ -210,6 +210,13 @@ public class Booking {
     @Builder.Default
     private Long nonRefundableDiscountPaise = 0L;
 
+    @Column(name = "coupon_code", length = 40)
+    private String couponCode;
+
+    @Column(name = "coupon_discount_paise")
+    @Builder.Default
+    private Long couponDiscountPaise = 0L;
+
     @Column(name = "payment_mode", length = 20)
     @Builder.Default
     private String paymentMode = "PREPAID"; // PREPAID, PAY_AT_PROPERTY, PARTIAL_PREPAID
