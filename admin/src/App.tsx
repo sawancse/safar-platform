@@ -20,6 +20,7 @@ import PartnerVendorsPage from './pages/PartnerVendorsPage';
 import ServiceListingsPage from './pages/ServiceListingsPage';
 import CommissionRatesPage from './pages/CommissionRatesPage';
 import VendorInvitesPage from './pages/VendorInvitesPage';
+import InsuranceLeadsPage from './pages/InsuranceLeadsPage';
 import CouponsPage from './pages/CouponsPage';
 import SuppliersPage from './pages/SuppliersPage';
 import PurchaseOrdersPage from './pages/PurchaseOrdersPage';
@@ -74,6 +75,7 @@ export default function App() {
         <Route path="service-listings" element={<ServiceListingsPage />} />
         <Route path="commission-rates" element={<CommissionRatesPage />} />
         <Route path="vendor-invites" element={<VendorInvitesPage />} />
+        <Route path="insurance-leads" element={<InsuranceLeadsPage />} />
         <Route path="coupons" element={<CouponsPage />} />
         <Route path="suppliers" element={<SuppliersPage />} />
         <Route path="purchase-orders" element={<PurchaseOrdersPage />} />

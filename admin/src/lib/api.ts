@@ -707,6 +707,14 @@ export const adminApi = {
   cancelVendorInvite(id: string, token: string) {
     return axios.post(`${BASE}/services/admin/invites/${id}/cancel`, {}, { headers: authHeaders(token) }).then(r => r.data);
   },
+  // ── Insurance advisor leads (PolicyBazaar tele-advisor queue) ──
+  listInsuranceLeads(token: string, status?: string) {
+    const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+    return axios.get(`${BASE}/insurance/admin/leads${qs}`, { headers: authHeaders(token) }).then(r => r.data);
+  },
+  updateInsuranceLeadStatus(id: string, status: string, token: string) {
+    return axios.patch(`${BASE}/insurance/admin/leads/${id}/status`, { status }, { headers: authHeaders(token) }).then(r => r.data);
+  },
   // ── Coupons (platform-wide promo codes) ──
   listCoupons(token: string) {
     return axios.get(`${BASE}/coupons/admin`, { headers: authHeaders(token) }).then(r => r.data);
