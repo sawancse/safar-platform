@@ -41,6 +41,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/insurance/certificate/**").permitAll()
                         // Server-to-server issuance — no JWT (booking-service direct call); secret-gated in the controller
                         .requestMatchers(HttpMethod.POST, "/api/v1/insurance/marketplace/internal/issue").permitAll()
+                        // Razorpay webhook — HMAC-verified in the controller, no user JWT
+                        .requestMatchers(HttpMethod.POST, "/api/v1/insurance/marketplace/webhook/razorpay").permitAll()
                         // Admin endpoints
                         .requestMatchers("/api/v1/insurance/admin/**").hasRole("ADMIN")
                         // Authenticated booking + management

@@ -62,6 +62,15 @@ insurance:
   internal:
     token: ${INSURANCE_INTERNAL_TOKEN:safar-internal-insurance-2026}   # shared secret for service-to-service issuance
 
+# Razorpay — real payment before issuance. Disabled = sandbox instant-issue (no charge).
+# Flip on ONLY with a real underwriter live (charging for a sandbox policy = fraud).
+razorpay:
+  enabled: ${RAZORPAY_ENABLED:false}
+  key-id: ${RAZORPAY_KEY_ID:}
+  key-secret: ${RAZORPAY_KEY_SECRET:}
+  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
+  base-url: ${RAZORPAY_BASE_URL:https://api.razorpay.com}
+
 # PhonePe-style multi-insurer aggregator (Riskcovry / Zopper / PB Partners class) — primary go-live path
 aggregator:
   enabled: ${AGGREGATOR_ENABLED:false}             # MASTER SWITCH — flip to true when partner creds arrive

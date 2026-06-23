@@ -131,6 +131,22 @@ public class InsurancePolicyService {
         return policyRepository.save(policy);
     }
 
+    /**
+     * Apply a provider/Razorpay refund (from a verified webhook) — idempotent: a policy
+     * already REFUNDED is left untouched. Records the refunded amount + marks REFUNDED.
+     */
+    @Transactional
+    public InsurancePolicy markRefunded(InsurancePolicy policy, long refundPaise) {
+        if (policy.getStatus() == PolicyStatus.REFUNDED) return policy;
+        policy.setRefundAmountPaise(refundPaise);
+        policy.setStatus(PolicyStatus.REFUNDED);
+        if (policy.getCancelledAt() == null) policy.setCancelledAt(Instant.now());
+        policy = policyRepository.save(policy);
+        publishEvent("insurance.policy.cancelled", policy);
+        log.info("Insurance policy refunded: {} amount ₹{}", policy.getPolicyRef(), refundPaise / 100);
+        return policy;
+    }
+
     public Page<InsurancePolicy> getMyPolicies(UUID userId, Pageable pageable) {
         return policyRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
     }

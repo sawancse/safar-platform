@@ -23,6 +23,10 @@ public interface InsurancePolicyRepository extends JpaRepository<InsurancePolicy
 
     Optional<InsurancePolicy> findByProviderAndExternalPolicyId(String provider, String externalPolicyId);
 
+    Optional<InsurancePolicy> findByRazorpayOrderId(String razorpayOrderId);
+
+    Optional<InsurancePolicy> findByRazorpayPaymentId(String razorpayPaymentId);
+
     Optional<InsurancePolicy> findFirstByBookingId(UUID bookingId);
 
     long countByStatus(PolicyStatus status);

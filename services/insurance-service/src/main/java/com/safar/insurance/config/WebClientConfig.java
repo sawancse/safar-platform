@@ -19,6 +19,18 @@ public class WebClientConfig {
     @Value("${aggregator.base-url:https://sandbox-api.riskcovry.com}")
     private String aggregatorBaseUrl;
 
+    @Value("${razorpay.base-url:https://api.razorpay.com}")
+    private String razorpayBaseUrl;
+
+    @Bean
+    public WebClient razorpayWebClient(WebClient.Builder builder) {
+        return builder
+                .baseUrl(razorpayBaseUrl)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
     @Bean
     public WebClient aggregatorWebClient(WebClient.Builder builder) {
         return builder

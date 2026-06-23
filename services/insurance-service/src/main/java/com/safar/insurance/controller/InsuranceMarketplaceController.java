@@ -28,6 +28,8 @@ public class InsuranceMarketplaceController {
     private final InsuranceProviderRegistry registry;
     private final InsurancePolicyService policyService;
     private final com.safar.insurance.service.InsuranceLeadService leadService;
+    private final com.safar.insurance.service.RazorpayService razorpayService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final com.safar.insurance.repository.InsurancePolicyRepository policyRepository;
 
     @org.springframework.beans.factory.annotation.Value("${insurance.internal.token:safar-internal-insurance-2026}")
@@ -123,9 +125,9 @@ public class InsuranceMarketplaceController {
         try { return UUID.fromString(s); } catch (Exception e) { return null; }
     }
 
-    /** Shared issue path: quote-if-needed → issue → sandbox-confirm → link booking. */
-    private InsurancePolicy doIssue(UUID userId, CoverageType coverageType, String quoteId,
-                                    String fullName, String contactEmail, String contactPhone, String bookingId) {
+    /** Create a PENDING_PAYMENT policy (quote-if-needed → provider issue → link booking). */
+    private InsurancePolicy createPending(UUID userId, CoverageType coverageType, String quoteId,
+                                          String fullName, String contactEmail, String contactPhone, String bookingId) {
         if (quoteId == null || quoteId.isBlank()) {
             QuoteResult q = registry.primary().quote(new QuoteRequest(
                     null, null, "IN", "IN", LocalDate.now().plusDays(1), LocalDate.now().plusDays(366), coverageType, List.of(30)));
@@ -138,12 +140,18 @@ public class InsuranceMarketplaceController {
                 LocalDate.now().plusDays(1), LocalDate.now().plusDays(366), coverageType,
                 List.of(traveller), contactEmail, contactPhone);
         InsurancePolicy policy = policyService.issue(userId, issueReq);
-        policy = policyService.confirmPayment(userId, policy.getId(), "SBX-ORDER-" + policy.getId(), "SBX-PAY");
         if (bookingId != null && !bookingId.isBlank()) {
             try { policy.setBookingId(UUID.fromString(bookingId)); policy = policyRepository.save(policy); }
             catch (IllegalArgumentException ignored) { /* malformed bookingId — leave standalone */ }
         }
         return policy;
+    }
+
+    /** Shared instant-issue path (sandbox / embedded): create pending → sandbox-confirm. */
+    private InsurancePolicy doIssue(UUID userId, CoverageType coverageType, String quoteId,
+                                    String fullName, String contactEmail, String contactPhone, String bookingId) {
+        InsurancePolicy policy = createPending(userId, coverageType, quoteId, fullName, contactEmail, contactPhone, bookingId);
+        return policyService.confirmPayment(userId, policy.getId(), "SBX-ORDER-" + policy.getId(), "SBX-PAY");
     }
 
     private Map<String, Object> policyResponse(InsurancePolicy p) {
@@ -161,6 +169,85 @@ public class InsuranceMarketplaceController {
         InsurancePolicy policy = doIssue(UUID.fromString(auth.getName()), req.coverageType(), quoteId,
                 req.fullName(), req.contactEmail(), req.contactPhone(), req.bookingId());
         return ResponseEntity.ok(policyResponse(policy));
+    }
+
+    // ── Two-step paid flow (real Razorpay when enabled; sandbox when not) ──
+    public record ConfirmPaymentRequest(String policyId, String razorpayOrderId,
+                                        String razorpayPaymentId, String razorpaySignature) {}
+
+    /**
+     * Step 1: create a PENDING_PAYMENT policy and (if Razorpay is live) a Razorpay order.
+     * When Razorpay is disabled (sandbox), returns razorpayEnabled=false and the client
+     * proceeds straight to /confirm-payment (no charge).
+     */
+    @PostMapping("/create-order")
+    public ResponseEntity<Map<String, Object>> createOrder(Authentication auth, @RequestBody MarketplaceBuyRequest req) {
+        String quoteId = applyAddOns(req.quoteId(), req.coverageType(), req.addOnCodes());
+        InsurancePolicy policy = createPending(UUID.fromString(auth.getName()), req.coverageType(), quoteId,
+                req.fullName(), req.contactEmail(), req.contactPhone(), req.bookingId());
+        long premium = policy.getPremiumPaise() != null ? policy.getPremiumPaise() : 0;
+        Map<String, Object> resp = new java.util.HashMap<>();
+        resp.put("policyId", policy.getId().toString());
+        resp.put("policyRef", policy.getPolicyRef());
+        resp.put("premiumPaise", premium);
+        if (razorpayService.isEnabled() && premium > 0) {
+            String orderId = razorpayService.createOrder(premium, policy.getPolicyRef());
+            resp.put("razorpayEnabled", true);
+            resp.put("razorpayKeyId", razorpayService.getKeyId());
+            resp.put("razorpayOrderId", orderId);
+            resp.put("amountPaise", premium);
+        } else {
+            resp.put("razorpayEnabled", false);
+        }
+        return ResponseEntity.ok(resp);
+    }
+
+    /**
+     * Step 2: verify the Razorpay signature (when live) and finalise the policy (ISSUED + cert email).
+     * In sandbox mode the signature is skipped and the policy is confirmed directly.
+     */
+    @PostMapping("/confirm-payment")
+    public ResponseEntity<Map<String, Object>> confirmPayment(Authentication auth, @RequestBody ConfirmPaymentRequest req) {
+        UUID userId = UUID.fromString(auth.getName());
+        UUID policyId = UUID.fromString(req.policyId());
+        String orderId, paymentId;
+        if (razorpayService.isEnabled()) {
+            if (!razorpayService.verifyPaymentSignature(req.razorpayOrderId(), req.razorpayPaymentId(), req.razorpaySignature())) {
+                return ResponseEntity.status(400).body(Map.of("error", "payment signature verification failed"));
+            }
+            orderId = req.razorpayOrderId();
+            paymentId = req.razorpayPaymentId();
+        } else {
+            orderId = "SBX-ORDER-" + policyId;
+            paymentId = "SBX-PAY";
+        }
+        InsurancePolicy policy = policyService.confirmPayment(userId, policyId, orderId, paymentId);
+        return ResponseEntity.ok(policyResponse(policy));
+    }
+
+    /**
+     * Razorpay webhook — HMAC-verified. Handles refunds (refund.processed / payment.refunded)
+     * to mark the linked policy REFUNDED. Public path; the signature IS the auth.
+     */
+    @PostMapping("/webhook/razorpay")
+    public ResponseEntity<Map<String, Object>> razorpayWebhook(
+            @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature,
+            @RequestBody String rawPayload) {
+        if (!razorpayService.verifyWebhookSignature(rawPayload, signature)) {
+            return ResponseEntity.status(403).body(Map.of("error", "invalid signature"));
+        }
+        try {
+            var root = objectMapper.readTree(rawPayload);
+            String event = root.path("event").asText("");
+            if (event.startsWith("refund.") || event.equals("payment.refunded")) {
+                var entity = root.path("payload").path("refund").path("entity");
+                String paymentId = entity.path("payment_id").asText("");
+                long refundPaise = entity.path("amount").asLong(0);
+                policyRepository.findByRazorpayPaymentId(paymentId)
+                        .ifPresent(p -> policyService.markRefunded(p, refundPaise));
+            }
+        } catch (Exception ignored) { /* ack anyway — Razorpay retries on non-2xx */ }
+        return ResponseEntity.ok(Map.of("status", "ok"));
     }
 
     /**
