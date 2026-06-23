@@ -34,6 +34,11 @@ public class SecurityConfig {
                         // Standalone marketplace: catalog + quote public, buy authenticated (anyRequest)
                         .requestMatchers(HttpMethod.GET, "/api/v1/insurance/marketplace/products").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/insurance/marketplace/quote").permitAll()
+                        // PolicyBazaar-style compare + advisor callback — public (no login to compare or request a call)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/insurance/marketplace/compare").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/insurance/marketplace/advisor-callback").permitAll()
+                        // Certificate of insurance — policyRef-gated public link (the cert email points here)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/insurance/certificate/**").permitAll()
                         // Server-to-server issuance — no JWT (booking-service direct call); secret-gated in the controller
                         .requestMatchers(HttpMethod.POST, "/api/v1/insurance/marketplace/internal/issue").permitAll()
                         // Admin endpoints

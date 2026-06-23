@@ -16,6 +16,18 @@ public class WebClientConfig {
     @Value("${icici-lombard.base-url:https://api.icicilombard.com}")
     private String iciciLombardBaseUrl;
 
+    @Value("${aggregator.base-url:https://sandbox-api.riskcovry.com}")
+    private String aggregatorBaseUrl;
+
+    @Bean
+    public WebClient aggregatorWebClient(WebClient.Builder builder) {
+        return builder
+                .baseUrl(aggregatorBaseUrl)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
     @Bean
     public WebClient ackoWebClient(WebClient.Builder builder) {
         return builder

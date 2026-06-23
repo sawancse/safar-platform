@@ -27,6 +27,7 @@ public class InsuranceMarketplaceController {
 
     private final InsuranceProviderRegistry registry;
     private final InsurancePolicyService policyService;
+    private final com.safar.insurance.service.InsuranceLeadService leadService;
     private final com.safar.insurance.repository.InsurancePolicyRepository policyRepository;
 
     @org.springframework.beans.factory.annotation.Value("${insurance.internal.token:safar-internal-insurance-2026}")
@@ -38,7 +39,16 @@ public class InsuranceMarketplaceController {
     public record MarketplaceQuoteResponse(String quoteId, long premiumPaise, long sumInsuredPaise,
                                            String currency, List<String> coverageHighlights) {}
     public record MarketplaceBuyRequest(String quoteId, CoverageType coverageType, String fullName,
-                                        String contactEmail, String contactPhone, String bookingId) {}
+                                        String contactEmail, String contactPhone, String bookingId,
+                                        List<String> addOnCodes) {}
+
+    /** PolicyBazaar-style compare request. ages = per-member ages (health/travel); tenureDays for travel. */
+    public record CompareRequest(CoverageType coverageType, Integer tenureDays, List<Integer> ages,
+                                 String originCode, String destinationCode) {}
+    public record CompareResponse(java.util.List<com.safar.insurance.dto.PlanOption> plans) {}
+
+    public record AdvisorCallbackRequest(String name, String phone, String email, String product,
+                                         CoverageType coverageType, String city, String preferredTime, String notes) {}
 
     /** Catalog for the hub: insurance products (buyable here) + loans (link to existing VAS). */
     @GetMapping("/products")
@@ -82,6 +92,37 @@ public class InsuranceMarketplaceController {
                 q.premiumPaise(), q.sumInsuredPaise(), q.currency(), q.coverageHighlights()));
     }
 
+    /** PolicyBazaar-style compare — all plans across insurers for the chosen product. Public. */
+    @PostMapping("/compare")
+    public ResponseEntity<CompareResponse> compare(@RequestBody CompareRequest req) {
+        int tenure = req.tenureDays() != null ? req.tenureDays() : 365;
+        List<Integer> ages = (req.ages() != null && !req.ages().isEmpty()) ? req.ages() : List.of(30);
+        LocalDate start = LocalDate.now().plusDays(1);
+        QuoteRequest qr = new QuoteRequest(
+                req.originCode(), req.destinationCode(), "IN", "IN",
+                start, start.plusDays(tenure), req.coverageType(), ages);
+        var plans = registry.primary().comparePlans(qr);
+        return ResponseEntity.ok(new CompareResponse(plans));
+    }
+
+    /** Talk-to-advisor / assisted sales lead. Public (anonymous allowed). */
+    @PostMapping("/advisor-callback")
+    public ResponseEntity<Map<String, Object>> advisorCallback(Authentication auth,
+                                                               @RequestBody AdvisorCallbackRequest req) {
+        if (req.phone() == null || req.phone().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "phone required"));
+        }
+        UUID userId = (auth != null && auth.getName() != null) ? tryUuid(auth.getName()) : null;
+        var lead = leadService.create(userId, req.name(), req.phone(), req.email(),
+                req.product(), req.coverageType() != null ? req.coverageType().name() : null,
+                req.city(), req.preferredTime(), req.notes());
+        return ResponseEntity.ok(Map.of("leadId", lead.getId().toString(), "status", lead.getStatus()));
+    }
+
+    private static UUID tryUuid(String s) {
+        try { return UUID.fromString(s); } catch (Exception e) { return null; }
+    }
+
     /** Shared issue path: quote-if-needed → issue → sandbox-confirm → link booking. */
     private InsurancePolicy doIssue(UUID userId, CoverageType coverageType, String quoteId,
                                     String fullName, String contactEmail, String contactPhone, String bookingId) {
@@ -116,9 +157,30 @@ public class InsuranceMarketplaceController {
 
     @PostMapping("/buy")
     public ResponseEntity<Map<String, Object>> buy(Authentication auth, @RequestBody MarketplaceBuyRequest req) {
-        InsurancePolicy policy = doIssue(UUID.fromString(auth.getName()), req.coverageType(), req.quoteId(),
+        String quoteId = applyAddOns(req.quoteId(), req.coverageType(), req.addOnCodes());
+        InsurancePolicy policy = doIssue(UUID.fromString(auth.getName()), req.coverageType(), quoteId,
                 req.fullName(), req.contactEmail(), req.contactPhone(), req.bookingId());
         return ResponseEntity.ok(policyResponse(policy));
+    }
+
+    /**
+     * Fold selected add-on premiums into the quote. Sandbox tokens encode premium_suminsured_rand,
+     * so we re-encode with the add-on-inclusive premium. For a live aggregator the add-on codes are
+     * priced by the partner API at issue time (passed through; left unchanged here).
+     */
+    private String applyAddOns(String quoteId, CoverageType coverageType, List<String> addOnCodes) {
+        if (quoteId == null || coverageType == null || addOnCodes == null || addOnCodes.isEmpty()) return quoteId;
+        long addPaise = InsuranceAddOnCatalog.priceOf(coverageType, addOnCodes);
+        if (addPaise <= 0) return quoteId;
+        try {
+            if (ProviderQuoteId.provider(quoteId) != InsuranceProvider.SANDBOX) return quoteId;
+            String[] p = ProviderQuoteId.nativeToken(quoteId).split("_");
+            long premium = Long.parseLong(p[0]) + addPaise;
+            String rebuilt = premium + "_" + (p.length > 1 ? p[1] : "0") + "_" + (p.length > 2 ? p[2] : "addon");
+            return ProviderQuoteId.encode(InsuranceProvider.SANDBOX, rebuilt);
+        } catch (Exception e) {
+            return quoteId;
+        }
     }
 
     // ── Server-to-server issuance (booking-service on payment.captured) ──

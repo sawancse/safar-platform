@@ -62,6 +62,14 @@ insurance:
   internal:
     token: ${INSURANCE_INTERNAL_TOKEN:safar-internal-insurance-2026}   # shared secret for service-to-service issuance
 
+# PhonePe-style multi-insurer aggregator (Riskcovry / Zopper / PB Partners class) — primary go-live path
+aggregator:
+  enabled: ${AGGREGATOR_ENABLED:false}             # MASTER SWITCH — flip to true when partner creds arrive
+  api-key: ${AGGREGATOR_API_KEY:}
+  partner-id: ${AGGREGATOR_PARTNER_ID:}
+  base-url: ${AGGREGATOR_BASE_URL:https://sandbox-api.riskcovry.com}
+  timeout-ms: ${AGGREGATOR_TIMEOUT_MS:8000}
+
 acko:
   enabled: ${ACKO_ENABLED:false}                   # MASTER SWITCH — flip when sandbox creds arrive
   api-key: ${ACKO_API_KEY:}

@@ -84,10 +84,11 @@ public class InsurancePolicyService {
         }
 
         policy = policyRepository.save(policy);
-        log.info("Insurance policy issued: {} (provider={}, externalId={}, premium={} {})",
+        log.info("Insurance policy created (pending payment): {} (provider={}, externalId={}, premium={} {})",
                 policy.getPolicyRef(), provider, result.externalPolicyId(),
                 result.premiumPaise(), result.currency());
-        publishEvent("insurance.policy.issued", policy);
+        // NOTE: the customer-facing "policy issued" event (cert email/WhatsApp) fires on
+        // confirmPayment() — i.e. once the policy is actually ISSUED, not at PENDING_PAYMENT.
         return policy;
     }
 
@@ -103,7 +104,10 @@ public class InsurancePolicyService {
         policy.setPaymentStatus("PAID");
         policy.setStatus(PolicyStatus.ISSUED);
         policy.setIssuedAt(Instant.now());
-        return policyRepository.save(policy);
+        policy = policyRepository.save(policy);
+        // Policy is now genuinely ISSUED → notify (certificate email + WhatsApp + in-app).
+        publishEvent("insurance.policy.issued", policy);
+        return policy;
     }
 
     @Transactional

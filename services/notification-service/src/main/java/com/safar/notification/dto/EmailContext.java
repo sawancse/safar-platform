@@ -204,6 +204,39 @@ public class EmailContext {
     private String flightNumber;
     private boolean isInternational;
 
+    // Insurance fields (policy-issued certificate email)
+    private String insurancePolicyRef;
+    private String insurancePolicyNumber;
+    private String insuranceProvider;
+    private String insuranceCoverage;     // friendly label e.g. "Health insurance"
+    private String insurancePremium;      // formatted ₹
+    private String insuranceSumInsured;   // formatted ₹
+    private String insuranceValidFrom;
+    private String insuranceValidTo;
+    private int insuredCount;
+    private String certificateUrl;
+
+    public String getInsurancePolicyRef() { return insurancePolicyRef; }
+    public void setInsurancePolicyRef(String v) { this.insurancePolicyRef = v; }
+    public String getInsurancePolicyNumber() { return insurancePolicyNumber; }
+    public void setInsurancePolicyNumber(String v) { this.insurancePolicyNumber = v; }
+    public String getInsuranceProvider() { return insuranceProvider; }
+    public void setInsuranceProvider(String v) { this.insuranceProvider = v; }
+    public String getInsuranceCoverage() { return insuranceCoverage; }
+    public void setInsuranceCoverage(String v) { this.insuranceCoverage = v; }
+    public String getInsurancePremium() { return insurancePremium; }
+    public void setInsurancePremium(String v) { this.insurancePremium = v; }
+    public String getInsuranceSumInsured() { return insuranceSumInsured; }
+    public void setInsuranceSumInsured(String v) { this.insuranceSumInsured = v; }
+    public String getInsuranceValidFrom() { return insuranceValidFrom; }
+    public void setInsuranceValidFrom(String v) { this.insuranceValidFrom = v; }
+    public String getInsuranceValidTo() { return insuranceValidTo; }
+    public void setInsuranceValidTo(String v) { this.insuranceValidTo = v; }
+    public int getInsuredCount() { return insuredCount; }
+    public void setInsuredCount(int v) { this.insuredCount = v; }
+    public String getCertificateUrl() { return certificateUrl; }
+    public void setCertificateUrl(String v) { this.certificateUrl = v; }
+
     // Flight getters and setters
     public String getFlightRoute() { return flightRoute; }
     public void setFlightRoute(String flightRoute) { this.flightRoute = flightRoute; }

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Your insurance is active</title>
+</head>
+<body style="margin:0; padding:0; background-color:#F3F4F6; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+<div style="display:none; max-height:0; overflow:hidden;">Your policy is active — certificate inside.</div>
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#F3F4F6;">
+    <tr>
+        <td align="center" style="padding:24px 12px;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width:600px; background:#FFFFFF; border-radius:14px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+
+                <!-- Header -->
+                <tr>
+                    <td style="background:linear-gradient(135deg,#1a1a2e,#16213e); padding:26px 36px;">
+                        <div style="font-family:Georgia,serif; font-size:28px; font-weight:bold; color:#FF5A5F;">BhramanKaro</div>
+                        <div style="font-size:11px; letter-spacing:3px; color:rgba(255,255,255,0.75); text-transform:uppercase; padding-top:3px;">Insurance &amp; Loans</div>
+                    </td>
+                </tr>
+
+                <!-- Hero -->
+                <tr>
+                    <td style="background:linear-gradient(135deg,#16a34a,#22c55e); padding:34px 36px; text-align:center;">
+                        <div style="font-size:42px; line-height:1;">🛡️</div>
+                        <h1 style="margin:12px 0 4px; font-size:22px; color:#FFFFFF;">Your policy is active</h1>
+                        <p style="margin:0; font-size:14px; color:rgba(255,255,255,0.9);"
+                           th:text="${ctx.insuranceCoverage} + ' is now in force.'">Your cover is now in force.</p>
+                    </td>
+                </tr>
+
+                <!-- Greeting -->
+                <tr>
+                    <td style="padding:28px 36px 8px;">
+                        <p style="margin:0 0 12px; font-size:15px; color:#111827;">
+                            Hi <span th:text="${ctx.guestName} ?: 'there'">there</span>,
+                        </p>
+                        <p style="margin:0; font-size:14px; color:#374151; line-height:1.6;">
+                            Thank you for protecting what matters. Your policy has been issued and the certificate is ready below.
+                        </p>
+                    </td>
+                </tr>
+
+                <!-- Policy card -->
+                <tr>
+                    <td style="padding:16px 36px;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border:1px solid #E5E7EB; border-radius:12px;">
+                            <tr><td style="padding:18px 20px;">
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="font-size:14px; color:#111827;">
+                                    <tr>
+                                        <td style="padding:7px 0; color:#6B7280; width:46%;">Policy reference</td>
+                                        <td style="padding:7px 0; font-weight:600; text-align:right;" th:text="${ctx.insurancePolicyRef}">INS-XXXX</td>
+                                    </tr>
+                                    <tr th:if="${ctx.insurancePolicyNumber}">
+                                        <td style="padding:7px 0; color:#6B7280;">Policy number</td>
+                                        <td style="padding:7px 0; font-weight:600; text-align:right;" th:text="${ctx.insurancePolicyNumber}">POL-XXXX</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:7px 0; color:#6B7280;">Insurer</td>
+                                        <td style="padding:7px 0; font-weight:600; text-align:right;" th:text="${ctx.insuranceProvider}">Insurer</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:7px 0; color:#6B7280;">Coverage</td>
+                                        <td style="padding:7px 0; font-weight:600; text-align:right;" th:text="${ctx.insuranceCoverage}">Cover</td>
+                                    </tr>
+                                    <tr th:if="${ctx.insuranceSumInsured}">
+                                        <td style="padding:7px 0; color:#6B7280;">Sum insured</td>
+                                        <td style="padding:7px 0; font-weight:600; text-align:right;" th:text="${ctx.insuranceSumInsured}">₹0</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:7px 0; color:#6B7280;">Premium paid</td>
+                                        <td style="padding:7px 0; font-weight:600; text-align:right;" th:text="${ctx.insurancePremium}">₹0</td>
+                                    </tr>
+                                    <tr th:if="${ctx.insuranceValidFrom}">
+                                        <td style="padding:7px 0; color:#6B7280;">Valid</td>
+                                        <td style="padding:7px 0; font-weight:600; text-align:right;">
+                                            <span th:text="${ctx.insuranceValidFrom}">from</span> – <span th:text="${ctx.insuranceValidTo}">to</span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td></tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- CTA -->
+                <tr>
+                    <td style="padding:8px 36px 28px; text-align:center;">
+                        <a th:href="${ctx.certificateUrl}" target="_blank"
+                           style="display:inline-block; background:#FF5A5F; color:#FFFFFF; text-decoration:none; font-weight:600; font-size:15px; padding:13px 32px; border-radius:10px;">
+                            View / Download Certificate
+                        </a>
+                        <p style="margin:14px 0 0; font-size:12px; color:#9CA3AF;">Keep this certificate handy for claims and assistance.</p>
+                    </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                    <td style="background:#FAFAFA; border-top:1px solid #EEEEEE; padding:24px 36px; text-align:center;">
+                        <p style="margin:0 0 8px; font-family:Georgia,serif; font-size:20px; font-weight:bold; color:#FF5A5F;">BhramanKaro</p>
+                        <p style="margin:0; font-size:11px; color:#AAAAAA; line-height:1.6;">
+                            Insurance is offered through BhramanKaro's IRDAI-registered partners.<br/>
+                            Coverage, terms &amp; exclusions are governed by the policy wording. Need help? support@bhramankaro.com
+                        </p>
+                    </td>
+                </tr>
+
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>
