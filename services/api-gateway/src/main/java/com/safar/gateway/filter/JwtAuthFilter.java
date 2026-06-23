@@ -120,6 +120,8 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         if (HttpMethod.POST.equals(method) && path.equals("/api/v1/insurance/marketplace/advisor-callback")) return true;
         // Insurance certificate — policyRef-gated public link (the cert email points here)
         if (HttpMethod.GET.equals(method) && path.startsWith("/api/v1/insurance/certificate/")) return true;
+        // Insurance policy-wording document — public read-only
+        if (HttpMethod.GET.equals(method) && path.equals("/api/v1/insurance/policy-wording")) return true;
         // Insurance Razorpay webhook — HMAC-verified inside insurance-service, no user JWT
         if (HttpMethod.POST.equals(method) && path.equals("/api/v1/insurance/marketplace/webhook/razorpay")) return true;
         // WhatsApp inbound webhook — signed by MSG91, no user JWT

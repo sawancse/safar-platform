@@ -61,6 +61,7 @@ insurance:
     enabled: ${INSURANCE_SANDBOX_ENABLED:true}     # fully-mocked provider; turn off once a real partner is live
   internal:
     token: ${INSURANCE_INTERNAL_TOKEN:safar-internal-insurance-2026}   # shared secret for service-to-service issuance
+  public-base-url: ${INSURANCE_PUBLIC_BASE_URL:https://api.bhramankaro.com}  # for self-hosted wording/cert links
 
 # Razorpay — real payment before issuance. Disabled = sandbox instant-issue (no charge).
 # Flip on ONLY with a real underwriter live (charging for a sandbox policy = fraud).

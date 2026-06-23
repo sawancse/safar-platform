@@ -27,8 +27,16 @@ public class SandboxInsuranceProvider implements InsuranceProviderAdapter {
     @Value("${insurance.sandbox.enabled:true}")
     private boolean enabled;
 
+    @Value("${insurance.public-base-url:https://api.bhramankaro.com}")
+    private String publicBaseUrl;
+
     @Override public InsuranceProvider providerType() { return InsuranceProvider.SANDBOX; }
     @Override public boolean isEnabled() { return enabled; }
+
+    /** Self-hosted policy-wording doc (the old sandbox.bhramankaro.com host didn't exist). */
+    private String wordingUrl(CoverageType c) {
+        return publicBaseUrl + "/api/v1/insurance/policy-wording?type=" + c.name();
+    }
 
     private record Base(long premium, long sumInsured, List<String> highlights) {}
 
@@ -79,7 +87,7 @@ public class SandboxInsuranceProvider implements InsuranceProviderAdapter {
         String token = b.premium + "_" + b.sumInsured + "_" + UUID.randomUUID().toString().substring(0, 8);
         log.info("[SANDBOX insurance] quote {} -> premium ₹{}, cover ₹{}", req.coverageType(), b.premium / 100, b.sumInsured / 100);
         return new QuoteResult(InsuranceProvider.SANDBOX, token, b.premium, b.sumInsured, "INR", b.highlights,
-                "https://sandbox.bhramankaro.com/insurance/policy-wording.pdf");
+                wordingUrl(req.coverageType()));
     }
 
     // ── PolicyBazaar-style compare: many plans across insurers/tiers ────────────
@@ -117,7 +125,7 @@ public class SandboxInsuranceProvider implements InsuranceProviderAdapter {
                     premium, cover, "INR", features,
                     claim, cashless(req.coverageType(), i), rating,
                     InsuranceAddOnCatalog.addOns(req.coverageType()),
-                    "https://sandbox.bhramankaro.com/insurance/policy-wording.pdf",
+                    wordingUrl(req.coverageType()),
                     recommended, true));
         }
         log.info("[SANDBOX insurance] compare {} -> {} plans", req.coverageType(), plans.size());

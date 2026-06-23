@@ -39,6 +39,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/insurance/marketplace/advisor-callback").permitAll()
                         // Certificate of insurance — policyRef-gated public link (the cert email points here)
                         .requestMatchers(HttpMethod.GET, "/api/v1/insurance/certificate/**").permitAll()
+                        // Policy-wording document — public read-only
+                        .requestMatchers(HttpMethod.GET, "/api/v1/insurance/policy-wording").permitAll()
                         // Server-to-server issuance — no JWT (booking-service direct call); secret-gated in the controller
                         .requestMatchers(HttpMethod.POST, "/api/v1/insurance/marketplace/internal/issue").permitAll()
                         // Razorpay webhook — HMAC-verified in the controller, no user JWT
