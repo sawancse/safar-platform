@@ -323,7 +323,7 @@ public class ChefEventConsumer {
                             + "\nDate: " + ctx.getServiceDate()
                             + "\nAmount: " + ctx.getTotalAmount()
                             + "\n\nView details: https://bhramankaro.com/cooks/my-bookings"
-                            + "\n\nSafar Cooks Team");
+                            + "\n\nBhramanKaro Cooks Team");
                 }
             } catch (Exception e2) {
                 log.error("Plain text email also failed for user {}: {}", userId, e2.getMessage());

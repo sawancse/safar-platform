@@ -43,7 +43,7 @@ public class NotificationService {
         if (!guestEmail.isEmpty()) {
             emailGateway.send(guestEmail,
                     "Booking Created — " + booking.bookingRef(),
-                    String.format("Hi %s,\n\nYour booking %s has been created successfully.\n\nPlease complete the payment to confirm your booking.\n\nThank you,\nSafar Team",
+                    String.format("Hi %s,\n\nYour booking %s has been created successfully.\n\nPlease complete the payment to confirm your booking.\n\nThank you,\nBhramanKaro Team",
                             booking.guestName(), booking.bookingRef()));
         }
         inAppNotificationService.create(
@@ -71,7 +71,7 @@ public class NotificationService {
             if (!hostHtmlSent) {
                 emailGateway.send(hostEmail,
                         "New Booking Received — " + booking.bookingRef(),
-                        String.format("You have a new booking %s. The guest will complete payment shortly.\n\nSafar Team",
+                        String.format("You have a new booking %s. The guest will complete payment shortly.\n\nBhramanKaro Team",
                                 booking.bookingRef()));
             }
         }
@@ -106,7 +106,7 @@ public class NotificationService {
             if (!htmlSent) {
                 emailGateway.send(guestEmail,
                         "Booking Confirmed — " + booking.bookingRef(),
-                        String.format("Hi %s,\n\nYour booking %s is confirmed! We look forward to hosting you.\n\nSafar Team",
+                        String.format("Hi %s,\n\nYour booking %s is confirmed! We look forward to hosting you.\n\nBhramanKaro Team",
                                 booking.guestName(), booking.bookingRef()));
             }
         }
@@ -125,7 +125,7 @@ public class NotificationService {
         if (!hostEmail.isEmpty()) {
             emailGateway.send(hostEmail,
                     "Booking Confirmed — " + booking.bookingRef(),
-                    String.format("Booking %s has been confirmed and payment received.\n\nSafar Team",
+                    String.format("Booking %s has been confirmed and payment received.\n\nBhramanKaro Team",
                             booking.bookingRef()));
         }
         inAppNotificationService.create(
@@ -211,7 +211,7 @@ public class NotificationService {
         if (!guestEmail.isEmpty()) {
             emailGateway.send(guestEmail,
                     "Booking Cancelled — " + booking.bookingRef(),
-                    String.format("Hi %s,\n\nYour booking %s has been cancelled. Any applicable refund will be processed within 5-7 business days.\n\nSafar Team",
+                    String.format("Hi %s,\n\nYour booking %s has been cancelled. Any applicable refund will be processed within 5-7 business days.\n\nBhramanKaro Team",
                             booking.guestName(), booking.bookingRef()));
         }
         inAppNotificationService.create(
@@ -228,7 +228,7 @@ public class NotificationService {
         if (!hostEmail.isEmpty()) {
             emailGateway.send(hostEmail,
                     "Booking Cancelled — " + booking.bookingRef(),
-                    String.format("Booking %s has been cancelled by the guest.\n\nSafar Team",
+                    String.format("Booking %s has been cancelled by the guest.\n\nBhramanKaro Team",
                             booking.bookingRef()));
         }
         inAppNotificationService.create(
@@ -277,7 +277,7 @@ public class NotificationService {
         if (!guestEmail.isEmpty()) {
             emailGateway.send(guestEmail,
                     "Payment Received — " + booking.bookingRef(),
-                    String.format("Hi %s,\n\nPayment for booking %s has been successfully captured. Your booking is now confirmed!\n\nSafar Team",
+                    String.format("Hi %s,\n\nPayment for booking %s has been successfully captured. Your booking is now confirmed!\n\nBhramanKaro Team",
                             booking.guestName(), booking.bookingRef()));
         }
         inAppNotificationService.create(
@@ -391,7 +391,7 @@ public class NotificationService {
             // Plain text fallback
             emailGateway.send(guestEmail,
                     "Welcome! You're checked in — " + booking.bookingRef(),
-                    String.format("Hi %s,\n\nYou've been checked in for booking %s.\n\nEnjoy your stay!\n\nSafar Team",
+                    String.format("Hi %s,\n\nYou've been checked in for booking %s.\n\nEnjoy your stay!\n\nBhramanKaro Team",
                             booking.guestName(), booking.bookingRef()));
             // HTML: checkin-day template
             try {
@@ -420,7 +420,7 @@ public class NotificationService {
             // Plain text fallback
             emailGateway.send(guestEmail,
                     "Thank you for staying with us! — " + booking.bookingRef(),
-                    String.format("Hi %s,\n\nYour stay for booking %s is now complete.\n\nWe'd love to hear about your experience — please leave a review!\n\nSafar Team",
+                    String.format("Hi %s,\n\nYour stay for booking %s is now complete.\n\nWe'd love to hear about your experience — please leave a review!\n\nBhramanKaro Team",
                             booking.guestName(), booking.bookingRef()));
             // HTML: post-stay-review template (checkout + review prompt)
             try {
@@ -449,7 +449,7 @@ public class NotificationService {
             // Plain text fallback
             emailGateway.send(guestEmail,
                     "Booking Expired — " + booking.bookingRef(),
-                    String.format("Hi %s,\n\nYour booking %s has been automatically cancelled because payment was not completed within 24 hours.\n\nYou can create a new booking anytime.\n\nSafar Team",
+                    String.format("Hi %s,\n\nYour booking %s has been automatically cancelled because payment was not completed within 24 hours.\n\nYou can create a new booking anytime.\n\nBhramanKaro Team",
                             booking.guestName(), booking.bookingRef()));
             // HTML: booking-cancelled template (reuse with expiry context)
             try {
@@ -484,7 +484,7 @@ public class NotificationService {
             // Plain text fallback
             emailGateway.send(guestEmail,
                     "Refund Processed — " + booking.bookingRef(),
-                    String.format("Hi %s,\n\nYour refund for booking %s has been processed.\n\nThe amount will be credited to your original payment method within 5-7 business days.\n\nSafar Team",
+                    String.format("Hi %s,\n\nYour refund for booking %s has been processed.\n\nThe amount will be credited to your original payment method within 5-7 business days.\n\nBhramanKaro Team",
                             booking.guestName(), booking.bookingRef()));
             // HTML: payment-receipt template (reuse with refund context)
             try {
@@ -627,7 +627,7 @@ public class NotificationService {
                 String guestName = guest.name() != null ? guest.name() : "Guest";
                 emailGateway.send(guest.email(),
                         "The host replied to your review",
-                        String.format("Hi %s,\n\nThe host has responded to your review (ID: %s).\n\nLog in to BhramanKaro to see the full reply.\n\nThank you,\nSafar Team",
+                        String.format("Hi %s,\n\nThe host has responded to your review (ID: %s).\n\nLog in to BhramanKaro to see the full reply.\n\nThank you,\nBhramanKaro Team",
                                 guestName, reviewId));
             }
             inAppNotificationService.create(
