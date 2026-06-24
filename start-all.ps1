@@ -33,8 +33,29 @@ Write-Host "==> 1/5  Infrastructure (Postgres/Redis/Kafka/Elasticsearch)" -Foreg
 Push-Location $Platform
 docker compose up -d
 Pop-Location
-Write-Host "    waiting 20s for infra to settle..." -ForegroundColor DarkGray
-Start-Sleep -Seconds 20
+
+# Kafka MUST be accepting on 9092 before any Java service starts: a Spring-Kafka
+# client that connects to a dead localhost:9092 can self-connect and lock the port
+# against everything else (see memory: kafka_self_connect_504). Actively poll rather
+# than guessing a fixed sleep.
+Write-Host "    waiting for Kafka to accept on 9092..." -ForegroundColor DarkGray
+$kafkaUp = $false
+foreach ($i in 1..60) {
+  try {
+    $c = New-Object System.Net.Sockets.TcpClient
+    $c.Connect('127.0.0.1', 9092)
+    $c.Close()
+    $kafkaUp = $true
+    Write-Host "    Kafka up on 9092 (after ~$($i*2)s)" -ForegroundColor DarkGray
+    break
+  } catch {
+    Start-Sleep -Seconds 2
+  }
+}
+if (-not $kafkaUp) {
+  Write-Host "    WARNING: Kafka not reachable on 9092 after 120s - starting services anyway (they may self-connect; check 'docker logs safar-kafka')." -ForegroundColor Yellow
+}
+Start-Sleep -Seconds 3  # let other infra (Postgres/Redis/ES) finish settling
 
 # ---- Java services (module dir -> mvn spring-boot:run). Gateway started LAST. ----
 $core = @(
