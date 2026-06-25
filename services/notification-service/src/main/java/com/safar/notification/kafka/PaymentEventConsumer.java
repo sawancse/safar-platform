@@ -58,6 +58,9 @@ public class PaymentEventConsumer {
         // Send plain text + Chapter 2 via NotificationService
         notificationService.notifyPaymentCaptured(bookingId);
 
+        // Email the customer their itemized tax invoice now that payment is captured.
+        notificationService.sendBookingInvoice(bookingId);
+
         // Try to enrich with payment amounts from the event and send Chapter 2 with full context
         try {
             JsonNode node = tryParseJson(message);

@@ -76,9 +76,8 @@ public class BookingEventConsumer {
 
         // First: send the existing plain-text + Chapter 1 via NotificationService
         notificationService.notifyBookingConfirmed(bookingId);
-
-        // Then: email the customer their itemized tax invoice for the confirmed stay
-        notificationService.sendBookingInvoice(bookingId);
+        // Note: the customer tax invoice is emailed on payment.captured (see
+        // PaymentEventConsumer), so it only goes out once money is actually collected.
 
         // Then: try to schedule remaining journey chapters using dates from the event
         try {
