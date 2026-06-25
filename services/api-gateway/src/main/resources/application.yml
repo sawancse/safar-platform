@@ -420,12 +420,18 @@ spring:
         - id: service-listings
           uri: ${CHEF_SERVICE_URL:http://localhost:8093}
           predicates:
-            - Path=/api/v1/services/listings,/api/v1/services/listings/**
+            - Path=/api/v1/services/listings,/api/v1/services/listings/**,/api/v1/services/items,/api/v1/services/items/**
 
         - id: service-listings-admin
           uri: ${CHEF_SERVICE_URL:http://localhost:8093}
           predicates:
             - Path=/api/v1/services/admin/**
+
+        # Public vendor-invite token landing (BD/WhatsApp onboarding) — token-gated, no JWT
+        - id: service-vendor-invites
+          uri: ${CHEF_SERVICE_URL:http://localhost:8093}
+          predicates:
+            - Path=/api/v1/services/invites,/api/v1/services/invites/**
 
         # Pandit vertical: matcher + muhurat
         - id: service-pandit

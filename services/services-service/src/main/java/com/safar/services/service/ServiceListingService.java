@@ -88,6 +88,10 @@ public class ServiceListingService {
 
         ServiceListing entity = objectMapper.convertValue(combined, entityClassFor(type));
         ServiceListing saved = repo.save(entity);
+        // service_type is the JOINED-inheritance @DiscriminatorColumn (insertable=false),
+        // so Hibernate writes the column from @DiscriminatorValue but does NOT populate the
+        // in-memory field until reload — set it so the create response carries the type.
+        saved.setServiceType(type.name());
         log.info("Created DRAFT service listing {} type={} vendor={}",
                 saved.getId(), type, vendorUserId);
         return saved;
