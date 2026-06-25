@@ -89,13 +89,6 @@
           "photosPermission": "BhramanKaro needs access to your photos to upload property images",
           "cameraPermission": "BhramanKaro needs camera access to take photos of your property"
         }
-      ],
-      "expo-clipboard",
-      [
-        "expo-auth-session",
-        {
-          "scheme": "safar"
-        }
       ]
     ],
     "scheme": "safar",
