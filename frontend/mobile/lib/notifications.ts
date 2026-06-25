@@ -2,9 +2,13 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8080/api/v1';
+// Mirror lib/api.ts base resolution so a deployed build hits the live gateway,
+// not localhost (on a phone, localhost is the device itself).
+const API_BASE =
+  ((Constants.expoConfig?.extra?.apiUrl as string) ?? 'http://localhost:8080') + '/api/v1';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -40,7 +44,9 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
   // Get Expo push token
   const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
+    projectId:
+      process.env.EXPO_PUBLIC_PROJECT_ID ??
+      (Constants.expoConfig?.extra?.eas?.projectId as string),
   });
   const pushToken = tokenData.data;
 
@@ -87,11 +93,11 @@ async function sendTokenToServer(pushToken: string): Promise<void> {
     if (!accessToken) return;
 
     await axios.post(
-      `${API_BASE}/notifications/register-device`,
+      `${API_BASE}/users/me/push-tokens`,
       {
         pushToken,
         platform: Platform.OS,
-        deviceName: Device.modelName,
+        deviceId: Device.modelName,
       },
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
