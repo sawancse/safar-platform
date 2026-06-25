@@ -1655,6 +1655,15 @@ export const api = {
   getStorefrontReviews(listingId: string) {
     return apiFetch<any[]>(`/api/v1/services/listings/${listingId}/reviews`).catch(() => [] as any[]);
   },
+  // Public browse of VERIFIED service listings (e.g. CAKE_DESIGNER vendors).
+  browseServiceListings(params: { serviceType?: string; city?: string; availableOn?: string } = {}) {
+    const qs = new URLSearchParams();
+    if (params.serviceType) qs.set('serviceType', params.serviceType);
+    if (params.city) qs.set('city', params.city);
+    if (params.availableOn) qs.set('availableOn', params.availableOn);
+    const q = qs.toString();
+    return apiFetch<any[]>(`/api/v1/services/listings${q ? `?${q}` : ''}`).catch(() => [] as any[]);
+  },
 
   // ── Builder project edit ─────────────────────────────────────────────────
   updateBuilderProject(id: string, data: object, token: string) {
