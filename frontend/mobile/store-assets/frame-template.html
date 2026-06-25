@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:1080px; height:1920px; overflow:hidden; }
+  body {
+    font-family:"Segoe UI", system-ui, -apple-system, sans-serif;
+    background:linear-gradient(160deg,#f97316 0%,#fb923c 50%,#ea580c 100%);
+    color:#fff; display:flex; flex-direction:column; align-items:center;
+  }
+  .header { padding:90px 80px 40px; text-align:center; width:100%; }
+  .caption { font-size:62px; font-weight:800; line-height:1.1; letter-spacing:-1px; text-shadow:0 2px 12px rgba(0,0,0,.15); }
+  .sub { margin-top:22px; font-size:32px; font-weight:600; opacity:.95; }
+  /* phone frame */
+  .phone {
+    margin-top:30px;
+    width:620px; height:1300px;
+    background:#111; border-radius:56px; padding:16px;
+    box-shadow:0 30px 70px rgba(0,0,0,.30);
+    position:relative;
+  }
+  .phone .notch { position:absolute; top:26px; left:50%; transform:translateX(-50%); width:150px; height:26px; background:#111; border-radius:0 0 16px 16px; z-index:3; }
+  .screen { width:100%; height:100%; border-radius:42px; overflow:hidden; background:#fff; }
+  .screen img { width:100%; height:100%; object-fit:cover; object-position:top center; display:block; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="caption" id="caption"></div>
+    <div class="sub" id="sub"></div>
+  </div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen"><img id="shot" src=""></div>
+  </div>
+<script>
+  const p = new URLSearchParams(location.search);
+  document.getElementById('caption').textContent = p.get('caption') || '';
+  const sub = p.get('sub'); if (sub) document.getElementById('sub').textContent = sub;
+  document.getElementById('shot').src = p.get('img') || '';
+</script>
+</body>
+</html>
