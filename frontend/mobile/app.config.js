@@ -17,5 +17,13 @@ module.exports = ({ config }) => {
   if (googleServicesFile) {
     config.android = { ...(config.android || {}), googleServicesFile };
   }
+  // Single source of truth for the API URL: the eas.json per-profile
+  // `API_URL` env (also EXPO_PUBLIC_API_URL for `expo start`) overrides the
+  // app.json `extra.apiUrl` fallback. Without this the eas.json env was dead
+  // and every build silently used the hardcoded app.json value.
+  const apiUrl = process.env.API_URL || process.env.EXPO_PUBLIC_API_URL;
+  if (apiUrl) {
+    config.extra = { ...(config.extra || {}), apiUrl };
+  }
   return config;
 };
