@@ -492,6 +492,32 @@ public class EmailContext {
         if (bookingUrl != null && !bookingUrl.isBlank()) return bookingUrl;
         return "https://bhramankaro.com/messages";
     }
+
+    // ── Safe-default getters for properties referenced by journey/campaign templates
+    //    but never wired into the email pipeline. A missing property throws SpEL
+    //    EL1008E (even inside a th:if guard or `?:`), aborting the whole render — so
+    //    these MUST exist. Returning null/false lets the dependent sections simply
+    //    hide until the data is wired, rather than crashing the email. ──
+    public java.util.List<String> getHouseRules() { return null; }          // pre-arrival-48hr
+    public java.util.List<String> getLocalTips() { return null; }           // pre-arrival-48hr
+    public String getHostWelcomeMessage() { return null; }                  // pre-arrival-48hr
+    public String getHostThankYouMessage() { return null; }                 // checkout-day
+    public String getHospitalDirections() { return null; }                  // pre-arrival-48hr
+    public String getPackageName() { return null; }                         // pre-arrival-48hr
+    public String getListingUrl() { return bookingUrl; }                    // checkout-day
+    public String getLastListingTitle() { return null; }                    // re-engagement (?: lastCity)
+    public String getPreheaderText() { return null; }                       // email-base
+    public String getOfferText() { return null; }                          // festival-campaign
+    public String getOfferCode() { return null; }                          // festival-campaign
+    public String getOfferExpiry() { return null; }                        // festival-campaign
+    public String getNextMilestoneName() { return null; }                   // milestone-guest
+    public String getNextMilestoneProgress() { return null; }               // milestone-guest
+    public Integer getNextMilestonePercent() { return null; }               // milestone-guest (?: 40)
+    public String getNextPayoutDate() { return null; }                      // host-earnings
+    public String getNpsUrl() { return "https://bhramankaro.com/feedback"; } // mid-stay-check
+    public boolean getIsPgStay() { return "PG".equals(bookingType); }                       // mid-stay-check, pre-arrival-48hr
+    public boolean getIsMedicalStay() { return hospitalName != null || procedureName != null; } // mid-stay-check, pre-arrival-48hr
+    public boolean getIsOutstationGuest() { return isOutstationGuest; }     // pre-arrival-48hr (was ctx.isOutstationGuest mismatch)
     public String getTransactionRef() { return bookingRef; }
     public String getRecipientEmail() { return guestEmail; }
     public double getAverageRating() { return avgRating != null ? Double.parseDouble(avgRating) : 0; }
