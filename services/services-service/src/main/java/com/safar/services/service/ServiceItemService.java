@@ -76,7 +76,12 @@ public class ServiceItemService {
         if (!listing.getVendorUserId().equals(vendorUserId)) {
             throw new AccessDeniedException("Item belongs to another vendor's listing");
         }
-        validate(req);
+        // Partial update: only validate fields actually being changed (don't require
+        // title/price on a photo-only or price-only PATCH).
+        if (req.title() != null && req.title().isBlank())
+            throw new IllegalArgumentException("title cannot be blank");
+        if (req.basePricePaise() != null && req.basePricePaise() < 0)
+            throw new IllegalArgumentException("basePricePaise must be non-negative");
 
         if (req.title() != null) item.setTitle(req.title());
         if (req.heroPhotoUrl() != null) item.setHeroPhotoUrl(req.heroPhotoUrl());
