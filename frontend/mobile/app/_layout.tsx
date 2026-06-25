@@ -90,6 +90,7 @@ export default function RootLayout() {
             <Stack.Screen name="interior-project/[id]" options={{ title: 'Interior Project' }} />
             <Stack.Screen name="storefront/[slug]" options={{ title: 'Storefront' }} />
             <Stack.Screen name="services-cake" options={{ title: 'Designer Cakes' }} />
+            <Stack.Screen name="services-vendors" options={{ title: 'Service Vendors' }} />
             <Stack.Screen name="booking/[id]" options={{ title: 'Booking' }} />
           </Stack>
         </I18nProvider>
