@@ -486,6 +486,12 @@ public class EmailContext {
         if (bookingUrl == null) return null;
         return bookingUrl + (bookingUrl.contains("?") ? "&" : "?") + "payNow=1";
     }
+    /** Deep link for the "Message host" CTA in checkin-day.html. Never null so the
+     *  template's Elvis default is moot — the missing getter was aborting the render. */
+    public String getMessageHostUrl() {
+        if (bookingUrl != null && !bookingUrl.isBlank()) return bookingUrl;
+        return "https://bhramankaro.com/messages";
+    }
     public String getTransactionRef() { return bookingRef; }
     public String getRecipientEmail() { return guestEmail; }
     public double getAverageRating() { return avgRating != null ? Double.parseDouble(avgRating) : 0; }
