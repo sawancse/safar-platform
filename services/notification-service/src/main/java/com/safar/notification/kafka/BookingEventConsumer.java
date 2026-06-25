@@ -120,6 +120,8 @@ public class BookingEventConsumer {
     private void handleBookingCheckedIn(String message) {
         String bookingId = extractBookingId(message);
         notificationService.notifyBookingCheckedIn(bookingId);
+        // Pay-at-property bookings get their (paid) invoice now that cash is collected.
+        notificationService.sendCheckInCashInvoice(bookingId);
     }
 
     private void handleBookingCompleted(String message) {

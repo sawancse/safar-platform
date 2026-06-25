@@ -340,11 +340,39 @@ public class NotificationService {
     // ────────────────────────────────────────────────────────────
 
     /**
-     * Emails the customer a formal itemized tax invoice for a confirmed stay booking.
-     * Invoice number is deterministic (INV-{bookingRef}) so retries/re-confirmations
-     * reference the same document rather than minting a new one.
+     * Emails the customer a formal itemized tax invoice for a stay booking.
+     * Invoice number is deterministic (INV-{bookingRef}) so retries reference the
+     * same document rather than minting a new one.
      */
     public void sendBookingInvoice(String bookingId) {
+        sendBookingInvoice(bookingId, false);
+    }
+
+    /**
+     * Pay-at-property bookings never fire payment.captured, so their invoice is sent
+     * when the host marks the guest checked in (cash collected). Prepaid / partial
+     * bookings already received an invoice at payment.captured, so they are skipped.
+     */
+    public void sendCheckInCashInvoice(String bookingId) {
+        try {
+            BookingClient.BookingInfo booking = bookingClient.getBooking(bookingId);
+            if (booking == null) return;
+            if (!"PAY_AT_PROPERTY".equals(booking.paymentMode())) {
+                log.debug("Booking {} (mode {}) already invoiced online — skipping check-in invoice",
+                        bookingId, booking.paymentMode());
+                return;
+            }
+            sendBookingInvoice(bookingId, true);
+        } catch (Exception e) {
+            log.warn("Failed to send check-in cash invoice for booking {}: {}", bookingId, e.getMessage());
+        }
+    }
+
+    /**
+     * @param paidInFull forces the invoice to read "Paid in full" (e.g. cash collected
+     *                   at check-in for a pay-at-property booking).
+     */
+    public void sendBookingInvoice(String bookingId, boolean paidInFull) {
         try {
             BookingClient.BookingInfo booking = bookingClient.getBooking(bookingId);
             if (booking == null) {
@@ -362,6 +390,7 @@ public class NotificationService {
             EmailContext ctx = emailContextBuilder.buildBookingContext(booking, guest, host, null, null);
             ctx.setInvoiceNumber("INV-" + booking.bookingRef());
             ctx.setInvoiceDate(java.time.LocalDate.now().toString());
+            ctx.setInvoicePaid(paidInFull);
             if (companyGstin != null && !companyGstin.isBlank()) {
                 ctx.setCompanyGstin(companyGstin);
             }

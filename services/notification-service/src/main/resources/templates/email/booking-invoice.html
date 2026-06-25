@@ -147,14 +147,14 @@
                         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top:14px;">
                             <tr>
                                 <td style="padding:12px 16px; border-radius:8px;"
-                                    th:style="${ctx.dueAtProperty} ? 'padding:12px 16px; border-radius:8px; background-color:#FFF3E0;' : 'padding:12px 16px; border-radius:8px; background-color:#E8F8F5;'">
+                                    th:style="${ctx.invoiceFullyPaid} ? 'padding:12px 16px; border-radius:8px; background-color:#E8F8F5;' : 'padding:12px 16px; border-radius:8px; background-color:#FFF3E0;'">
                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                         <tr>
                                             <td style="font-size:13px; font-weight:600;"
-                                                th:style="${ctx.dueAtProperty} ? 'font-size:13px; font-weight:600; color:#E65100;' : 'font-size:13px; font-weight:600; color:#00A699;'">
-                                                <span th:if="${ctx.isPrepaid and !ctx.dueAtProperty}">Paid in full</span>
-                                                <span th:if="${ctx.isPrepaid and ctx.dueAtProperty}">Partially paid — balance due at property</span>
-                                                <span th:if="${!ctx.isPrepaid}">Payable at property</span>
+                                                th:style="${ctx.invoiceFullyPaid} ? 'font-size:13px; font-weight:600; color:#00A699;' : 'font-size:13px; font-weight:600; color:#E65100;'">
+                                                <span th:if="${ctx.invoiceFullyPaid}">Paid in full</span>
+                                                <span th:if="${!ctx.invoiceFullyPaid and ctx.isPrepaid and ctx.dueAtProperty}">Partially paid — balance due at property</span>
+                                                <span th:if="${!ctx.invoiceFullyPaid and !ctx.isPrepaid}">Payable at property</span>
                                             </td>
                                             <td align="right" th:if="${ctx.paymentMethod}" style="font-size:12px; color:#767676;" th:text="${ctx.paymentMethod}">Online payment</td>
                                         </tr>

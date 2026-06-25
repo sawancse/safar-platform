@@ -754,14 +754,22 @@ public class EmailContext {
     // ── Customer stay invoice (booking-invoice.html) ──
     private String invoiceDate;     // formatted issue date e.g. "2026-06-25"
     private String companyGstin;    // platform GSTIN (nullable; line hidden when blank)
+    private boolean invoicePaid;    // forced "paid in full" (e.g. cash collected at check-in)
     public String getInvoiceDate() { return invoiceDate; }
     public void setInvoiceDate(String invoiceDate) { this.invoiceDate = invoiceDate; }
     public String getCompanyGstin() { return companyGstin; }
     public void setCompanyGstin(String companyGstin) { this.companyGstin = companyGstin; }
+    public boolean getInvoicePaid() { return invoicePaid; }
+    public void setInvoicePaid(boolean invoicePaid) { this.invoicePaid = invoicePaid; }
     public String getCompanyLegalName() { return "BhramanKaro Technologies Pvt. Ltd."; }
     /** True when any online amount was actually collected (drives "Paid" vs "Payable" wording). */
     public boolean getIsPrepaid() {
         return "PREPAID".equals(paymentMode) || "PARTIAL_PREPAID".equals(paymentMode);
+    }
+    /** Whether the invoice should read "Paid in full" — explicitly flagged (cash collected
+     *  at check-in) or a prepaid booking with no remaining balance. */
+    public boolean getInvoiceFullyPaid() {
+        return invoicePaid || (getIsPrepaid() && (dueAtProperty == null || dueAtProperty.isBlank()));
     }
     public String getRentAmount() { return rentAmount; }
     public void setRentAmount(String rentAmount) { this.rentAmount = rentAmount; }
