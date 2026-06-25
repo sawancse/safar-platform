@@ -750,6 +750,19 @@ public class EmailContext {
     public void setTenancyRef(String tenancyRef) { this.tenancyRef = tenancyRef; }
     public String getInvoiceNumber() { return invoiceNumber; }
     public void setInvoiceNumber(String invoiceNumber) { this.invoiceNumber = invoiceNumber; }
+
+    // ── Customer stay invoice (booking-invoice.html) ──
+    private String invoiceDate;     // formatted issue date e.g. "2026-06-25"
+    private String companyGstin;    // platform GSTIN (nullable; line hidden when blank)
+    public String getInvoiceDate() { return invoiceDate; }
+    public void setInvoiceDate(String invoiceDate) { this.invoiceDate = invoiceDate; }
+    public String getCompanyGstin() { return companyGstin; }
+    public void setCompanyGstin(String companyGstin) { this.companyGstin = companyGstin; }
+    public String getCompanyLegalName() { return "BhramanKaro Technologies Pvt. Ltd."; }
+    /** True when any online amount was actually collected (drives "Paid" vs "Payable" wording). */
+    public boolean getIsPrepaid() {
+        return "PREPAID".equals(paymentMode) || "PARTIAL_PREPAID".equals(paymentMode);
+    }
     public String getRentAmount() { return rentAmount; }
     public void setRentAmount(String rentAmount) { this.rentAmount = rentAmount; }
     public String getDueDate() { return dueDate; }

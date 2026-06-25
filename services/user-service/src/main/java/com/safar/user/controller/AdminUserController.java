@@ -81,14 +81,16 @@ public class AdminUserController {
             log.warn("Could not fetch listing stats: {}", e.getMessage());
         }
 
-        // Fetch booking count from booking-service
+        // Fetch booking count + realized revenue from booking-service
         long totalBookings = 0;
+        long totalRevenuePaise = 0;
         try {
             @SuppressWarnings("unchecked")
             Map<String, Object> bookingStats = restTemplate.getForObject(
                     bookingServiceUrl + "/api/v1/internal/bookings/stats", Map.class);
             if (bookingStats != null) {
                 totalBookings = ((Number) bookingStats.getOrDefault("count", 0)).longValue();
+                totalRevenuePaise = ((Number) bookingStats.getOrDefault("revenuePaise", 0)).longValue();
             }
         } catch (Exception e) {
             log.warn("Could not fetch booking stats: {}", e.getMessage());
@@ -98,7 +100,7 @@ public class AdminUserController {
                 "totalListings", totalListings,
                 "pendingListings", pendingListings,
                 "totalBookings", totalBookings,
-                "totalRevenuePaise", 0,
+                "totalRevenuePaise", totalRevenuePaise,
                 "activeHosts", activeHosts,
                 "activeGuests", activeGuests
         ));

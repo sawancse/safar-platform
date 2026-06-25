@@ -40,4 +40,15 @@ public interface BookingRepository extends JpaRepository<Booking, UUID>, JpaSpec
     List<Booking> findBalanceReminderCandidates(@Param("from") LocalDateTime from,
                                                 @Param("to") LocalDateTime to,
                                                 @Param("tier") String tier);
+
+    // Realized gross revenue: total transacted value of bookings that reached a paid
+    // state (CONFIRMED/CHECKED_IN/COMPLETED). Excludes DRAFT/PENDING_PAYMENT/CANCELLED/NO_SHOW.
+    @Query("""
+            SELECT COALESCE(SUM(b.totalAmountPaise), 0) FROM Booking b
+            WHERE b.status IN (
+                com.safar.booking.entity.enums.BookingStatus.CONFIRMED,
+                com.safar.booking.entity.enums.BookingStatus.CHECKED_IN,
+                com.safar.booking.entity.enums.BookingStatus.COMPLETED)
+            """)
+    long sumRealizedRevenuePaise();
 }

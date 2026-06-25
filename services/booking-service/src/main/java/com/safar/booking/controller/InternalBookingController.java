@@ -39,7 +39,10 @@ public class InternalBookingController {
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> stats() {
         long total = bookingRepository.count();
-        return ResponseEntity.ok(Map.of("count", total));
+        long revenuePaise = bookingRepository.sumRealizedRevenuePaise();
+        return ResponseEntity.ok(Map.of(
+                "count", total,
+                "revenuePaise", revenuePaise));
     }
 
     @PostMapping("/backfill-listing-details")

@@ -61,6 +61,9 @@ notification:
   # Laptop-as-server runs the default profile and serves real customers, so the
   # base-url must be the public domain (override via NOTIFICATION_BASE_URL for true local dev).
   base-url: ${NOTIFICATION_BASE_URL:https://bhramankaro.com}
+  # Platform GSTIN shown on customer tax invoices. Blank until GST registration is
+  # finalized → the GSTIN line is hidden on the invoice rather than printing a fake one.
+  company-gstin: ${NOTIFICATION_COMPANY_GSTIN:}
 
 services:
   booking-service:

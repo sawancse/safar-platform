@@ -26,6 +26,10 @@ public class NotificationService {
     @Value("${notification.base-url}")
     private String baseUrl;
 
+    // Platform GSTIN printed on customer tax invoices (blank until registered → GSTIN line hidden).
+    @Value("${notification.company-gstin:}")
+    private String companyGstin;
+
     // ────────────────────────────────────────────────────────────
     // Booking Created
     // ────────────────────────────────────────────────────────────
@@ -328,6 +332,53 @@ public class NotificationService {
             log.info("Chapter 2 (Payment Receipt) sent for booking {} via context", bookingId);
         } catch (Exception e) {
             log.warn("Failed to send Chapter 2 HTML email for booking {}: {}", bookingId, e.getMessage());
+        }
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // Booking Confirmed → Customer Tax Invoice (booking-invoice.html)
+    // ────────────────────────────────────────────────────────────
+
+    /**
+     * Emails the customer a formal itemized tax invoice for a confirmed stay booking.
+     * Invoice number is deterministic (INV-{bookingRef}) so retries/re-confirmations
+     * reference the same document rather than minting a new one.
+     */
+    public void sendBookingInvoice(String bookingId) {
+        try {
+            BookingClient.BookingInfo booking = bookingClient.getBooking(bookingId);
+            if (booking == null) {
+                log.warn("Cannot send invoice — booking {} not found", bookingId);
+                return;
+            }
+            String guestEmail = resolveGuestEmail(booking);
+            if (guestEmail == null || guestEmail.isBlank()) {
+                log.warn("Cannot send invoice — no guest email for booking {}", bookingId);
+                return;
+            }
+
+            UserClient.UserInfo guest = userClient.getUser(booking.guestId());
+            UserClient.UserInfo host = userClient.getUser(booking.hostId());
+            EmailContext ctx = emailContextBuilder.buildBookingContext(booking, guest, host, null, null);
+            ctx.setInvoiceNumber("INV-" + booking.bookingRef());
+            ctx.setInvoiceDate(java.time.LocalDate.now().toString());
+            if (companyGstin != null && !companyGstin.isBlank()) {
+                ctx.setCompanyGstin(companyGstin);
+            }
+
+            emailTemplateService.sendHtmlEmail(guestEmail,
+                    "Your BhramanKaro Invoice " + ctx.getInvoiceNumber(),
+                    "booking-invoice", ctx);
+
+            inAppNotificationService.create(
+                    UUID.fromString(booking.guestId()),
+                    "Invoice Ready",
+                    "Invoice " + ctx.getInvoiceNumber() + " for booking " + booking.bookingRef() + " has been emailed to you.",
+                    "BOOKING_INVOICE", bookingId, "BOOKING"
+            );
+            log.info("Sent customer invoice {} for booking {}", ctx.getInvoiceNumber(), bookingId);
+        } catch (Exception e) {
+            log.warn("Failed to send customer invoice for booking {}: {}", bookingId, e.getMessage());
         }
     }
 
