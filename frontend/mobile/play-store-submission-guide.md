@@ -233,7 +233,10 @@ Steps to make it work:
 - [ ] **support@ / privacy@ mailboxes** live and monitored.
 - [x] **Bundled SDK audit** — ✅ DONE 2026-06-27 (see §3). No analytics/ads/crash SDK; location not
       collected. Data Safety table corrected.
-- [ ] **Remove unused location permissions** from `app.json` (Android `ACCESS_*_LOCATION` + iOS
-      `NSLocation*`) → rebuild AAB with bumped versionCode. ⚠️ Rejection risk if left in. (See §3.)
+- [x] **Remove unused location permissions** — ✅ DONE 2026-06-27. Dropped `ACCESS_FINE/COARSE_LOCATION`
+      + `WRITE_EXTERNAL_STORAGE` + iOS `NSLocation*` from `app.json`. versionCode bump is automatic
+      (eas.json `appVersionSource: remote` + `autoIncrement` → next prod build = vCode 3).
+      **Remaining step: rebuild** `eas build --profile production --platform android` so the AAB drops
+      the location permission, then upload that build.
 - [x] **Feature graphic** (1024×500) — produced (see above).
 ```
