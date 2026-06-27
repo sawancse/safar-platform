@@ -29,13 +29,10 @@ Artifact: `https://expo.dev/artifacts/eas/xyAsGuaXNybOCRRKzFWyxztmvgzn2f5vRAPv0e
    - Name: `BhramanKaro: Stays & Travel` · Default language: `English (US)` · App · Free.
    - Tick the two declarations (Developer Program Policies + US export laws).
 2. **Set up your app** dashboard — work top to bottom:
-   - **App access** → "All functionality is available without special access" **unless** reviewers
-     need a login. Safar requires OTP login to see most flows → choose *"All or some functionality
-     is restricted"* and provide a **test login**: a phone number + the dev OTP. ⚠️ Dev OTP is
-     `123456` (hardcoded in auth-service dev mode) — only works if the backend the app points at
-     runs in dev OTP mode. Confirm the tunnel-served backend accepts `123456` for the reviewer's
-     number, or create a real reviewer account with a known OTP path. **Do not ship a build that
-     reviewers can't log into.**
+   - **App access** → BhramanKaro requires OTP login to see most flows → choose *"All or some
+     functionality is restricted"* and add an instruction with the verified test login below.
+     See **§1a Reviewer login** for the exact text to paste. ✅ Verified working end-to-end
+     against the live tunnel on 2026-06-27 (account pre-created, `123456` accepted).
    - **Ads** → Declare whether the app contains ads. BhramanKaro shows **no ads** → *No*.
    - **Content rating** → fill the IARC questionnaire → use §2 answers below.
    - **Target audience** → 18+ (financial transactions, rentals). Not designed for children.
@@ -54,6 +51,53 @@ Artifact: `https://expo.dev/artifacts/eas/xyAsGuaXNybOCRRKzFWyxztmvgzn2f5vRAPv0e
 
 > Personal-account path: do steps as **Closed testing** track, add ≥20 testers (email list or
 > Google Group), keep the test running **14 continuous days**, then *Promote release* → Production.
+
+---
+
+## 1a. Reviewer login — Play Console "App access" (VERIFIED 2026-06-27)
+
+In Play Console → *App content → App access* → choose **"All or some functionality is
+restricted"** → *Add new instructions*:
+
+| Field | Value |
+|---|---|
+| **Name** | Phone OTP login |
+| **Username** (phone) | `6000012345` |
+| **Password / any other** | OTP: `123456` |
+
+**Instructions to paste:**
+```
+This app uses phone + OTP login.
+1. Open the app and tap Profile (bottom tab) → Login.
+2. Keep "Phone" selected. Enter mobile number: 6000012345
+   (the app automatically adds the +91 India country code).
+3. Tap Continue / Send OTP.
+4. Enter the OTP: 123456
+5. Tap Verify. You are now logged in as a test guest account.
+
+Note: 123456 is the valid verification code for this test account.
+A test account has already been created for this number.
+```
+
+**Verified facts (do not change without re-testing):**
+- Account already exists: phone `+916000012345`, name "Play Reviewer", role GUEST. Re-login needs
+  no name — just phone + `123456`.
+- `otp.dev-mode: true` in `application.yml` **and** `application-prod.yml`; no `OTP_DEV_MODE`
+  override → `123456` is accepted for any number regardless of profile.
+- Tested live through `api.bhramankaro.com`: `otp/send` → 200, `otp/verify` with `123456` →
+  returns access + refresh tokens.
+- Rate limit is **3 OTP *sends* per phone per hour** (the verify step is not limited). Reviewers
+  need only one send, so this won't bite — but don't spam the Send button while testing.
+
+> ⚠️ **Backend dependency (because AWS is paused):** the app talks to the laptop backend via the
+> `bhraman-local` Cloudflare tunnel. The tunnel + the 16-service stack **must be running** for the
+> entire review window, or the reviewer sees blank data / login failures → rejection. Keep the
+> laptop on and the `bhraman-local-tunnel` ScheduledTask running until the app is approved.
+
+> 🔒 **Security note (not a blocker, fix later):** `dev-mode: true` in prod means *anyone* can log
+> into *any* account on production with `123456`. Fine for review, but before real public launch set
+> `OTP_DEV_MODE=false` and wire a real OTP provider (MSG91 is already coded — `OTP_PROVIDER=msg91`).
+> If you flip it off, this reviewer account will need a real OTP path instead.
 
 ---
 
@@ -165,11 +209,13 @@ Steps to make it work:
 ## 6. Open items / confirmations needed
 
 - [ ] **Account type** (personal vs org) — gates whether closed testing is mandatory.
-- [ ] **Reviewer login** — ensure Google's reviewer can actually log in (dev OTP `123456` only works
-      if the pointed-at backend is in dev mode; otherwise provision a real reviewer number + OTP).
+- [x] **Reviewer login** — ✅ DONE & VERIFIED 2026-06-27. Test account `6000012345` / OTP `123456`
+      created and confirmed working live. See §1a. (Caveat: backend + tunnel must stay UP during review.)
+- [x] **Feature graphic (1024×500)** — ✅ DONE. `frontend/mobile/assets/play-feature-graphic.png`
+      (committed `d531d42`).
 - [ ] **ToS jurisdiction** — `safar-web/app/terms` says Hyderabad, Telangana; confirm it matches the
       registered office of BhramanKaro India Pvt. Ltd.
 - [ ] **support@ / privacy@ mailboxes** live and monitored.
 - [ ] **Bundled SDK audit** for the Data Safety "sharing" question (analytics/ads/Firebase).
-- [ ] **Feature graphic** (1024×500) produced — mandatory blocker.
+- [x] **Feature graphic** (1024×500) — produced (see above).
 ```
