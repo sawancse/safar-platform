@@ -113,15 +113,15 @@ marketplace/utility, not a game). Then:
 | Profanity or crude humour | **No** |
 | Controlled substances (drugs/alcohol/tobacco) | **No** |
 | Gambling (simulated or real-money) | **No** |
-| Does the app share the user's current physical location with other users? | **Yes** — location is used for search and can be shared in host/guest messaging. |
+| Does the app share the user's current physical location with other users? | **No** — the app does not access device location (no location SDK); search uses typed city/text. |
 | Does the app allow users to interact or exchange content / communicate? | **Yes** — guest↔host and customer↔provider messaging. |
 | Does the app allow purchase of digital goods? | **No** — purchases are physical/real-world services (stays, flights, chef, insurance), processed by Razorpay. Not digital IAP. |
 | Does the app contain user-generated content shared with others? | **Yes** — reviews, photos, messages. |
 | Miscellaneous (data collection/sharing prompts) | Answer truthfully per §3; no NSFW/illegal content. |
 
-**Expected result:** PEGI 3 / ESRB Everyone / IARC 3+ (the "communicates / shares location"
-flags add an interaction notice but do not raise the age rating). Re-run the questionnaire if any
-feature materially changes.
+**Expected result:** PEGI 3 / ESRB Everyone / IARC 3+ (the "users communicate" flag adds an
+interaction notice but does not raise the age rating). Re-run the questionnaire if any feature
+materially changes.
 
 ---
 
@@ -150,22 +150,37 @@ as listed. Encryption in transit = **Yes** for all. Each type needs ≥1 purpose
 | **Personal info → Other (Govt ID / KYC)** | Yes | Optional | App functionality; Fraud prevention, security & compliance |
 | **Financial info → Purchase history** | Yes | Required | App functionality |
 | **Financial info → Payment info** | Yes (via Razorpay) | Required | App functionality. *Note: card/UPI details captured by Razorpay (PCI-DSS), not stored by us.* |
-| **Location → Approximate location** | Yes | Optional | App functionality (search) |
-| **Location → Precise location** | Yes | Optional | App functionality (nearby search / map pin) — consent-gated |
-| **Photos and videos → Photos** | Yes | Optional | App functionality (listing/review/KYC uploads) |
+| **Location → Approximate location** | **No** | — | App does **not** read device location (no `expo-location`, no maps SDK). Search uses typed city/text. *See SDK-audit note below.* |
+| **Location → Precise location** | **No** | — | Same — not collected. |
+| **Photos and videos → Photos** | Yes | Optional | App functionality (listing/review/KYC uploads via `expo-image-picker`) |
 | **Messages → Other in-app messages** | Yes | Optional | App functionality (guest↔host / customer↔provider chat) |
-| **App activity → App interactions** | Yes | Optional | Analytics; App functionality |
-| **App info & performance → Crash logs / Diagnostics** | Yes | Optional | Analytics; App functionality |
-| **Device or other IDs → Device or other IDs** | Yes | Optional | App functionality (push notifications / FCM token) |
+| **App activity → App interactions** | **No** | — | No analytics SDK in the app (GA4 is on the **web** only). Backend access logs are operational, not product analytics. |
+| **App info & performance → Crash logs / Diagnostics** | **No** | — | No Sentry/Crashlytics/Firebase Analytics bundled. (Play's own Android Vitals is not declarable here.) |
+| **Device or other IDs → Device or other IDs** | Yes | Optional | App functionality (push notifications / FCM token via `expo-notifications`) |
 
 **Data shared with third parties:** declare **None** for "shared" in the sharing sense. Razorpay
-(payments), FCM (push), and any analytics SDK are **service providers / processors** — Play's Data
-Safety treats processor relationships as *collection*, not *sharing*, **as long as** they only
-process on your behalf. Keep "Shared = No" unless an SDK uses data for its own purposes.
+(payments) and FCM (push) are **service providers / processors** — Play's Data Safety treats
+processor relationships as *collection*, not *sharing*. Keep "Shared = No".
 
-> ⚠️ Audit before final submit: if the app bundles Google Analytics/Firebase Analytics or any ad
-> SDK, confirm what each collects and whether it qualifies as "sharing." Update this table to match
-> the SDKs actually compiled into versionCode 2. Mis-declaring Data Safety is a common rejection cause.
+### SDK audit results (done 2026-06-27 against versionCode 2 deps)
+
+Audited `frontend/mobile/package.json` + `app.json` + code. SDKs that touch user data:
+- `expo-notifications` (+ FCM) → push token → **Device IDs** (processor: Google/FCM, Shared:No)
+- `expo-image-picker` (+ CAMERA/READ_MEDIA_IMAGES) → **Photos** (user-initiated)
+- `expo-auth-session`/`expo-web-browser` → Google OAuth → Name+Email (already declared)
+- `react-native-webview` → hosts Razorpay checkout (payment info handled by Razorpay)
+- `expo-secure-store`/`async-storage`/`zustand` → on-device only, **not collected**
+
+**Confirmed ABSENT** (declare "No" for all): Firebase/Google Analytics, AdMob/Facebook/any ad SDK,
+Sentry/Crashlytics, Amplitude/Mixpanel/Segment, `react-native-maps`, `expo-location`.
+
+> ⚠️ **ACTION REQUIRED — unused location permission.** `app.json` declares `ACCESS_FINE_LOCATION` +
+> `ACCESS_COARSE_LOCATION` (and iOS `NSLocation*` strings) but **no code uses location** and there is
+> no location SDK. Declaring an unused sensitive permission risks rejection under Google's Permissions
+> policy. **Remove these from `app.json` before the Play build** (Android `permissions` array + iOS
+> `infoPlist` location keys). Then location is cleanly "Not collected" as in the table above. This
+> needs a rebuild + versionCode bump (required for a new Play release anyway). `WRITE_EXTERNAL_STORAGE`
+> can also be dropped (not needed for image-picking on modern Android).
 
 ---
 
@@ -216,6 +231,9 @@ Steps to make it work:
 - [ ] **ToS jurisdiction** — `safar-web/app/terms` says Hyderabad, Telangana; confirm it matches the
       registered office of BhramanKaro India Pvt. Ltd.
 - [ ] **support@ / privacy@ mailboxes** live and monitored.
-- [ ] **Bundled SDK audit** for the Data Safety "sharing" question (analytics/ads/Firebase).
+- [x] **Bundled SDK audit** — ✅ DONE 2026-06-27 (see §3). No analytics/ads/crash SDK; location not
+      collected. Data Safety table corrected.
+- [ ] **Remove unused location permissions** from `app.json` (Android `ACCESS_*_LOCATION` + iOS
+      `NSLocation*`) → rebuild AAB with bumped versionCode. ⚠️ Rejection risk if left in. (See §3.)
 - [x] **Feature graphic** (1024×500) — produced (see above).
 ```
