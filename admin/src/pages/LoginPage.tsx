@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Form, Input, Button, Card, Typography, Alert, Steps } from 'antd';
+import { Form, Input, Button, Card, Typography, Alert, Divider } from 'antd';
+import { GoogleLogin } from '@react-oauth/google';
 import { adminApi } from '../lib/api';
 import PhoneInput, { isValidPhone } from '../components/PhoneInput';
 
@@ -12,6 +13,29 @@ export default function LoginPage() {
   const [phone, setPhone]       = useState('');
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
+
+  async function handleGoogleSuccess(credentialResponse: { credential?: string }) {
+    if (!credentialResponse.credential) {
+      setError('Google sign-in failed: no credential returned');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const { data } = await adminApi.googleSignIn(credentialResponse.credential);
+      if (data.user.role !== 'ADMIN') {
+        setError('Access denied: admin account required');
+        return;
+      }
+      localStorage.setItem('admin_token', data.accessToken);
+      localStorage.setItem('admin_refresh_token', data.refreshToken);
+      navigate('/dashboard');
+    } catch (e: any) {
+      setError(e?.response?.data?.detail || e?.response?.data?.message || 'Google sign-in failed');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handlePhone() {
     if (!isValidPhone(phone)) {
@@ -68,6 +92,19 @@ export default function LoginPage() {
         </div>
 
         {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 16 }} />}
+
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => setError('Google sign-in failed')}
+            theme="outline"
+            size="large"
+            text="signin_with"
+            shape="rectangular"
+          />
+        </div>
+
+        <Divider plain style={{ color: '#999', fontSize: 12 }}>or sign in with phone OTP</Divider>
 
         {step === 0 ? (
           <Form layout="vertical" onFinish={handlePhone}>

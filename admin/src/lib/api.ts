@@ -101,6 +101,15 @@ export const adminApi = {
     }>(`${BASE}/auth/otp/verify`, { phone, otp });
   },
 
+  googleSignIn(idToken: string) {
+    return axios.post<{
+      accessToken: string;
+      refreshToken: string;
+      accessTokenExpiresIn: number;
+      user: { id: string; role: string; name: string };
+    }>(`${BASE}/auth/google/signin`, { idToken });
+  },
+
   // Admin impersonation — login as a user for support
   impersonateUser(targetUserId: string, token: string) {
     return axios.post<{
