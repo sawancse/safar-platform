@@ -909,6 +909,12 @@ public class BookingService {
         boolean wasHeld = booking.getStatus() == BookingStatus.CONFIRMED
                 || booking.getStatus() == BookingStatus.CHECKED_IN;
 
+        // A booking that was never paid (still PENDING_PAYMENT) is effectively an
+        // abandoned/edited draft. Cancelling it must NOT notify the guest — there is
+        // no payment, so a "booking cancelled, refund in 5-7 days" email is wrong and
+        // alarming. We only broadcast booking.cancelled for real (paid) bookings.
+        boolean wasPaid = booking.getStatus() != BookingStatus.PENDING_PAYMENT;
+
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancellationReason(reason);
         booking.setCancelledAt(OffsetDateTime.now());
@@ -974,10 +980,14 @@ public class BookingService {
             log.warn("Failed to release Redis hold for cancelled booking {}: {}", booking.getBookingRef(), e.getMessage());
         }
 
-        try {
-            kafka.send("booking.cancelled", bookingId.toString());
-        } catch (Exception e) {
-            log.warn("Failed to send Kafka event for cancelled booking {}: {}", booking.getBookingRef(), e.getMessage());
+        if (wasPaid) {
+            try {
+                kafka.send("booking.cancelled", bookingId.toString());
+            } catch (Exception e) {
+                log.warn("Failed to send Kafka event for cancelled booking {}: {}", booking.getBookingRef(), e.getMessage());
+            }
+        } else {
+            log.info("Skipping booking.cancelled event for never-paid booking {} (no guest notification)", booking.getBookingRef());
         }
         log.info("Booking {} cancelled by user {}", booking.getBookingRef(), userId);
         return toResponse(cancelled);
