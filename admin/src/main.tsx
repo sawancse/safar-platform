@@ -8,7 +8,7 @@ import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <GoogleOAuthProvider clientId="819322140862-2i0jo66s31uj6dk0a0tn5fr9f53ljugu.apps.googleusercontent.com">
+    <GoogleOAuthProvider clientId="819322140862-vhinup8o6ojbasa9tc0rr8i57boiuqr1.apps.googleusercontent.com">
       <ConfigProvider
         theme={{
           token: {
