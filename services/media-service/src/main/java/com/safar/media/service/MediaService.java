@@ -7,7 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.UUID;
 
 @Service
@@ -24,6 +26,15 @@ public class MediaService {
 
     @Value("${aws.s3.bucket}")
     private String bucket;
+
+    /** Server-side upload: receive bytes from browser, PUT to S3, return CDN URL. Avoids browser→S3 CORS. */
+    public String uploadGeneric(String folder, MultipartFile file, UUID userId) throws IOException {
+        String contentType = file.getContentType() != null ? file.getContentType() : "image/jpeg";
+        String ext = contentType.contains("/") ? contentType.split("/")[1] : "jpg";
+        String key = folder + "/" + userId + "/" + System.currentTimeMillis() + "." + ext;
+        s3Gateway.upload(key, file.getBytes(), contentType);
+        return "https://" + cdnDomain + "/" + key;
+    }
 
     public PresignResponse generatePresignedUrl(String mediaType, String contentType, UUID listingId) {
         UUID mediaId = UUID.randomUUID();

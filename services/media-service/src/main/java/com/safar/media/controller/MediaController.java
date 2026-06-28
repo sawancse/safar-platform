@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 
@@ -75,6 +76,17 @@ public class MediaController {
         String uploadUrl = s3Gateway.generatePresignedUrl(key, contentType);
         String publicUrl = uploadUrl.split("\\?")[0];
         return ResponseEntity.ok(Map.of("uploadUrl", uploadUrl, "publicUrl", publicUrl, "key", key));
+    }
+
+    /** Server-side proxy upload — browser sends file here, we PUT to S3, return CDN URL.
+     *  Avoids browser→S3 CORS issues entirely. */
+    @PostMapping(value = "/upload/generic", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, String>> uploadGeneric(
+            @RequestParam String folder,
+            @RequestPart("file") MultipartFile file,
+            @RequestHeader("X-User-Id") UUID userId) throws IOException {
+        String publicUrl = mediaService.uploadGeneric(folder, file, userId);
+        return ResponseEntity.ok(Map.of("publicUrl", publicUrl));
     }
 
     /** Generic presign for builder projects, sale properties, etc. */
