@@ -67,6 +67,16 @@ public class InternalBookingController {
         return ResponseEntity.ok(Map.of("total", bookings.size(), "updated", updated));
     }
 
+    /**
+     * Idempotent backfill: provision the PG tenancy + host-signed agreement for an
+     * already-CONFIRMED PG booking (predates auto-provision at confirmBooking).
+     * Does not change booking status. Internal-only (behind gateway).
+     */
+    @PostMapping("/{id}/provision-pg")
+    public ResponseEntity<Map<String, Object>> provisionPg(@PathVariable UUID id) {
+        return ResponseEntity.ok(bookingService.provisionPgForBooking(id));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<BookingResponse> getBooking(@PathVariable UUID id) {
         // Return the full BookingResponse DTO so notification-service gets

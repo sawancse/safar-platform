@@ -1213,6 +1213,27 @@ public class BookingService {
         }
     }
 
+    /**
+     * One-off/idempotent backfill: provision the PG tenancy + agreement for an
+     * already-CONFIRMED PG booking that predates {@link #autoProvisionPgTenancy}
+     * being wired into confirmBooking. Does NOT change booking status.
+     */
+    @Transactional
+    public Map<String, Object> provisionPgForBooking(UUID bookingId) {
+        Booking b = getBookingById(bookingId);
+        boolean before = pgTenancyRepo.findBySourceBookingId(b.getId()).isPresent();
+        autoProvisionPgTenancy(b, b.getHostId());
+        var t = pgTenancyRepo.findBySourceBookingId(b.getId());
+        Map<String, Object> r = new HashMap<>();
+        r.put("bookingRef", b.getBookingRef());
+        r.put("bookingType", b.getBookingType());
+        r.put("status", b.getStatus() != null ? b.getStatus().name() : null);
+        r.put("tenancyExistedBefore", before);
+        r.put("tenancyExistsNow", t.isPresent());
+        t.ifPresent(x -> r.put("tenancyRef", x.getTenancyRef()));
+        return r;
+    }
+
     @Transactional
     public BookingResponse completeBooking(UUID bookingId, UUID hostId) {
         Booking booking = getBookingById(bookingId);
