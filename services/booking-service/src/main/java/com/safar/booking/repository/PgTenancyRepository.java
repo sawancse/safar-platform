@@ -27,6 +27,9 @@ public interface PgTenancyRepository extends JpaRepository<PgTenancy, UUID> {
 
     Optional<PgTenancy> findByTenancyRef(String tenancyRef);
 
+    /** Idempotency guard for auto-provisioning: one tenancy per source booking. */
+    Optional<PgTenancy> findBySourceBookingId(UUID sourceBookingId);
+
     long countByListingIdAndStatus(UUID listingId, TenancyStatus status);
 
     List<PgTenancy> findByStatusAndMoveOutDateLessThanEqual(TenancyStatus status, LocalDate date);

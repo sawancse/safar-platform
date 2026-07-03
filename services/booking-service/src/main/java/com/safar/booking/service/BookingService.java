@@ -67,6 +67,7 @@ public class BookingService {
     private final CouponService couponService;
     private final PgTenancyService pgTenancyService;
     private final TenancyAgreementService tenancyAgreementService;
+    private final com.safar.booking.repository.PgTenancyRepository pgTenancyRepo;
 
     public ListingServiceClient getListingClient() { return listingClient; }
 
@@ -696,6 +697,9 @@ public class BookingService {
             saved = bookingRepo.save(saved);
             holdInventory(saved); // auto-confirmed (no online payment) → reserve inventory now
             log.info("Auto-confirmed PAY_AT_PROPERTY booking: {}", saved.getBookingRef());
+            // PG pay-at-property bookings are confirmed here (not via confirmBooking),
+            // so provision the tenancy + agreement now too. Idempotent + never throws.
+            autoProvisionPgTenancy(saved, saved.getHostId());
         }
 
         // Send Kafka event AFTER transaction commits so notification-service can find the booking
@@ -774,6 +778,11 @@ public class BookingService {
         } catch (Exception e) {
             log.warn("Failed to send Kafka event for confirmed booking {}: {}", booking.getBookingRef(), e.getMessage());
         }
+        // PG bookings: auto-create the tenancy + host-signed agreement now that payment
+        // is in, instead of waiting for the host to manually check the guest in. This is
+        // what sends the "Your Rental Agreement is Ready" email (via tenancy.agreement.
+        // host-signed). Idempotent + never throws, so it can't break confirmation.
+        autoProvisionPgTenancy(confirmed, confirmed.getHostId());
         // Embedded trip-protection: issue the policy server-side now that payment is in
         // (idempotent per booking; secret-gated). Must never block confirmation.
         if (confirmed.getTripProtectionPaise() != null && confirmed.getTripProtectionPaise() > 0) {
@@ -1075,8 +1084,29 @@ public class BookingService {
         }
         log.info("Booking {} checked in by host {}", booking.getBookingRef(), hostId);
 
-        // Auto-create PG tenancy on check-in for PG bookings
-        if ("PG".equals(booking.getBookingType()) && booking.getRoomTypeId() != null) {
+        // Auto-provision PG tenancy + agreement on check-in. Idempotent: a booking
+        // confirmed online is already provisioned at confirmBooking, so this is a
+        // no-op there — it still heals legacy bookings confirmed before that change.
+        autoProvisionPgTenancy(booking, hostId);
+
+        return toResponse(saved);
+    }
+
+    /**
+     * Create the PG tenancy + host-signed agreement + paid first-month invoice for a
+     * PG booking. Idempotent (one tenancy per source booking) so it is safe to call
+     * from both {@link #confirmBooking} (online payment / PAY_AT_PROPERTY auto-confirm)
+     * and {@link #checkInBooking}. Never throws — provisioning failures are logged and
+     * must never block the caller's booking state transition.
+     */
+    void autoProvisionPgTenancy(Booking booking, UUID hostId) {
+        if (!"PG".equals(booking.getBookingType()) || booking.getRoomTypeId() == null) {
+            return;
+        }
+        if (pgTenancyRepo.findBySourceBookingId(booking.getId()).isPresent()) {
+            return; // already provisioned — no double tenancy/agreement/invoice
+        }
+        {
             try {
                 // Determine sharing type from listing room type
                 String sharingType = "TWO_SHARING"; // default for PG
@@ -1181,8 +1211,6 @@ public class BookingService {
                 log.warn("Failed to auto-create PG tenancy for booking {}: {}", booking.getBookingRef(), e.getMessage());
             }
         }
-
-        return toResponse(saved);
     }
 
     @Transactional
