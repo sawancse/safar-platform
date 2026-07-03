@@ -228,6 +228,11 @@ export default function ProfileScreen() {
           <Text style={styles.menuArrow}>›</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/services-insurance')}>
+          <Text style={styles.menuLabel}>🛡️ Insurance & Loans</Text>
+          <Text style={styles.menuArrow}>›</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.menuItem} onPress={handleSignOutAll}>
           <Text style={[styles.menuLabel, { color: '#dc2626' }]}>🔒 Sign out all devices</Text>
         </TouchableOpacity>

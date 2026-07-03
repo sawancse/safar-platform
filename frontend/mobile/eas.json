@@ -17,7 +17,8 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "API_URL": "https://api.bhramankaro.com"
+        "API_URL": "https://api.bhramankaro.com",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "819322140862-vhinup8o6ojbasa9tc0rr8i57boiuqr1.apps.googleusercontent.com"
       },
       "android": {
         "buildType": "apk"
@@ -26,7 +27,8 @@
     "production": {
       "autoIncrement": true,
       "env": {
-        "API_URL": "https://api.bhramankaro.com"
+        "API_URL": "https://api.bhramankaro.com",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "819322140862-vhinup8o6ojbasa9tc0rr8i57boiuqr1.apps.googleusercontent.com"
       },
       "android": {
         "buildType": "app-bundle"

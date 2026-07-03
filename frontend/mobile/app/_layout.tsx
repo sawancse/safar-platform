@@ -91,6 +91,9 @@ export default function RootLayout() {
             <Stack.Screen name="storefront/[slug]" options={{ title: 'Storefront' }} />
             <Stack.Screen name="services-cake" options={{ title: 'Designer Cakes' }} />
             <Stack.Screen name="services-vendors" options={{ title: 'Service Vendors' }} />
+            <Stack.Screen name="services-insurance" options={{ title: 'Insurance & Loans' }} />
+            <Stack.Screen name="services-insurance-compare" options={{ title: 'Compare Plans' }} />
+            <Stack.Screen name="services-insurance-claims" options={{ title: 'Claims' }} />
             <Stack.Screen name="booking/[id]" options={{ title: 'Booking' }} />
           </Stack>
         </I18nProvider>

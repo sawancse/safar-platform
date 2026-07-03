@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Linking,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { api } from '@/lib/api';
@@ -30,6 +30,8 @@ export default function AgreementDetailScreen() {
   const [agreement, setAgreement] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [stamping, setStamping] = useState(false);
+  const [signing, setSigning] = useState(false);
 
   const load = useCallback(async () => {
     const token = await getAccessToken();
@@ -53,6 +55,44 @@ export default function AgreementDetailScreen() {
       Alert.alert('Failed', e.message ?? 'Try again.');
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function handleEstamp() {
+    const token = await getAccessToken();
+    if (!token || !id) return;
+    setStamping(true);
+    try {
+      const r = await api.estampAgreement(id, token);
+      Alert.alert('e-Stamp issued', r.stampCertificateNumber ? `Certificate: ${r.stampCertificateNumber}` : 'Your e-Stamp has been issued.');
+      await load();
+    } catch (e: any) {
+      Alert.alert('e-Stamp failed', e.message ?? 'Try again.');
+    } finally {
+      setStamping(false);
+    }
+  }
+
+  async function handleEsign() {
+    const token = await getAccessToken();
+    if (!token || !id) return;
+    setSigning(true);
+    try {
+      const env = await api.initiateAgreementEsign(id, token);
+      await load();
+      const links = env.signerLinks ?? [];
+      if (links.length === 0) {
+        Alert.alert('eSign initiated', 'Signing links will be sent to each party.');
+      } else {
+        // Open the first signer link; remaining parties get theirs by email/SMS.
+        const first = links[0].signingUrl;
+        const url = first.startsWith('http') ? first : `${(api.insuranceCertificateUrl('') || '').split('/api/')[0]}${first}`;
+        Linking.openURL(url).catch(() => Alert.alert('eSign ready', 'Open the signing link from your email to complete Aadhaar eSign.'));
+      }
+    } catch (e: any) {
+      Alert.alert('eSign failed', e.message ?? 'Try again.');
+    } finally {
+      setSigning(false);
     }
   }
 
@@ -123,6 +163,25 @@ export default function AgreementDetailScreen() {
       {agreement.draftPdfUrl ? (
         <Text style={styles.noteText}>Draft document is ready — download from your email or the web dashboard.</Text>
       ) : null}
+
+      {/* e-Stamp */}
+      {agreement.stampCertificateNumber ? (
+        <View style={[styles.card, { marginTop: 16 }]}>
+          <Text style={styles.stampLabel}>e-Stamp certificate</Text>
+          <Text style={styles.stampValue}>{agreement.stampCertificateNumber}</Text>
+        </View>
+      ) : agreement.status !== 'DRAFT' ? (
+        <TouchableOpacity style={[styles.secondaryBtn, stamping && { opacity: 0.6 }]} disabled={stamping} onPress={handleEstamp}>
+          {stamping ? <ActivityIndicator color="#4f46e5" /> : <Text style={styles.secondaryBtnText}>🧾 Get e-Stamp</Text>}
+        </TouchableOpacity>
+      ) : null}
+
+      {/* Aadhaar eSign */}
+      {agreement.status !== 'DRAFT' && agreement.status !== 'SIGNED' && agreement.status !== 'REGISTERED' ? (
+        <TouchableOpacity style={[styles.primaryBtn, signing && { opacity: 0.6 }]} disabled={signing} onPress={handleEsign}>
+          {signing ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>✍️ Sign with Aadhaar eSign</Text>}
+        </TouchableOpacity>
+      ) : null}
     </ScrollView>
   );
 }
@@ -156,5 +215,9 @@ const styles = StyleSheet.create({
   partyRole:   { fontSize: 12, color: '#6b7280' },
   primaryBtn:  { backgroundColor: '#f97316', borderRadius: 12, paddingVertical: 15, alignItems: 'center', marginTop: 18 },
   primaryBtnText:{ color: '#fff', fontSize: 16, fontWeight: '700' },
+  secondaryBtn: { borderWidth: 1.5, borderColor: '#4f46e5', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 12 },
+  secondaryBtnText: { color: '#4f46e5', fontSize: 15, fontWeight: '700' },
+  stampLabel:  { fontSize: 12, color: '#6b7280', fontWeight: '600' },
+  stampValue:  { fontSize: 15, fontWeight: '800', color: '#111827', marginTop: 4 },
   noteText:    { fontSize: 12, color: '#6b7280', marginTop: 12, textAlign: 'center' },
 });

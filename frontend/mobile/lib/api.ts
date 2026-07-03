@@ -1683,4 +1683,102 @@ export const api = {
       method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
     });
   },
+
+  // ── Single booking (resume / modify pending) ─────────────────────────────
+  getBooking(id: string, token: string) {
+    return apiFetch<any>(`/api/v1/bookings/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+  },
+
+  // ── Coupons ──────────────────────────────────────────────────────────────
+  validateCoupon(body: { code: string; listingId: string; subtotalPaise: number }, token?: string) {
+    return apiFetch<{ valid: boolean; code: string; message: string; discountPaise: number; discountType: string | null }>(
+      '/api/v1/coupons/validate',
+      {
+        method: 'POST', body: JSON.stringify(body),
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      },
+    );
+  },
+
+  // ── Insurance & Loans marketplace ────────────────────────────────────────
+  getInsuranceProducts() {
+    return apiFetch<any[]>('/api/v1/insurance/marketplace/products').catch(() => [] as any[]);
+  },
+  quoteInsurance(body: { coverageType: string; tenureDays?: number; ageYears?: number }) {
+    return apiFetch<any>('/api/v1/insurance/marketplace/quote', {
+      method: 'POST', body: JSON.stringify(body),
+    });
+  },
+  compareInsurance(body: { coverageType: string; tenureDays?: number; ages?: number[]; originCode?: string; destinationCode?: string }) {
+    return apiFetch<{ plans: any[] }>('/api/v1/insurance/marketplace/compare', {
+      method: 'POST', body: JSON.stringify(body),
+    });
+  },
+  createInsuranceOrder(body: { quoteId?: string; coverageType: string; fullName: string; contactEmail: string; contactPhone: string; bookingId?: string; addOnCodes?: string[] }, token: string) {
+    return apiFetch<any>('/api/v1/insurance/marketplace/create-order', {
+      method: 'POST', body: JSON.stringify(body),
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+  confirmInsurancePayment(body: { policyId: string; razorpayOrderId?: string; razorpayPaymentId?: string; razorpaySignature?: string }, token: string) {
+    return apiFetch<any>('/api/v1/insurance/marketplace/confirm-payment', {
+      method: 'POST', body: JSON.stringify(body),
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+  getMyInsurancePolicies(token: string) {
+    return apiFetch<{ content: any[] }>('/api/v1/insurance/my', { headers: { Authorization: `Bearer ${token}` } })
+      .catch(() => ({ content: [] as any[] }));
+  },
+  insuranceAdvisorCallback(body: { name: string; phone: string; email?: string; product?: string; coverageType?: string; city?: string; preferredTime?: string; notes?: string }, token?: string) {
+    return apiFetch<any>('/api/v1/insurance/marketplace/advisor-callback', {
+      method: 'POST', body: JSON.stringify(body),
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
+  insuranceCertificateUrl(policyRef: string) {
+    return `${BASE_URL}/api/v1/insurance/certificate/${policyRef}`;
+  },
+
+  // ── Agreements: e-Stamp + Aadhaar eSign ──────────────────────────────────
+  estampAgreement(id: string, token: string) {
+    return apiFetch<any>(`/api/v1/agreements/${id}/estamp`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+  initiateAgreementEsign(id: string, token: string) {
+    return apiFetch<{ documentId: string; status: string; signerLinks: { partyRef: string; signingUrl: string }[] }>(
+      `/api/v1/agreements/${id}/esign`,
+      { method: 'POST', headers: { Authorization: `Bearer ${token}` } },
+    );
+  },
+  getAgreementEsignStatus(id: string) {
+    return apiFetch<any>(`/api/v1/agreements/${id}/esign/status`);
+  },
+  signAgreement(id: string, partyId: string, token: string) {
+    return apiFetch<any>(`/api/v1/agreements/${id}/sign/${partyId}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  // ── Generic media upload (proxy through backend, avoids S3 CORS) ──────────
+  async uploadGenericFile(uri: string, folder: string, token: string): Promise<string> {
+    const filename = uri.split('/').pop() ?? 'upload.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : 'image/jpeg';
+    const formData = new FormData();
+    formData.append('file', { uri, name: filename, type } as any);
+    const res = await fetch(`${BASE_URL}/api/v1/media/upload/generic?folder=${encodeURIComponent(folder)}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
+      body: formData,
+    });
+    if (!res.ok) {
+      let msg = `HTTP ${res.status}`;
+      try { const b = await res.json(); msg = b.message ?? b.error ?? msg; } catch {}
+      throw new Error(msg);
+    }
+    const data = await res.json();
+    return data.publicUrl ?? data.url ?? data.cdnUrl ?? '';
+  },
 };

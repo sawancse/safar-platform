@@ -50,6 +50,16 @@ export default function BookScreen() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('upi');
   const [pendingQueueCount, setPendingQueueCount] = useState(0);
 
+  // Coupon (MakeMyTrip-style)
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPaise: number } | null>(null);
+  const [couponMsg, setCouponMsg] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  // Trip protection (embedded insurance)
+  const [protectionQuote, setProtectionQuote] = useState<{ quoteId: string; premiumPaise: number; coverageHighlights: string[] } | null>(null);
+  const [protectionOpted, setProtectionOpted] = useState(false);
+
   const isOnline = isConnected && isInternetReachable;
 
   // Date and guest state with URL param defaults
@@ -81,6 +91,44 @@ export default function BookScreen() {
   useEffect(() => {
     getQueuedBookings().then((q) => setPendingQueueCount(q.length));
   }, []);
+
+  // Trip-protection quote (best-effort; hidden if it fails)
+  useEffect(() => {
+    api.quoteInsurance({ coverageType: 'STAY_PROTECTION' })
+      .then((q) => setProtectionQuote({ quoteId: q.quoteId, premiumPaise: q.premiumPaise, coverageHighlights: q.coverageHighlights ?? [] }))
+      .catch(() => setProtectionQuote(null));
+  }, []);
+
+  // Reset any applied coupon when the stay changes (backend re-validates on booking anyway)
+  useEffect(() => {
+    setAppliedCoupon(null);
+    setCouponMsg('');
+  }, [checkIn, checkOut, adults, children]);
+
+  async function applyCoupon() {
+    if (!couponInput.trim() || !listing) return;
+    setCouponLoading(true);
+    setCouponMsg('');
+    try {
+      const token = await getAccessToken();
+      const res = await api.validateCoupon(
+        { code: couponInput.trim().toUpperCase(), listingId: listingId!, subtotalPaise: listing.basePricePaise * nights },
+        token || undefined,
+      );
+      if (res.valid) {
+        setAppliedCoupon({ code: res.code, discountPaise: res.discountPaise });
+        setCouponMsg('');
+      } else {
+        setAppliedCoupon(null);
+        setCouponMsg(res.message || 'Invalid coupon');
+      }
+    } catch (e: any) {
+      setAppliedCoupon(null);
+      setCouponMsg(e.message || 'Could not validate coupon');
+    } finally {
+      setCouponLoading(false);
+    }
+  }
 
   async function handleBook() {
     const token = await getAccessToken();
@@ -115,7 +163,11 @@ export default function BookScreen() {
     setError('');
     try {
       const b = await api.createBooking(
-        { listingId, checkIn: checkIn + 'T14:00:00', checkOut: checkOut + 'T11:00:00', guestsCount: guests },
+        {
+          listingId, checkIn: checkIn + 'T14:00:00', checkOut: checkOut + 'T11:00:00', guestsCount: guests,
+          couponCode: appliedCoupon?.code || undefined,
+          tripProtection: protectionOpted,
+        },
         token,
       );
       setBooking(b);
@@ -210,10 +262,13 @@ export default function BookScreen() {
   }
 
   const subtotalPaise = listing.basePricePaise * nights;
-  const gstPaise      = listing.gstApplicable ? Math.round(subtotalPaise * 0.18) : 0;
+  const couponDiscountPaise = appliedCoupon?.discountPaise ?? 0;
+  const couponedBasePaise = Math.max(0, subtotalPaise - couponDiscountPaise);
+  const gstPaise      = listing.gstApplicable ? Math.round(couponedBasePaise * 0.18) : 0;
   const isPG = listing.listingType === 'PG' || listing.listingType === 'COLIVING';
   const securityDepositPaise = isPG ? (listing.securityDepositPaise ?? 0) : 0;
-  const totalPaise    = subtotalPaise + gstPaise + securityDepositPaise;
+  const protectionPaise = protectionOpted && protectionQuote ? protectionQuote.premiumPaise : 0;
+  const totalPaise    = couponedBasePaise + gstPaise + securityDepositPaise + protectionPaise;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
@@ -303,12 +358,67 @@ export default function BookScreen() {
         <Text style={styles.dates}>{guests} guest{guests > 1 ? 's' : ''}</Text>
       </View>
 
+      {/* Coupon */}
+      <View style={styles.card}>
+        <Text style={styles.payMethodTitle}>Have a coupon?</Text>
+        {appliedCoupon ? (
+          <View style={styles.couponApplied}>
+            <Text style={styles.couponAppliedText}>✓ {appliedCoupon.code} applied — {formatPaise(appliedCoupon.discountPaise)} off</Text>
+            <TouchableOpacity onPress={() => { setAppliedCoupon(null); setCouponInput(''); setCouponMsg(''); }}>
+              <Text style={styles.couponRemove}>Remove</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.couponRow}>
+            <TextInput
+              style={styles.couponInput}
+              placeholder="Enter code"
+              placeholderTextColor="#9ca3af"
+              autoCapitalize="characters"
+              value={couponInput}
+              onChangeText={(v) => setCouponInput(v.toUpperCase())}
+            />
+            <TouchableOpacity style={styles.couponApplyBtn} onPress={applyCoupon} disabled={couponLoading}>
+              {couponLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.couponApplyText}>Apply</Text>}
+            </TouchableOpacity>
+          </View>
+        )}
+        {couponMsg !== '' && <Text style={styles.couponError}>{couponMsg}</Text>}
+      </View>
+
+      {/* Trip protection */}
+      {protectionQuote && (
+        <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={() => setProtectionOpted((v) => !v)}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{ fontSize: 18, marginRight: 8 }}>{protectionOpted ? '☑' : '☐'}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.protTitle}>🛡️ Add Trip Protection · {formatPaise(protectionQuote.premiumPaise)}</Text>
+              {protectionQuote.coverageHighlights.slice(0, 2).map((h, i) => (
+                <Text key={i} style={styles.protHighlight}>• {h}</Text>
+              ))}
+            </View>
+          </View>
+        </TouchableOpacity>
+      )}
+
       {/* Price breakdown */}
       <View style={styles.card}>
         <View style={styles.priceRow}>
           <Text style={styles.priceLabel}>{formatPaise(listing.basePricePaise)} x {nights} night</Text>
           <Text style={styles.priceValue}>{formatPaise(subtotalPaise)}</Text>
         </View>
+        {couponDiscountPaise > 0 && (
+          <View style={styles.priceRow}>
+            <Text style={[styles.priceLabel, { color: '#16a34a' }]}>Coupon ({appliedCoupon?.code})</Text>
+            <Text style={[styles.priceValue, { color: '#16a34a' }]}>− {formatPaise(couponDiscountPaise)}</Text>
+          </View>
+        )}
+        {protectionPaise > 0 && (
+          <View style={styles.priceRow}>
+            <Text style={styles.priceLabel}>🛡️ Trip Protection</Text>
+            <Text style={styles.priceValue}>{formatPaise(protectionPaise)}</Text>
+          </View>
+        )}
         {securityDepositPaise > 0 && (
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>Security deposit (refundable)</Text>
@@ -510,4 +620,18 @@ const styles = StyleSheet.create({
   payMethodOptionIconActive: { color: '#5b21b6', backgroundColor: '#ede9fe' },
   payMethodOptionText:       { fontSize: 13, fontWeight: '600', color: '#6b7280', marginLeft: 8 },
   payMethodOptionTextActive: { color: '#5b21b6' },
+
+  // Coupon
+  couponRow:        { flexDirection: 'row', gap: 8, marginTop: 4 },
+  couponInput:      { flex: 1, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: '#111827', backgroundColor: '#f9fafb' },
+  couponApplyBtn:   { backgroundColor: '#f97316', borderRadius: 8, paddingHorizontal: 18, justifyContent: 'center', alignItems: 'center' },
+  couponApplyText:  { color: '#fff', fontWeight: '700', fontSize: 14 },
+  couponApplied:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f0fdf4', borderRadius: 8, padding: 10, marginTop: 4 },
+  couponAppliedText:{ color: '#15803d', fontWeight: '600', fontSize: 13, flex: 1 },
+  couponRemove:     { color: '#dc2626', fontWeight: '600', fontSize: 13, marginLeft: 8 },
+  couponError:      { color: '#dc2626', fontSize: 12, marginTop: 6 },
+
+  // Trip protection
+  protTitle:     { fontSize: 14, fontWeight: '700', color: '#111827' },
+  protHighlight: { fontSize: 12, color: '#6b7280', marginTop: 2 },
 });

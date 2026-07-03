@@ -5,8 +5,9 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { api } from '@/lib/api';
-import { getAccessToken } from '@/lib/auth';
+import { getAccessToken, getUserId } from '@/lib/auth';
 
 const ORANGE = '#f97316';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -43,6 +44,13 @@ export default function ProjectDetailScreen() {
   const [calcPreferredFacing, setCalcPreferredFacing] = useState(false);
   const [calculatedPrice, setCalculatedPrice] = useState<any>(null);
   const [calculating, setCalculating] = useState(false);
+
+  // Owner photo management
+  const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
+  useEffect(() => { getUserId().then(setMyUserId); }, []);
 
   const loadData = useCallback(async () => {
     if (!id) return;
@@ -95,6 +103,64 @@ export default function ProjectDetailScreen() {
     if (!token) { router.push('/auth'); return; }
     Alert.alert('Visit Requested', 'The builder will confirm your site visit schedule.');
   }, [router]);
+
+  function projectPatchPayload(p: any, overrides: Record<string, any>) {
+    return {
+      builderName: p.builderName,
+      projectName: p.projectName,
+      city: p.city,
+      state: p.state || 'Telangana',
+      pincode: p.pincode || '500001',
+      projectStatus: p.projectStatus,
+      ...overrides,
+    };
+  }
+
+  const handleOwnerPhotoUpload = useCallback(async () => {
+    if (!project) return;
+    const token = await getAccessToken();
+    if (!token) { router.push('/auth'); return; }
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (perm.status !== 'granted') {
+      Alert.alert('Permission needed', 'Please grant photo library access.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.8,
+    });
+    if (result.canceled || result.assets.length === 0) return;
+    setPhotoUploading(true);
+    setPhotoError(null);
+    try {
+      const newUrls: string[] = [];
+      for (const asset of result.assets) {
+        const url = await api.uploadGenericFile(asset.uri, 'builder-photos', token);
+        if (url) newUrls.push(url);
+      }
+      const allPhotos = [...(project.photos || []), ...newUrls];
+      await api.updateBuilderProject(project.id, projectPatchPayload(project, { photos: allPhotos }), token);
+      setProject((prev: any) => (prev ? { ...prev, photos: allPhotos } : prev));
+    } catch (err: any) {
+      setPhotoError(err?.message || 'Upload failed. Check your connection and try again.');
+    } finally {
+      setPhotoUploading(false);
+    }
+  }, [project, router]);
+
+  const handleOwnerRemovePhoto = useCallback(async (idx: number) => {
+    if (!project) return;
+    const token = await getAccessToken();
+    if (!token) return;
+    const newPhotos = (project.photos || []).filter((_: string, i: number) => i !== idx);
+    try {
+      await api.updateBuilderProject(project.id, projectPatchPayload(project, { photos: newPhotos }), token);
+      setProject((prev: any) => (prev ? { ...prev, photos: newPhotos } : prev));
+    } catch (err: any) {
+      Alert.alert('Failed to remove photo', err?.message || 'Unknown error');
+    }
+  }, [project]);
 
   if (loading) {
     return (
@@ -152,6 +218,43 @@ export default function ProjectDetailScreen() {
             <Text style={styles.placeholderText}>No Photos</Text>
           </View>
         )}
+
+        {/* Owner photo management */}
+        {myUserId && project.builderId && myUserId === project.builderId ? (
+          <View style={styles.ownerBar}>
+            <Text style={styles.ownerBarTitle}>Your Project</Text>
+            <View style={styles.ownerActions}>
+              <TouchableOpacity
+                style={[styles.ownerBtn, photoUploading && { opacity: 0.6 }]}
+                disabled={photoUploading}
+                onPress={handleOwnerPhotoUpload}
+              >
+                {photoUploading
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <Text style={styles.ownerBtnText}>+ Add Photos</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.ownerBtnOutline}
+                onPress={() => router.push(`/builder-dashboard`)}
+              >
+                <Text style={styles.ownerBtnOutlineText}>Edit Project</Text>
+              </TouchableOpacity>
+            </View>
+            {photoError ? <Text style={styles.ownerError}>{photoError}</Text> : null}
+            {photos.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }} contentContainerStyle={{ gap: 8 }}>
+                {photos.map((uri, idx) => (
+                  <View key={idx} style={styles.thumbWrap}>
+                    <Image source={{ uri }} style={styles.thumb} />
+                    <TouchableOpacity style={styles.thumbRemove} onPress={() => handleOwnerRemovePhoto(idx)}>
+                      <Text style={styles.thumbRemoveText}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : null}
+          </View>
+        ) : null}
 
         <View style={styles.content}>
           {/* Builder name + verified badge */}
@@ -395,6 +498,18 @@ const styles = StyleSheet.create({
   galleryImage: { width: SCREEN_WIDTH, height: 260, backgroundColor: '#f3f4f6' },
   galleryPlaceholder: { justifyContent: 'center', alignItems: 'center' },
   placeholderText: { color: '#9ca3af', fontSize: 14 },
+  ownerBar:        { backgroundColor: '#eff6ff', borderBottomWidth: 1, borderBottomColor: '#bfdbfe', padding: 14 },
+  ownerBarTitle:   { fontSize: 13, fontWeight: '800', color: '#1e40af', marginBottom: 8 },
+  ownerActions:    { flexDirection: 'row', gap: 10 },
+  ownerBtn:        { backgroundColor: '#2563eb', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 9 },
+  ownerBtnText:    { color: '#fff', fontWeight: '700', fontSize: 13 },
+  ownerBtnOutline: { borderWidth: 1.5, borderColor: '#2563eb', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 9 },
+  ownerBtnOutlineText: { color: '#2563eb', fontWeight: '700', fontSize: 13 },
+  ownerError:      { color: '#dc2626', fontSize: 12, marginTop: 8 },
+  thumbWrap:       { width: 64, height: 64, borderRadius: 8, overflow: 'hidden', position: 'relative' },
+  thumb:           { width: 64, height: 64, borderRadius: 8 },
+  thumbRemove:     { position: 'absolute', top: 2, right: 2, backgroundColor: 'rgba(220,38,38,0.9)', width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  thumbRemoveText: { color: '#fff', fontSize: 14, fontWeight: '800', lineHeight: 16 },
   content: { padding: 16 },
   builderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   builderName: { fontSize: 13, color: '#6b7280', fontWeight: '500' },
