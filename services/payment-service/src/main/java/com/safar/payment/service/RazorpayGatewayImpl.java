@@ -11,17 +11,26 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
 @Component
 @Slf4j
 public class RazorpayGatewayImpl implements RazorpayGateway {
 
     private final RazorpayClient razorpay;
+    private final String keyId;
     private final String keySecret;
 
     public RazorpayGatewayImpl(
             @Value("${razorpay.key-id}") String keyId,
             @Value("${razorpay.key-secret}") String keySecret) throws Exception {
         this.razorpay = new RazorpayClient(keyId, keySecret);
+        this.keyId = keyId;
         this.keySecret = keySecret;
     }
 
@@ -131,7 +140,12 @@ public class RazorpayGatewayImpl implements RazorpayGateway {
         req.put("accept_partial", (Object) false);
         req.put("description", (Object) (description != null ? description : "BhramanKaro booking balance"));
         // Razorpay auto-sends WhatsApp + SMS + email when these flags are true.
-        req.put("reference_id", (Object) ("bal-" + bookingId + "-" + System.currentTimeMillis()));
+        // Razorpay caps reference_id at 40 chars; a full UUID (36) + prefix + timestamp
+        // overflows. The full bookingId still travels in notes.bookingId (webhook routing),
+        // so an 8-char prefix + timestamp is enough to stay unique here.
+        String shortBooking = bookingId != null && bookingId.length() > 8
+                ? bookingId.substring(0, 8) : String.valueOf(bookingId);
+        req.put("reference_id", (Object) ("bal-" + shortBooking + "-" + System.currentTimeMillis()));
 
         JSONObject customer = new JSONObject();
         if (customerName != null && !customerName.isBlank()) customer.put("name", (Object) customerName);
@@ -149,11 +163,41 @@ public class RazorpayGatewayImpl implements RazorpayGateway {
         notes.put("purpose", (Object) "BALANCE_PAYMENT");
         req.put("notes", (Object) notes);
 
-        PaymentLink link = razorpay.paymentLink.create(req);
-        String linkId = link.get("id").toString();
-        String shortUrl = link.get("short_url").toString();
+        // razorpay-java 1.4.5 mangles the nested "customer" object when serializing
+        // paymentLink.create() → Razorpay rejects it with
+        // "BAD_REQUEST_ERROR: incorrect JSON object received - faulty key: customer".
+        // The raw REST API accepts this exact JSON, so POST it directly.
+        JSONObject link = razorpayPost("/v1/payment_links", req);
+        String linkId = link.getString("id");
+        String shortUrl = link.getString("short_url");
         log.info("Razorpay PaymentLink created for booking {}: {} -> {}", bookingId, linkId, shortUrl);
         return new PaymentLinkResult(linkId, shortUrl);
+    }
+
+    /**
+     * Direct Razorpay REST call. Bypasses razorpay-java 1.4.5's broken nested-object
+     * serialization (see createPaymentLink). Throws RazorpayException on non-2xx with
+     * the API's error description.
+     */
+    private JSONObject razorpayPost(String path, JSONObject body) throws Exception {
+        String auth = Base64.getEncoder().encodeToString(
+                (keyId + ":" + keySecret).getBytes(StandardCharsets.UTF_8));
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.razorpay.com" + path))
+                .header("Authorization", "Basic " + auth)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8))
+                .build();
+        HttpResponse<String> resp = HttpClient.newHttpClient()
+                .send(request, HttpResponse.BodyHandlers.ofString());
+        JSONObject json = new JSONObject(resp.body());
+        if (resp.statusCode() < 200 || resp.statusCode() >= 300) {
+            String msg = json.optJSONObject("error") != null
+                    ? json.getJSONObject("error").optString("description", resp.body())
+                    : resp.body();
+            throw new com.razorpay.RazorpayException(msg);
+        }
+        return json;
     }
 
     @Override

@@ -29,6 +29,10 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
+                        // Permit the error dispatch so controller exceptions surface as their
+                        // real status (e.g. 500 + message) instead of a misleading 401 from
+                        // the re-dispatch hitting anyRequest().authenticated().
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/v1/payments/webhook/**").permitAll()
                         .requestMatchers("/api/v1/payments/tenancy/webhook/**").permitAll()
                         .requestMatchers("/api/v1/payments/fx/currencies").permitAll()
