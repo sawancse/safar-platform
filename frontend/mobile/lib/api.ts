@@ -859,11 +859,13 @@ export const api = {
     const type = match ? `image/${match[1]}` : 'image/jpeg';
     const formData = new FormData();
     formData.append('file', { uri, name: filename, type } as any);
-    formData.append('listingId', listingId);
-    formData.append('category', category);
-    const res = await fetch(`${BASE_URL}/api/v1/media/upload`, {
+    formData.append('mediaType', 'PHOTO');
+    if (category) formData.append('category', category);
+    // listing-service owns multipart listing photos. The old target
+    // POST /api/v1/media/upload does not exist on media-service (401/404).
+    const res = await fetch(`${BASE_URL}/api/v1/listings/${listingId}/media/upload`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
+      headers: { Authorization: `Bearer ${token}` },
       body: formData,
     });
     if (!res.ok) {
