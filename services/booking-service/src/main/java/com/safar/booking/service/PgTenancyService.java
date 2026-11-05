@@ -435,9 +435,16 @@ public class PgTenancyService {
             int total = rt.get("totalBeds") != null ? ((Number) rt.get("totalBeds")).intValue()
                     : (rt.get("count") != null ? ((Number) rt.get("count")).intValue() : 0);
             int occupied = rt.get("occupiedBeds") != null ? ((Number) rt.get("occupiedBeds")).intValue() : 0;
+            int roomCount = rt.get("count") != null ? ((Number) rt.get("count")).intValue() : 1;
             // Treat null sharingType as "need 1 bed" (most common PG shared case).
-            // PRIVATE tenants take the whole room; everyone else takes a single bed.
-            int needed = "PRIVATE".equals(sharingType) ? Math.max(1, total) : 1;
+            // A PRIVATE tenant takes ONE room unit, not the whole room-type pool:
+            // totalBeds = bedsPerRoom * count, so beds for a single private room is
+            // totalBeds / count (e.g. 10 single rooms → totalBeds 10, count 10 → 1 bed each).
+            // This MUST match listing-service bedsForSharingType(), which increments
+            // occupancy by exactly this amount on move-in — otherwise check-in demands
+            // far more free beds than move-in consumes and blocks an available room.
+            int bedsPerRoom = roomCount > 0 ? Math.max(1, total / roomCount) : 1;
+            int needed = "PRIVATE".equals(sharingType) ? bedsPerRoom : 1;
             int free = total - occupied;
             if (free < needed) {
                 throw new IllegalStateException("This room is fully occupied ("
