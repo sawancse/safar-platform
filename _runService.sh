@@ -23,8 +23,16 @@ run_service() {
     return
   fi
   cd "$SVC_DIR" || { echo "cd failed"; return; }
+  # Load Razorpay creds from .env (Terminal tabs may predate User env vars)
+  ENV_FILE="/c/Users/Win-10/safar-platform/.env"
+  if [ -f "$ENV_FILE" ]; then
+    while IFS= read -r line; do
+      line="${line%$'\r'}"
+      case "$line" in RAZORPAY_*=*) export "$line";; esac
+    done < "$ENV_FILE"
+  fi
   echo "==> Starting $SERVICE in $SVC_DIR"
-  mvn clean spring-boot:run "-Dspring-boot.run.jvmArguments=-XX:+UseG1GC -XX:ParallelGCThreads=2 -Xms512m -Xmx512m"
+  mvn clean spring-boot:run "-Dspring-boot.run.jvmArguments=-XX:+UseG1GC -XX:ParallelGCThreads=2 -Xms128m -Xmx128m"
   echo
   echo "==> $SERVICE exited (code $?)."
 }

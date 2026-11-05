@@ -80,13 +80,13 @@ $services = if ($CoreOnly) { $core } else { $core + $extra }
 
 Write-Host "==> 2/5  Java services ($($services.Count))" -ForegroundColor Cyan
 foreach ($s in $services) {
-  Tab $s.n "$Platform\services\$($s.d)" "mvn spring-boot:run"
+  Tab $s.n "$Platform\services\$($s.d)" 'mvn spring-boot:run "-Dspring-boot.run.jvmArguments=-XX:+UseG1GC -XX:ParallelGCThreads=2 -Xms128m -Xmx128m"'
 }
 
 Write-Host "==> 3/5  AI service (8090) + API Gateway (8080, last)" -ForegroundColor Cyan
 Tab 'ai-service' "$Platform\services\ai-service" "uvicorn main:app --host 0.0.0.0 --port 8090 --reload"
 Start-Sleep -Seconds 5
-Tab 'gateway' "$Platform\services\api-gateway" "mvn spring-boot:run"
+Tab 'gateway' "$Platform\services\api-gateway" 'mvn spring-boot:run "-Dspring-boot.run.jvmArguments=-XX:+UseG1GC -XX:ParallelGCThreads=2 -Xms128m -Xmx128m"'
 
 Write-Host "==> 4/5  Frontends (web 3000, admin 3001)" -ForegroundColor Cyan
 if ($Dev) {

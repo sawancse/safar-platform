@@ -18,7 +18,7 @@ PROJECTS=(
 )
 
 # JVM Arguments
-JVM_OPTS="-XX:+UseG1GC -XX:ParallelGCThreads=2 -Xms512m -Xmx512m"
+JVM_OPTS="-XX:+UseG1GC -XX:ParallelGCThreads=2 -Xms128m -Xmx128m"
 
 echo "🚀 Starting Microservices in new tabs..."
 

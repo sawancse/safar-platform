@@ -21,7 +21,7 @@ do
 
     # Create the temporary shell script
     # Note: We use single quotes for the echo to safely wrap the double quotes inside
-    echo "cd \"$FULL_PATH\" && mvn clean spring-boot:run \"-Dspring-boot.run.jvmArguments=-XX:+UseG1GC -XX:ParallelGCThreads=2 -Xms512m -Xmx512m\"" > "run_$project.sh"
+    echo "cd \"$FULL_PATH\" && mvn clean spring-boot:run \"-Dspring-boot.run.jvmArguments=-XX:+UseG1GC -XX:ParallelGCThreads=2 -Xms128m -Xmx128m\"" > "run_$project.sh"
     
     chmod +x "run_$project.sh"
 
