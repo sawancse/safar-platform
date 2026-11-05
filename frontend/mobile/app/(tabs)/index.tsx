@@ -13,12 +13,12 @@ import {
   Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import Constants from 'expo-constants';
+import { API_BASE_URL } from '@/lib/config';
 import { api } from '@/lib/api';
 import { formatPaise } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
 
-const API_URL = Constants.expoConfig?.extra?.apiUrl ?? 'http://localhost:8080';
+const API_URL = API_BASE_URL;
 
 interface Listing {
   id: string;

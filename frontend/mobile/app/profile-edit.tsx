@@ -5,12 +5,11 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import Constants from 'expo-constants';
+import { API_BASE_URL } from '@/lib/config';
 import { api } from '@/lib/api';
 import { getAccessToken } from '@/lib/auth';
 
-const BASE_URL: string =
-  (Constants.expoConfig?.extra?.apiUrl as string) ?? 'http://localhost:8080';
+const BASE_URL: string = API_BASE_URL;
 
 const AVATAR_COLORS = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#ec4899'];
 

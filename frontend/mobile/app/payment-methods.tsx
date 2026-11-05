@@ -5,8 +5,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { getAccessToken } from '@/lib/auth';
+import { API_BASE_URL } from '@/lib/config';
 
-const API_URL = 'http://localhost:8080';
+const API_URL = API_BASE_URL;
 
 interface PaymentMethod {
   id: string;

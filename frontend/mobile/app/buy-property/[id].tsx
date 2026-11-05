@@ -5,11 +5,11 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Constants from 'expo-constants';
+import { API_BASE_URL } from '@/lib/config';
 import { api } from '@/lib/api';
 import { getAccessToken } from '@/lib/auth';
 
-const API_URL = Constants.expoConfig?.extra?.apiUrl ?? 'http://localhost:8080';
+const API_URL = API_BASE_URL;
 const ORANGE = '#f97316';
 const SCREEN_WIDTH = Dimensions.get('window').width;
 

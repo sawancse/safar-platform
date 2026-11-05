@@ -1,8 +1,9 @@
 import * as AuthSession from 'expo-auth-session';
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
+import { API_V1_URL } from '@/lib/config';
 
-const API_BASE = 'http://localhost:8080/api/v1';
+const API_BASE = API_V1_URL;
 
 // Google OAuth configuration
 const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '';

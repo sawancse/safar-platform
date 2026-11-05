@@ -3,12 +3,13 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
+import { API_V1_URL } from '@/lib/config';
 import axios from 'axios';
 
 // Mirror lib/api.ts base resolution so a deployed build hits the live gateway,
 // not localhost (on a phone, localhost is the device itself).
 const API_BASE =
-  ((Constants.expoConfig?.extra?.apiUrl as string) ?? 'http://localhost:8080') + '/api/v1';
+  API_V1_URL;
 
 // Configure notification behavior
 Notifications.setNotificationHandler({

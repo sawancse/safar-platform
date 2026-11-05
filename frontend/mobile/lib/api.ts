@@ -1,8 +1,7 @@
-import Constants from 'expo-constants';
+import { API_BASE_URL } from '@/lib/config';
 import * as SecureStore from 'expo-secure-store';
 
-const BASE_URL: string =
-  (Constants.expoConfig?.extra?.apiUrl as string) ?? 'http://localhost:8080';
+const BASE_URL: string = API_BASE_URL;
 
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {

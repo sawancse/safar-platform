@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 import en from '@/locales/en.json';
 import hi from '@/locales/hi.json';
+import { API_V1_URL } from '@/lib/config';
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
@@ -91,7 +92,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       const token = await SecureStore.getItemAsync('safar_access_token');
       if (token) {
         // Fire-and-forget
-        fetch('http://localhost:8080/api/v1/users/me/language', {
+        fetch(`${API_V1_URL}/users/me/language`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

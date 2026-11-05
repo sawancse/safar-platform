@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Image, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import Constants from 'expo-constants';
+import { API_BASE_URL } from '@/lib/config';
 import { getAccessToken, getUserRole, clearTokens } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n';
 import { api } from '@/lib/api';
 import LanguageSelector from '@/components/LanguageSelector';
 
-const BASE_URL: string =
-  (Constants.expoConfig?.extra?.apiUrl as string) ?? 'http://localhost:8080';
+const BASE_URL: string = API_BASE_URL;
 
 const AVATAR_COLORS = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#ec4899'];
 
