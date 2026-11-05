@@ -49,6 +49,9 @@ public class SettlementLine {
     private OffsetDateTime scheduledAt;
     private OffsetDateTime completedAt;
 
+    /** Checkout + dispute window; the HOST line is not payable before this. Null = unknown (not payable). */
+    private OffsetDateTime payoutEligibleAt;
+
     @Column(length = 500)
     private String failureReason;
 

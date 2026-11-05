@@ -33,6 +33,34 @@ public class InternalController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Beneficiary details for RazorpayX payouts (payment-service only; gateway does not route /internal).
+     * Returns kycVerified=false (and no bank data) unless KYC is VERIFIED and the bank is verified.
+     */
+    @GetMapping("/hosts/{hostId}/payout-details")
+    public ResponseEntity<Map<String, Object>> getPayoutDetails(@PathVariable UUID hostId) {
+        var kycOpt = kycRepository.findByUserId(hostId);
+        if (kycOpt.isEmpty()) {
+            return ResponseEntity.ok(Map.of("kycVerified", false, "reason", "No KYC on file"));
+        }
+        HostKyc kyc = kycOpt.get();
+        boolean verified = kyc.getStatus() == com.safar.user.entity.enums.KycStatus.VERIFIED
+                && Boolean.TRUE.equals(kyc.getBankVerified());
+        if (!verified) {
+            return ResponseEntity.ok(Map.of("kycVerified", false,
+                    "reason", "KYC status " + kyc.getStatus() + ", bankVerified=" + kyc.getBankVerified()));
+        }
+        var email = profileRepository.findById(hostId).map(p -> p.getEmail() != null ? p.getEmail() : "").orElse("");
+        Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("kycVerified", true);
+        out.put("method", "BANK");
+        out.put("name", kyc.getBankAccountName() != null ? kyc.getBankAccountName() : kyc.getFullLegalName());
+        out.put("accountNumber", kyc.getBankAccountNumber());
+        out.put("ifsc", kyc.getBankIfsc());
+        out.put("email", email);
+        return ResponseEntity.ok(out);
+    }
+
     @GetMapping("/users/{userId}/email")
     public ResponseEntity<java.util.Map<String, String>> getUserEmail(@PathVariable UUID userId) {
         try {

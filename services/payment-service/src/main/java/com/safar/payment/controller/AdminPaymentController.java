@@ -34,11 +34,71 @@ public class AdminPaymentController {
     private final GstInvoiceRepository gstInvoiceRepository;
     private final SettlementService settlementService;
     private final PaymentRepository paymentRepository;
+    private final com.safar.payment.service.PayoutService payoutService;
 
     @GetMapping("/payouts")
     public ResponseEntity<List<Payout>> getAllPayouts(Authentication auth) {
         requireAdmin(auth);
         return ResponseEntity.ok(payoutRepository.findAll());
+    }
+
+    /** Admin visibility: payouts for one booking. */
+    @GetMapping(value = "/payouts", params = "bookingId")
+    public ResponseEntity<List<Payout>> getPayoutsByBooking(@RequestParam UUID bookingId, Authentication auth) {
+        requireAdmin(auth);
+        return ResponseEntity.ok(payoutRepository.findByBookingId(bookingId));
+    }
+
+    /** "Pay host": create-if-missing + send. Idempotent per settlement line. */
+    @PostMapping("/payouts/by-settlement/{lineId}/execute")
+    public ResponseEntity<?> executePayout(@PathVariable UUID lineId,
+                                           @RequestParam(defaultValue = "false") boolean force, Authentication auth) {
+        requireAdmin(auth);
+        try {
+            return ResponseEntity.ok(payoutService.executeForSettlementLine(lineId, force));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /** Preview: unpaid HOST lines already past checkout + dispute window, grouped by host. */
+    @GetMapping("/payouts/eligible")
+    public ResponseEntity<?> eligiblePayouts(Authentication auth) {
+        requireAdmin(auth);
+        var out = new ArrayList<Map<String, Object>>();
+        payoutService.eligibleLinesByHost().forEach((hostId, lines) -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("hostId", hostId);
+            row.put("lines", lines.size());
+            row.put("totalPaise", lines.stream().mapToLong(l -> l.getAmountPaise()).sum());
+            row.put("lineIds", lines.stream().map(l -> l.getId()).toList());
+            out.add(row);
+        });
+        return ResponseEntity.ok(out);
+    }
+
+    /** Pays all eligible lines of one host as a single payout. force=true ignores the dispute window. */
+    @PostMapping("/payouts/batch/{hostId}")
+    public ResponseEntity<?> batchPayout(@PathVariable UUID hostId,
+                                         @RequestParam(defaultValue = "false") boolean force, Authentication auth) {
+        requireAdmin(auth);
+        try {
+            return payoutService.executeBatchForHost(hostId, force)
+                    .<ResponseEntity<?>>map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.ok(Map.of("message", "Nothing payable for this host yet")));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/payouts/{id}/retry")
+    public ResponseEntity<?> retryPayout(@PathVariable UUID id, Authentication auth) {
+        requireAdmin(auth);
+        try {
+            return ResponseEntity.ok(payoutService.retry(id));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/payouts/status/{status}")
@@ -188,23 +248,6 @@ public class AdminPaymentController {
         log.info("Admin processing settlement for booking {} (plan {})", bookingId, plan.getId());
         SettlementPlan processed = settlementService.processSettlement(plan.getId());
         return ResponseEntity.ok(processed);
-    }
-
-    // ── Retry failed payout ──────────────────────────────────────────────────
-
-    @PostMapping("/payouts/{payoutId}/retry")
-    public ResponseEntity<Payout> retryPayout(@PathVariable UUID payoutId, Authentication auth) {
-        requireAdmin(auth);
-        Payout payout = payoutRepository.findById(payoutId)
-                .orElseThrow(() -> new IllegalArgumentException("Payout not found: " + payoutId));
-        if (payout.getStatus() != PayoutStatus.FAILED) {
-            throw new IllegalStateException("Only FAILED payouts can be retried, current status: " + payout.getStatus());
-        }
-        log.info("Admin retrying failed payout {} for host {}", payoutId, payout.getHostId());
-        payout.setStatus(PayoutStatus.PENDING);
-        payout.setFailureReason(null);
-        Payout saved = payoutRepository.save(payout);
-        return ResponseEntity.ok(saved);
     }
 
     // ── Payouts by host ──────────────────────────────────────────────────────

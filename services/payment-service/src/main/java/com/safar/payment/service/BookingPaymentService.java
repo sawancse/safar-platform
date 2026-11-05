@@ -6,6 +6,7 @@ import com.safar.payment.entity.Payout;
 import com.safar.payment.entity.enums.PaymentStatus;
 import com.safar.payment.entity.enums.PayoutStatus;
 import com.safar.payment.repository.PaymentRepository;
+import com.safar.payment.repository.PayoutItemRepository;
 import com.safar.payment.repository.PayoutRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,8 @@ public class BookingPaymentService {
     private final PaymentRepository paymentRepo;
     private final PayoutRepository payoutRepo;
     private final KafkaTemplate<String, String> kafka;
+    private final LedgerService ledgerService;
+    private final PayoutItemRepository payoutItemRepo;
 
     @Value("${razorpay.key-id}")
     private String razorpayKeyId;
@@ -167,31 +170,48 @@ public class BookingPaymentService {
             String utr = payoutEntity.optString("utr", null);
 
             payoutRepo.findByRazorpayPayoutId(razorpayPayoutId).ifPresentOrElse(payout -> {
+                PayoutStatus cur = payout.getStatus();
                 switch (eventType) {
                     case "payout.processed" -> {
+                        if (cur != PayoutStatus.PROCESSING && cur != PayoutStatus.PENDING) {
+                            log.info("Ignoring {} for payout {} in state {}", eventType, razorpayPayoutId, cur);
+                            return;
+                        }
                         payout.setStatus(PayoutStatus.COMPLETED);
                         payout.setCompletedAt(OffsetDateTime.now());
+                        if (utr != null && !utr.isBlank()) payout.setUtr(utr.length() > 40 ? utr.substring(0, 40) : utr);
                         payoutRepo.save(payout);
+                        postPayoutLedger(payout, false, "Host payout completed (UTR " + utr + ")");
                         kafka.send("payout.completed", payout.getHostId().toString());
-                        log.info("Payout completed: {} (UTR: {}) for host {}",
-                                razorpayPayoutId, utr, payout.getHostId());
+                        log.info("Payout completed: {} (UTR: {}) for host {}", razorpayPayoutId, utr, payout.getHostId());
                     }
                     case "payout.reversed" -> {
+                        if (cur != PayoutStatus.PROCESSING && cur != PayoutStatus.COMPLETED) {
+                            log.info("Ignoring {} for payout {} in state {}", eventType, razorpayPayoutId, cur);
+                            return;
+                        }
+                        // A COMPLETED payout that is reversed returns money to us: undo the bank_cash entry.
+                        if (cur == PayoutStatus.COMPLETED) {
+                            postPayoutLedger(payout, true, "Host payout reversed");
+                        }
                         payout.setStatus(PayoutStatus.REVERSED);
                         payout.setFailureReason("Payout reversed by bank. Status: " + status);
                         payoutRepo.save(payout);
                         kafka.send("payout.reversed", payout.getHostId().toString());
                         log.warn("Payout reversed: {} for host {}", razorpayPayoutId, payout.getHostId());
                     }
-                    case "payout.failed" -> {
+                    case "payout.failed", "payout.rejected" -> {
+                        if (cur != PayoutStatus.PROCESSING && cur != PayoutStatus.PENDING) {
+                            log.info("Ignoring {} for payout {} in state {}", eventType, razorpayPayoutId, cur);
+                            return;
+                        }
                         String failureReason = payoutEntity.optString("failure_reason", "Unknown");
                         payout.setStatus(PayoutStatus.FAILED);
                         payout.setFailureReason(failureReason);
                         payout.setRetryCount(payout.getRetryCount() + 1);
                         payoutRepo.save(payout);
                         kafka.send("payout.failed", payout.getHostId().toString());
-                        log.error("Payout failed: {} for host {} — {}",
-                                razorpayPayoutId, payout.getHostId(), failureReason);
+                        log.error("Payout failed: {} for host {} — {}", razorpayPayoutId, payout.getHostId(), failureReason);
                     }
                     default -> log.debug("Unhandled payout event: {}", eventType);
                 }
@@ -301,6 +321,21 @@ public class BookingPaymentService {
         }
 
         return saved;
+    }
+
+    /** One ledger entry per booking paid by this payout (batched payouts span many bookings). */
+    private void postPayoutLedger(Payout payout, boolean reverse, String description) {
+        var items = payoutItemRepo.findByPayoutId(payout.getId());
+        if (items.isEmpty() && payout.getBookingId() != null) {
+            items = java.util.List.of(com.safar.payment.entity.PayoutItem.builder()
+                    .bookingId(payout.getBookingId()).amountPaise(payout.getNetAmountPaise()).build());
+        }
+        for (var it : items) {
+            if (it.getBookingId() == null) continue;
+            ledgerService.recordEntry(it.getBookingId(), reverse ? "PAYOUT_REVERSAL" : "PAYOUT",
+                    reverse ? "bank_cash" : "host_payable", reverse ? "host_payable" : "bank_cash",
+                    it.getAmountPaise(), description, payout.getId());
+        }
     }
 
     private String extractField(String json, String field) {

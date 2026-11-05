@@ -58,6 +58,15 @@ razorpay:
   key-secret: ${RAZORPAY_KEY_SECRET:}
   webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
 
+razorpayx:
+  account-number: ${RAZORPAY_ACCOUNT_NUMBER:}
+
+payouts:
+  auto-execute: ${PAYOUTS_AUTO_EXECUTE:false}
+  max-retries: 3
+  dispute-window-days: ${PAYOUT_DISPUTE_WINDOW_DAYS:2}
+  batch-cron: ${PAYOUT_BATCH_CRON:0 0 6 * * *}
+
 stripe:
   enabled: false
   api-key: ${STRIPE_API_KEY:sk_test_placeholder}

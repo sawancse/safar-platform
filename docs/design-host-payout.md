@@ -130,3 +130,11 @@ On payout COMPLETED: `host_payable → bank_cash` entry (amount = payout). On RE
 - Gateway: fail closed without account number; mocked HTTP for contact/fund-account/payout.
 - Webhook: bad signature 401, duplicate event no-op, failed→retry→processed.
 - Manual: ₹1 test payout in live mode before the first real one.
+
+## 8. Update: eligibility window + batching (implemented, migration V11)
+
+- **Eligibility**: a HOST line is payable at `payout_eligible_at = booking.checkOut + payouts.dispute-window-days` (default 2, IST). Stamped when the line settles; filled lazily for older lines. Checkout unknown ⇒ not payable (fail closed). Admin `force=true` overrides.
+- **Batching**: all eligible unpaid lines of one host go out as ONE payout. `payments.payout_items` links payout ↔ settlement lines (unique per line, so no line is ever paid twice). Single-line payouts keep `payouts.settlement_line_id`.
+- **Ledger**: on `payout.processed` one `host_payable → bank_cash` entry is posted per booking in the batch; reversal posts the opposite.
+- **Endpoints**: `GET /admin/payouts/eligible` (preview), `POST /admin/payouts/batch/{hostId}?force=`, `POST /admin/payouts/by-settlement/{lineId}/execute?force=`.
+- **Scheduler**: `PayoutBatchScheduler` (`payouts.batch-cron`, default 06:00) runs only when `payouts.auto-execute=true`; default false = manual.

@@ -25,10 +25,13 @@ public class RazorpayGatewayImpl implements RazorpayGateway {
     private final RazorpayClient razorpay;
     private final String keyId;
     private final String keySecret;
+    private final RazorpayXClient razorpayX;
 
     public RazorpayGatewayImpl(
             @Value("${razorpay.key-id}") String keyId,
-            @Value("${razorpay.key-secret}") String keySecret) throws Exception {
+            @Value("${razorpay.key-secret}") String keySecret,
+            RazorpayXClient razorpayX) throws Exception {
+        this.razorpayX = razorpayX;
         this.razorpay = new RazorpayClient(keyId, keySecret);
         this.keyId = keyId;
         this.keySecret = keySecret;
@@ -95,36 +98,13 @@ public class RazorpayGatewayImpl implements RazorpayGateway {
 
     @Override
     public String createPayout(String upiId, long amountPaise, String purpose, String referenceId) throws Exception {
-        // Razorpay Payouts API: create a contact + fund account + payout
-        // For UPI payouts, we use the RazorpayX Payout API
-        JSONObject payoutReq = new JSONObject();
-        payoutReq.put("account_number", (Object) System.getenv("RAZORPAY_ACCOUNT_NUMBER"));
-        payoutReq.put("amount", (Object) amountPaise);
-        payoutReq.put("currency", (Object) "INR");
-        payoutReq.put("mode", (Object) "UPI");
-        payoutReq.put("purpose", (Object) purpose);
-        payoutReq.put("reference_id", (Object) referenceId);
-
-        JSONObject fundAccount = new JSONObject();
-        JSONObject vpa = new JSONObject();
-        vpa.put("address", (Object) upiId);
-        fundAccount.put("account_type", (Object) "vpa");
-        fundAccount.put("vpa", (Object) vpa);
-        payoutReq.put("fund_account", (Object) fundAccount);
-
-        // Note: Razorpay Payouts API uses RazorpayX (different base URL)
-        // The razorpay-java SDK supports payouts via razorpay.payouts.create()
-        // In sandbox/test mode, payouts are auto-processed
-        log.info("Creating Razorpay payout: {} paise to UPI {} (ref={})", amountPaise, upiId, referenceId);
-
-        // Fail closed: the RazorpayX HTTP call is not implemented yet (see docs/design-host-payout.md §4.3).
-        // Returning a fake id used to mark payouts PROCESSING with an id no webhook could ever match.
-        // Throwing leaves the payout FAILED with a clear reason so it can be retried once RazorpayX is live.
-        String accountNumber = System.getenv("RAZORPAY_ACCOUNT_NUMBER");
-        if (accountNumber == null || accountNumber.isBlank()) {
-            throw new IllegalStateException("RazorpayX not configured (RAZORPAY_ACCOUNT_NUMBER missing) — payout not sent");
-        }
-        throw new UnsupportedOperationException("RazorpayX payout call not implemented yet — payout not sent");
+        // UPI payout via RazorpayX (contact → vpa fund account → payout). Fails closed if RazorpayX is not configured.
+        log.info("Creating RazorpayX UPI payout: {} paise (ref={})", amountPaise, referenceId);
+        String contactId = razorpayX.createContact("Safar payee", null, referenceId);
+        String fundAccountId = razorpayX.createVpaFundAccount(contactId, upiId);
+        String idem = java.util.UUID.nameUUIDFromBytes(referenceId.getBytes(StandardCharsets.UTF_8))
+                .toString().replace("-", "");
+        return razorpayX.createPayout(fundAccountId, true, amountPaise, purpose, referenceId, idem).payoutId();
     }
 
     @Override

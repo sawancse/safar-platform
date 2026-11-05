@@ -14,5 +14,7 @@ public interface PayoutRepository extends JpaRepository<Payout, UUID> {
     List<Payout> findByStatusAndScheduledAtBefore(PayoutStatus status, OffsetDateTime before);
     List<Payout> findByHostIdAndStatusIn(UUID hostId, List<PayoutStatus> statuses);
     List<Payout> findByStatus(PayoutStatus status);
+    Optional<Payout> findBySettlementLineId(UUID settlementLineId);
+    List<Payout> findByBookingId(UUID bookingId);
     Optional<Payout> findByRazorpayPayoutId(String razorpayPayoutId);
 }

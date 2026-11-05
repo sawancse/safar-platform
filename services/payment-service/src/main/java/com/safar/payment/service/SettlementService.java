@@ -24,6 +24,7 @@ public class SettlementService {
     private final SettlementPlanRepository settlementPlanRepo;
     private final SettlementLineRepository settlementLineRepo;
     private final LedgerService ledgerService;
+    private final PayoutEligibility payoutEligibility;
 
     private static final BigDecimal STARTER_COMMISSION = new BigDecimal("0.1800");
     private static final BigDecimal PRO_COMMISSION = new BigDecimal("0.1200");
@@ -148,6 +149,10 @@ public class SettlementService {
 
                 line.setStatus(SettlementStatus.COMPLETED);
                 line.setCompletedAt(OffsetDateTime.now());
+                if (line.getRecipientType() == RecipientType.HOST && line.getPayoutEligibleAt() == null) {
+                    // Payable only after checkout + dispute window; unknown checkout = not payable (fail closed)
+                    payoutEligibility.eligibleAt(plan.getBookingId()).ifPresent(line::setPayoutEligibleAt);
+                }
                 settlementLineRepo.save(line);
 
                 log.info("Settlement line completed: recipient={}, amount={} paise",
