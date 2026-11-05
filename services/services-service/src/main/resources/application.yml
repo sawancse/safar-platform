@@ -58,7 +58,7 @@ jwt:
 # Razorpay Checkout before we mark balance/advance paid. Same value as
 # payment-service's razorpay.key-secret — they are issued together by Razorpay.
 razorpay:
-  key-secret: ${RAZORPAY_KEY_SECRET:SOpQRO4wMc5zs1QdufzdfRMW}
+  key-secret: ${RAZORPAY_KEY_SECRET:}
 
 services:
   auth-service:

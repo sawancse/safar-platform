@@ -54,8 +54,8 @@ spring:
         max.partition.fetch.bytes: 1048576
 
 razorpay:
-  key-id: ${RAZORPAY_KEY_ID:rzp_test_SQHofxDdLYgOtm}
-  key-secret: ${RAZORPAY_KEY_SECRET:SOpQRO4wMc5zs1QdufzdfRMW}
+  key-id: ${RAZORPAY_KEY_ID:}
+  key-secret: ${RAZORPAY_KEY_SECRET:}
   webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
 
 stripe:

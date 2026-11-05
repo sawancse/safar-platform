@@ -61,8 +61,9 @@ public class RazorpayPaymentGateway implements PaymentGateway {
             attrs.put("razorpay_order_id", (Object) gatewayOrderId);
             attrs.put("razorpay_payment_id", (Object) gatewayPaymentId);
             attrs.put("razorpay_signature", (Object) signature);
-            Utils.verifyPaymentSignature(attrs, keySecret);
-            return new CaptureResult(gatewayPaymentId, null, true);
+            boolean valid = Utils.verifyPaymentSignature(attrs, keySecret);
+            if (!valid) log.warn("Payment signature mismatch for order {}", gatewayOrderId);
+            return new CaptureResult(gatewayPaymentId, null, valid);
         } catch (Exception e) {
             log.warn("Payment signature verification failed: {}", e.getMessage());
             return new CaptureResult(gatewayPaymentId, null, false);
@@ -85,8 +86,8 @@ public class RazorpayPaymentGateway implements PaymentGateway {
     @Override
     public boolean verifyWebhook(String payload, String signature, String secret) {
         try {
-            Utils.verifyWebhookSignature(payload, signature, secret);
-            return true;
+            if (signature == null || signature.isBlank() || secret == null || secret.isBlank()) return false;
+            return Utils.verifyWebhookSignature(payload, signature, secret);
         } catch (Exception e) {
             log.warn("Webhook signature verification failed: {}", e.getMessage());
             return false;
