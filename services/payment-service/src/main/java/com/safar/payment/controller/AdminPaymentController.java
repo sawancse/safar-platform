@@ -1,10 +1,13 @@
 package com.safar.payment.controller;
 
 import com.safar.payment.entity.GstInvoice;
+import com.safar.payment.entity.Payment;
 import com.safar.payment.entity.Payout;
 import com.safar.payment.entity.SettlementPlan;
+import com.safar.payment.entity.enums.PaymentStatus;
 import com.safar.payment.entity.enums.PayoutStatus;
 import com.safar.payment.repository.GstInvoiceRepository;
+import com.safar.payment.repository.PaymentRepository;
 import com.safar.payment.repository.PayoutRepository;
 import com.safar.payment.repository.SettlementPlanRepository;
 import com.safar.payment.service.LedgerService;
@@ -30,6 +33,7 @@ public class AdminPaymentController {
     private final LedgerService ledgerService;
     private final GstInvoiceRepository gstInvoiceRepository;
     private final SettlementService settlementService;
+    private final PaymentRepository paymentRepository;
 
     @GetMapping("/payouts")
     public ResponseEntity<List<Payout>> getAllPayouts(Authentication auth) {
@@ -143,23 +147,42 @@ public class AdminPaymentController {
             @RequestParam(required = false) String bookingType,
             @RequestParam(required = false) UUID hostId,
             @RequestParam(required = false) String hostTier,
+            @RequestParam(required = false) Long hostPayoutPaise,
+            @RequestParam(required = false) Long platformFeePaise,
+            @RequestParam(required = false) Long gstPaise,
+            @RequestParam(required = false) java.math.BigDecimal commissionRate,
             Authentication auth) {
         requireAdmin(auth);
 
         // Try existing plan first
         SettlementPlan plan = settlementPlanRepository.findByBookingId(bookingId).orElse(null);
 
-        // If no plan exists (COD/cash bookings), auto-create one
+        // No plan yet (nothing creates one at capture time) → create it now
         if (plan == null) {
-            if (totalAmountPaise == null || totalAmountPaise <= 0) {
+            Payment captured = paymentRepository.findFirstByBookingIdOrderByCreatedAtDesc(bookingId)
+                    .filter(p -> p.getStatus() == PaymentStatus.CAPTURED)
+                    .orElse(null);
+            UUID paymentId = captured != null ? captured.getId() : null;
+            long total = totalAmountPaise != null && totalAmountPaise > 0 ? totalAmountPaise
+                    : captured != null ? captured.getAmountPaise() : 0L;
+
+            if (total <= 0 || hostId == null) {
                 throw new IllegalArgumentException("No settlement plan exists for booking " + bookingId
-                        + ". For cash bookings, provide totalAmountPaise, hostId, bookingType, hostTier params to create one.");
+                        + ". Provide totalAmountPaise and hostId (plus hostPayoutPaise/platformFeePaise/gstPaise) to create one.");
             }
-            log.info("Auto-creating settlement plan for cash booking {} (amount={} paise)", bookingId, totalAmountPaise);
-            plan = settlementService.createSettlementPlan(
-                    bookingId, null, totalAmountPaise,
-                    bookingType != null ? bookingType : "SHORT_TERM",
-                    hostId, null, hostTier != null ? hostTier : "STARTER");
+
+            if (hostPayoutPaise != null && platformFeePaise != null) {
+                log.info("Creating settlement plan for booking {} from booking breakdown (total={} paise)", bookingId, total);
+                plan = settlementService.createSettlementPlanFromBooking(
+                        bookingId, paymentId, total, hostId, hostPayoutPaise, platformFeePaise,
+                        gstPaise != null ? gstPaise : 0L, commissionRate);
+            } else {
+                log.info("Creating settlement plan for booking {} from host tier (total={} paise)", bookingId, total);
+                plan = settlementService.createSettlementPlan(
+                        bookingId, paymentId, total,
+                        bookingType != null ? bookingType : "SHORT_TERM",
+                        hostId, null, hostTier != null ? hostTier : "STARTER");
+            }
         }
 
         log.info("Admin processing settlement for booking {} (plan {})", bookingId, plan.getId());

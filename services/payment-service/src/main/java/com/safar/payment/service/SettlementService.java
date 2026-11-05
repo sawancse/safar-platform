@@ -74,10 +74,53 @@ public class SettlementService {
         return plan;
     }
 
+    /**
+     * Creates a settlement plan from the booking's own computed breakdown
+     * (host payout / platform fee / GST) so settlement matches what the booking
+     * quoted. Any unallocated remainder (add-ons, rounding) goes to PLATFORM.
+     */
+    @Transactional
+    public SettlementPlan createSettlementPlanFromBooking(UUID bookingId, UUID paymentId, long totalAmountPaise,
+                                                          UUID hostId, long hostPayoutPaise, long platformFeePaise,
+                                                          long gstPaise, BigDecimal commissionRate) {
+        if (hostPayoutPaise < 0 || platformFeePaise < 0 || gstPaise < 0
+                || hostPayoutPaise + platformFeePaise + gstPaise > totalAmountPaise) {
+            throw new IllegalArgumentException("Booking breakdown (host " + hostPayoutPaise + " + fee " + platformFeePaise
+                    + " + gst " + gstPaise + ") does not fit total " + totalAmountPaise + " paise");
+        }
+        long remainder = totalAmountPaise - hostPayoutPaise - platformFeePaise - gstPaise;
+        if (remainder > 0) {
+            log.warn("Booking {}: {} paise not covered by host/fee/gst breakdown — allocating to PLATFORM", bookingId, remainder);
+        }
+
+        SettlementPlan plan = settlementPlanRepo.save(SettlementPlan.builder()
+                .bookingId(bookingId)
+                .paymentId(paymentId)
+                .totalAmountPaise(totalAmountPaise)
+                .status(SettlementStatus.PENDING)
+                .build());
+
+        createLine(plan, RecipientType.HOST, hostId, hostPayoutPaise, commissionRate);
+        createLine(plan, RecipientType.PLATFORM, null, platformFeePaise + remainder, commissionRate);
+        if (gstPaise > 0) {
+            createLine(plan, RecipientType.TAX_AUTHORITY, null, gstPaise, null);
+        }
+
+        log.info("Settlement plan created from booking breakdown for {}: host={} fee={} gst={} remainder={}",
+                bookingId, hostPayoutPaise, platformFeePaise, gstPaise, remainder);
+        return plan;
+    }
+
     @Transactional
     public SettlementPlan processSettlement(UUID planId) {
         SettlementPlan plan = settlementPlanRepo.findById(planId)
                 .orElseThrow(() -> new IllegalArgumentException("Settlement plan not found: " + planId));
+
+        // Idempotent: re-clicking "Settle" must not post the ledger entries twice
+        if (plan.getStatus() == SettlementStatus.COMPLETED) {
+            log.info("Settlement plan {} already COMPLETED — skipping re-process", planId);
+            return plan;
+        }
 
         plan.setStatus(SettlementStatus.PROCESSING);
         settlementPlanRepo.save(plan);
@@ -87,6 +130,7 @@ public class SettlementService {
         boolean anyFailed = false;
 
         for (SettlementLine line : lines) {
+            if (line.getStatus() == SettlementStatus.COMPLETED) continue; // don't re-post on retry
             try {
                 line.setStatus(SettlementStatus.PROCESSING);
                 settlementLineRepo.save(line);

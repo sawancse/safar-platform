@@ -25,7 +25,21 @@ const depositStatusColor: Record<string, string> = {
   PENDING: 'orange', COLLECTED: 'blue', REFUNDED: 'green', PARTIAL_REFUND: 'cyan',
 };
 
-const STATUSES = ['', 'DRAFT', 'PENDING_PAYMENT', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'CANCELLED', 'NO_SHOW'];
+// Settlement uses the booking's own breakdown so host payout matches what was quoted.
+const tierFromRate = (rate?: number) =>
+  rate == null ? 'STARTER' : rate <= 0.10 ? 'COMMERCIAL' : rate <= 0.12 ? 'PRO' : 'STARTER';
+const settlementParams = (b: any) => ({
+  totalAmountPaise: b.totalAmountPaise || 0,
+  hostId: b.hostId || '',
+  bookingType: b.bookingType || 'SHORT_TERM',
+  hostTier: tierFromRate(b.commissionRate),
+  hostPayoutPaise: b.hostPayoutPaise ?? undefined,
+  platformFeePaise: b.platformFeePaise ?? undefined,
+  gstPaise: b.gstAmountPaise ?? undefined,
+  commissionRate: b.commissionRate ?? undefined,
+});
+
+const STATUSES = ['', 'DRAFT','PENDING_PAYMENT', 'CONFIRMED', 'CHECKED_IN', 'COMPLETED', 'CANCELLED', 'NO_SHOW'];
 
 export default function BookingsPage() {
   const token = localStorage.getItem('admin_token') ?? '';
@@ -181,13 +195,7 @@ export default function BookingsPage() {
           {r.status === 'COMPLETED' && (
             <Popconfirm title="Process settlement for this booking?" onConfirm={async () => {
               try {
-                const isCash = r.paymentMode === 'PAY_AT_PROPERTY' || r.paymentMode === 'CASH_COLLECTED';
-                await adminApi.processSettlementByBooking(r.id, token, isCash ? {
-                  totalAmountPaise: r.totalAmountPaise || 0,
-                  hostId: r.hostId || '',
-                  bookingType: r.bookingType || 'SHORT_TERM',
-                  hostTier: 'STARTER',
-                } : undefined);
+                await adminApi.processSettlementByBooking(r.id, token, settlementParams(r));
                 message.success('Settlement processed');
               } catch (e: any) { message.error(e?.response?.data?.detail || 'Settlement failed'); }
             }}>
@@ -342,7 +350,7 @@ export default function BookingsPage() {
             {detail.status === 'COMPLETED' && (
               <Popconfirm title="Process settlement for this booking?" onConfirm={async () => {
                 try {
-                  await adminApi.processSettlementByBooking(detail.id, token);
+                  await adminApi.processSettlementByBooking(detail.id, token, settlementParams(detail));
                   message.success('Settlement processed');
                 } catch (e: any) { message.error(e?.response?.data?.detail || 'Settlement failed'); }
               }}>
