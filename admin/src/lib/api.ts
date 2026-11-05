@@ -325,8 +325,19 @@ export const adminApi = {
     return axios.post(`${BASE}/admin/settlements/by-booking/${bookingId}/process${q}`, {}, { headers: authHeaders(token) });
   },
 
+  /** Hosts with settled lines past checkout + dispute window, ready to be paid. */
+  getEligiblePayouts(token: string) {
+    return axios.get(`${BASE}/admin/payouts/eligible`, { headers: authHeaders(token) }).then(r => r.data).catch(() => []);
+  },
+
+  /** Pay all eligible lines of one host as a single RazorpayX payout. */
+  batchPayHost(hostId: string, token: string, force = false) {
+    return axios.post(`${BASE}/admin/payouts/batch/${hostId}${force ? '?force=true' : ''}`, {}, { headers: authHeaders(token) })
+      .then(r => r.data);
+  },
+
   retryPayout(payoutId: string, token: string) {
-    return axios.post(`${BASE}/admin/payouts/${payoutId}/retry`, {}, { headers: authHeaders(token) });
+    return axios.post(`${BASE}/admin/payouts/${payoutId}/retry`, {}, { headers: authHeaders(token) }).then(r => r.data);
   },
 
   initiateRefund(data: { paymentId: string; bookingId: string; amountPaise: number; reason: string; refundType: string }, token: string) {
