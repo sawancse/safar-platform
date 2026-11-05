@@ -40,6 +40,12 @@ public class Payout {
     private String upiId;
     private String razorpayPayoutId;
 
+    /** Settlement HOST line this payout pays out; unique → one payout per line. */
+    private UUID settlementLineId;
+    private String fundAccountId;
+    private String utr;
+    private String idempotencyKey;
+
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private PayoutStatus status = PayoutStatus.PENDING;

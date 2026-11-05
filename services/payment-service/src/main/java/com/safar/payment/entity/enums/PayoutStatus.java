@@ -5,5 +5,6 @@ public enum PayoutStatus {
     PROCESSING,
     COMPLETED,
     FAILED,
-    REVERSED
+    REVERSED,
+    CANCELLED
 }

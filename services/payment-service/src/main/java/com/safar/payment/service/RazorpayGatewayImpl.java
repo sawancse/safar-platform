@@ -117,12 +117,14 @@ public class RazorpayGatewayImpl implements RazorpayGateway {
         // In sandbox/test mode, payouts are auto-processed
         log.info("Creating Razorpay payout: {} paise to UPI {} (ref={})", amountPaise, upiId, referenceId);
 
-        // Razorpay Java SDK doesn't have a direct payouts.create() — use orders for now
-        // and implement the actual RazorpayX call when going live.
-        // For production: HTTP POST to https://api.razorpay.com/v1/payouts with above JSON
-        log.warn("Razorpay Payouts API (RazorpayX) requires separate activation. " +
-                "Payout recorded in DB — process manually or via RazorpayX dashboard until API is activated.");
-        return "pout_pending_" + referenceId;
+        // Fail closed: the RazorpayX HTTP call is not implemented yet (see docs/design-host-payout.md §4.3).
+        // Returning a fake id used to mark payouts PROCESSING with an id no webhook could ever match.
+        // Throwing leaves the payout FAILED with a clear reason so it can be retried once RazorpayX is live.
+        String accountNumber = System.getenv("RAZORPAY_ACCOUNT_NUMBER");
+        if (accountNumber == null || accountNumber.isBlank()) {
+            throw new IllegalStateException("RazorpayX not configured (RAZORPAY_ACCOUNT_NUMBER missing) — payout not sent");
+        }
+        throw new UnsupportedOperationException("RazorpayX payout call not implemented yet — payout not sent");
     }
 
     @Override
