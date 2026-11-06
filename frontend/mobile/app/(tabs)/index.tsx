@@ -69,6 +69,7 @@ export default function ExploreScreen() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [totalHits, setTotalHits] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
 
   // Experiences near you
@@ -157,6 +158,7 @@ export default function ExploreScreen() {
   }) => {
     if (!query.trim()) return;
     setLoading(true);
+    setSearchError(null);
     const fType = overrides?.type ?? filterType;
     const fSort = overrides?.sort ?? sortBy;
     const fInstant = overrides?.instant ?? instantBook;
@@ -176,9 +178,10 @@ export default function ExploreScreen() {
       setListings(result.listings ?? result.content ?? []);
       setTotalHits(result.totalHits ?? result.listings?.length ?? 0);
       setSearchedCity(query.trim());
-    } catch {
+    } catch (e: any) {
       setListings([]);
       setTotalHits(0);
+      setSearchError(e?.message ?? 'Search failed');
     } finally {
       setLoading(false);
       setSearched(true);
@@ -275,6 +278,12 @@ export default function ExploreScreen() {
   return (
     <View style={styles.container}>
       {/* Search bar */}
+      {/* Hero — same navy as the web home page (#003B95) */}
+      <View style={styles.hero}>
+        <Text style={styles.heroTitle}>Find your next stay</Text>
+        <Text style={styles.heroSubtitle}>Search deals on homes, hotels, PGs & much more...</Text>
+      </View>
+
       <View style={styles.searchRow}>
         <View style={{ flex: 1, position: 'relative' }}>
           <TextInput
@@ -423,9 +432,9 @@ export default function ExploreScreen() {
           ListEmptyComponent={
             searched ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyIcon}>🔍</Text>
-                <Text style={styles.emptyTitle}>{t('search.noResults')}</Text>
-                <Text style={styles.emptySubtitle}>{t('search.tryDifferent')}</Text>
+                <Text style={styles.emptyIcon}>{searchError ? '⚠️' : '🔍'}</Text>
+                <Text style={styles.emptyTitle}>{searchError ? 'Search failed' : t('search.noResults')}</Text>
+                <Text style={styles.emptySubtitle}>{searchError ?? t('search.tryDifferent')}</Text>
               </View>
             ) : (
               <View style={styles.empty}>
@@ -546,6 +555,9 @@ export default function ExploreScreen() {
 
 const styles = StyleSheet.create({
   container:          { flex: 1, backgroundColor: '#f9fafb' },
+  hero:               { backgroundColor: '#003B95', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 18 },
+  heroTitle:          { color: '#fff', fontSize: 26, fontWeight: '700', letterSpacing: -0.4 },
+  heroSubtitle:       { color: 'rgba(255,255,255,0.8)', fontSize: 14, marginTop: 4 },
   searchRow:          { flexDirection: 'row', gap: 8, padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   input:              { flex: 1, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, backgroundColor: '#fff' },
   searchBtn:          { backgroundColor: '#f97316', borderRadius: 12, paddingHorizontal: 16, justifyContent: 'center' },

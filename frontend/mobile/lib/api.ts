@@ -4,18 +4,25 @@ import * as SecureStore from 'expo-secure-store';
 const BASE_URL: string = API_BASE_URL;
 
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers ?? {}),
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers ?? {}),
+      },
+    });
+  } catch (e: any) {
+    // Name the host so a blocked/unreachable API is visible instead of looking like "no results".
+    throw new Error(`Cannot reach ${BASE_URL} (${e?.message ?? 'network error'})`);
+  }
   if (!res.ok) {
     let msg = `HTTP ${res.status}`;
     try {
       const body = await res.json();
-      msg = body.message ?? body.error ?? msg;
+      // Spring problem-detail bodies carry the reason in `detail`; older handlers use `message`/`error`.
+      msg = body.detail ?? body.message ?? body.error ?? body.title ?? msg;
     } catch {}
     throw new Error(msg);
   }
@@ -378,7 +385,7 @@ export const api = {
     });
     if (!res.ok) {
       let msg = `HTTP ${res.status}`;
-      try { const b = await res.json(); msg = b.message ?? b.error ?? msg; } catch {}
+      try { const b = await res.json(); msg = b.detail ?? b.message ?? b.error ?? b.title ?? msg; } catch {}
       throw new Error(msg);
     }
     return res.json() as Promise<{ avatarUrl: string }>;
@@ -869,7 +876,7 @@ export const api = {
     });
     if (!res.ok) {
       let msg = `HTTP ${res.status}`;
-      try { const b = await res.json(); msg = b.message ?? b.error ?? msg; } catch {}
+      try { const b = await res.json(); msg = b.detail ?? b.message ?? b.error ?? b.title ?? msg; } catch {}
       throw new Error(msg);
     }
     return res.json();
@@ -1776,7 +1783,7 @@ export const api = {
     });
     if (!res.ok) {
       let msg = `HTTP ${res.status}`;
-      try { const b = await res.json(); msg = b.message ?? b.error ?? msg; } catch {}
+      try { const b = await res.json(); msg = b.detail ?? b.message ?? b.error ?? b.title ?? msg; } catch {}
       throw new Error(msg);
     }
     const data = await res.json();
