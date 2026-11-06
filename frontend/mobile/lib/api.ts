@@ -50,12 +50,12 @@ export const api = {
     });
   },
 
-  verifyOtp(phone: string, otp: string, name?: string) {
+  verifyOtp(phone: string, otp: string, name?: string, email?: string) {
     return apiFetch<{ accessToken: string; refreshToken: string; userId: string; role: string }>(
       '/api/v1/auth/otp/verify',
       {
         method: 'POST',
-        body: JSON.stringify({ phone, otp, name }),
+        body: JSON.stringify({ phone, otp, name, email }),
       }
     );
   },

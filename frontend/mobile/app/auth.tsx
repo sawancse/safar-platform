@@ -96,7 +96,7 @@ export default function AuthScreen() {
     setLoading(true);
     setError('');
     try {
-      const auth = await api.verifyOtp(`+91${phone}`, otp, name || undefined);
+      const auth = await api.verifyOtp(`+91${phone}`, otp, name || undefined, email.trim() || undefined);
       await saveTokens(auth);
       router.back();
     } catch (e: any) {
@@ -338,6 +338,15 @@ export default function AuthScreen() {
           placeholder="Your name (first time only)"
           value={name}
           onChangeText={setName}
+        />
+        <TextInput
+          style={styles.nameInput}
+          placeholder="Your email (first time only)"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          value={email}
+          onChangeText={setEmail}
         />
         <TouchableOpacity
           style={[styles.btn, (loading || otp.length !== 6) && styles.btnDisabled]}
